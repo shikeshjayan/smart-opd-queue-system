@@ -1,0 +1,77 @@
+"use client";
+
+import { usePatientDashboard } from "@/features/patient/hooks/usePatient";
+import { ActiveTokenCard } from "@/features/patient/components/ActiveTokenCard";
+import { QuickActions } from "@/features/patient/components/QuickActions";
+import { PatientStats } from "@/features/patient/components/PatientStats";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/feedback/error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
+import Link from "next/link";
+
+export default function DashboardPage() {
+  const { data, isLoading, error, reload } = usePatientDashboard();
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-52 w-full" />
+        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <ErrorState message={error} onRetry={reload} />;
+  }
+
+  if (!data) return null;
+
+  const { activeToken, quickActions, stats, notifications } = data;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold text-ink-900">Dashboard</h1>
+
+      {activeToken ? (
+        <ActiveTokenCard bundle={activeToken} />
+      ) : (
+        <EmptyState
+          title="No active OPD token"
+          description="You don't have a token right now. Select a hospital to get started."
+          action={
+            <Link
+              href="/patient/hospitals"
+              className="inline-flex h-11 items-center rounded-btn bg-brand-600 px-5 font-medium text-white transition-colors hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              Get a Token
+            </Link>
+          }
+        />
+      )}
+
+      <QuickActions actions={quickActions} />
+      <PatientStats stats={stats} />
+
+      {notifications.length > 0 && (
+        <section aria-labelledby="notifications-title">
+          <h2 id="notifications-title" className="text-lg font-semibold text-ink-900">
+            Notifications
+          </h2>
+          <ul className="mt-2 flex flex-col gap-2">
+            {notifications.map((notif) => (
+              <li
+                key={notif.id}
+                className="rounded-card border border-ink-200 bg-surface p-3 shadow-card"
+              >
+                <p className="text-sm text-ink-900">{notif.message}</p>
+                <p className="mt-0.5 text-xs text-ink-400">{notif.time}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}

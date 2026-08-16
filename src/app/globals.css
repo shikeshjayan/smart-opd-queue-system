@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  --color-brand-50: #f0f7ff;
+  --color-brand-100: #e0efff;
+  --color-brand-200: #b9deff;
+  --color-brand-300: #7cc5ff;
+  --color-brand-400: #36a6ff;
+  --color-brand-500: #0b8bf2;
+  --color-brand-600: #006dce;
+  --color-brand-700: #0057a7;
+  --color-brand-800: #064a8a;
+  --color-brand-900: #0b3f72;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f7fa;
+
+  --color-ink-100: #f1f5f9;
+  --color-ink-200: #e2e8f0;
+  --color-ink-300: #cbd5e1;
+  --color-ink-400: #94a3b8;
+  --color-ink-500: #64748b;
+  --color-ink-700: #334155;
+  --color-ink-900: #0f172a;
+
+  --color-status-success: #15803d;
+  --color-status-success-soft: #dcfce7;
+  --color-status-warning: #b45309;
+  --color-status-warning-soft: #fef3c7;
+  --color-status-danger: #b91c1c;
+  --color-status-danger-soft: #fee2e2;
+  --color-status-info: #0369a1;
+  --color-status-info-soft: #e0f2fe;
+
+  --radius-btn: 0.25rem;
+  --radius-card: 0.25rem;
+  --radius-token: 0.25rem;
+
+  --shadow-card: 0 1px 3px rgb(15 23 42 / 0.08), 0 4px 16px rgb(15 23 42 / 0.06);
+  --shadow-token: 0 8px 30px rgb(6 109 206 / 0.18);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  body {
+    @apply bg-surface text-ink-900 font-sans antialiased;
+  }
+
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
 }
