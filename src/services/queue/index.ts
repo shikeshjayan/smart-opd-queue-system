@@ -9,6 +9,24 @@ import {
 
 const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
 
+const MAX_DURATION_SAMPLES = 20;
+
+export const recentConsultationDurations: number[] = [];
+
+const consultationStartedAt = new Map<string, number>();
+
+function recordDuration(tokenNumber: string) {
+  const startedAt = consultationStartedAt.get(tokenNumber);
+  consultationStartedAt.delete(tokenNumber);
+  if (startedAt === undefined) return;
+  const minutes = (Date.now() - startedAt) / 60_000;
+  if (minutes <= 0.1) return;
+  recentConsultationDurations.push(minutes);
+  if (recentConsultationDurations.length > MAX_DURATION_SAMPLES) {
+    recentConsultationDurations.shift();
+  }
+}
+
 export const queueService = {
   async list(opdId: string): Promise<QueueEntry[]> {
     await delay();
@@ -44,21 +62,30 @@ export const queueService = {
   async startConsultation(tokenNumber: string): Promise<QueueEntry | undefined> {
     await delay();
     const entry = listQueue("opd_001").find((q) => q.tokenNumber === tokenNumber);
-    if (entry) setQueueEntryStatus(tokenNumber, "in_consultation");
+    if (entry) {
+      setQueueEntryStatus(tokenNumber, "in_consultation");
+      consultationStartedAt.set(tokenNumber, Date.now());
+    }
     return entry ? { ...entry, status: "in_consultation" as const } : undefined;
   },
 
   async complete(tokenNumber: string): Promise<QueueEntry | undefined> {
     await delay();
     const entry = listQueue("opd_001").find((q) => q.tokenNumber === tokenNumber);
-    if (entry) setQueueEntryStatus(tokenNumber, "completed");
+    if (entry) {
+      setQueueEntryStatus(tokenNumber, "completed");
+      recordDuration(tokenNumber);
+    }
     return entry ? { ...entry, status: "completed" as const } : undefined;
   },
 
   async skip(tokenNumber: string): Promise<QueueEntry | undefined> {
     await delay();
     const entry = listQueue("opd_001").find((q) => q.tokenNumber === tokenNumber);
-    if (entry) setQueueEntryStatus(tokenNumber, "skipped");
+    if (entry) {
+      setQueueEntryStatus(tokenNumber, "skipped");
+      consultationStartedAt.delete(tokenNumber);
+    }
     return entry ? { ...entry, status: "skipped" as const } : undefined;
   },
 

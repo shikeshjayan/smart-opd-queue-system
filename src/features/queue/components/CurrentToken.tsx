@@ -6,10 +6,11 @@ type CurrentTokenProps = {
   entry: QueueEntry;
   onStart?: () => void;
   onOpenConsultation?: () => void;
+  onComplete?: () => void;
   isBusy?: boolean;
 };
 
-export function CurrentToken({ entry, onStart, onOpenConsultation, isBusy = false }: CurrentTokenProps) {
+export function CurrentToken({ entry, onStart, onOpenConsultation, onComplete, isBusy = false }: CurrentTokenProps) {
   return (
     <section
       aria-labelledby="current-token-title"
@@ -34,6 +35,16 @@ export function CurrentToken({ entry, onStart, onOpenConsultation, isBusy = fals
             className="w-full bg-brand-500 hover:bg-brand-400 focus-visible:outline-white"
           >
             {isBusy ? "Starting..." : "Start Consultation"}
+          </Button>
+        )}
+        {entry.status === "in_consultation" && (
+          <Button
+            size="lg"
+            disabled={isBusy}
+            onClick={onComplete}
+            className="w-full bg-status-success text-white hover:bg-green-700 focus-visible:outline-white"
+          >
+            {isBusy ? "Completing..." : "Complete Consultation"}
           </Button>
         )}
         <Button

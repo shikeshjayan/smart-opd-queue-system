@@ -338,7 +338,7 @@ export const mockTokens: Token[] = [
     patientId: DEMO_PATIENT_ID,
     opdId: "opd_001",
     status: "waiting",
-    patientsAhead: 8,
+    patientsAhead: 7,
     estimatedWaitMinutes: 35,
   },
 ];
@@ -1204,7 +1204,7 @@ function buildQueue(): QueueEntry[] {
   for (let n = 30; n <= 33; n += 1) entries.push(mk(n, "completed"));
   entries.push(mk(34, "skipped"));
   for (let n = 35; n <= 38; n += 1) entries.push(mk(n, "completed"));
-  entries.push(mk(39, "in_consultation", { id: "P10294", name: "Rahul K" }));
+  entries.push(mk(39, "in_consultation", { id: "P10421", name: "Anu M" }));
 
   const waiting: Array<[number, string, string]> = [
     [40, "P10301", "Meera S"],
@@ -1217,6 +1217,9 @@ function buildQueue(): QueueEntry[] {
     [47, DEMO_PATIENT_ID, "Rahul K"],
   ];
   for (const [n, id, name] of waiting) entries.push(mk(n, "waiting", { id, name }));
+
+  const priority = entries.find((e) => e.tokenNumber === "A-043");
+  if (priority) priority.isPriority = true;
 
   return entries;
 }
