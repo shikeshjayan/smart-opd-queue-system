@@ -1,0 +1,1 @@
+export type { PatientSearchResult } from "@/features/registration/types/registration.types";

@@ -1,0 +1,14 @@
+# dependencies & build output
+node_modules
+.next
+build
+out
+
+# generated / cache
+package-lock.json
+*.tsbuildinfo
+next-env.d.ts
+
+# git & secrets
+.git
+.env.local

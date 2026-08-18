@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { usePermissions } from "@/features/auth/hooks/useAuth";
 import { useHospitalAdmin } from "@/features/hospital-admin/hospital-context";
 import {
   useAdminMutations,
@@ -20,6 +21,7 @@ import type { AdminSettingsInput } from "@/services/admin/types";
 
 export default function SettingsPage() {
   const { hospitalId } = useHospitalAdmin();
+  const { can } = usePermissions();
   const { data: settings, isLoading, error, reload } = useAdminSettings(hospitalId);
   const mutations = useAdminMutations();
   const [saved, setSaved] = useState(false);
@@ -179,8 +181,18 @@ export default function SettingsPage() {
         {saved && <SuccessMessage message="Settings saved successfully." />}
         {mutations.error && <p className="text-sm text-status-danger">{mutations.error}</p>}
 
+        {!can("MANAGE_HOSPITAL") && (
+          <p className="rounded-card border border-status-warning-soft bg-status-warning-soft px-4 py-3 text-sm text-status-warning">
+            Your account can view settings but does not have permission to change them.
+          </p>
+        )}
+
         <div className="flex flex-col gap-2">
-          <Button type="submit" disabled={mutations.busy} className="self-start">
+          <Button
+            type="submit"
+            disabled={mutations.busy || !can("MANAGE_HOSPITAL")}
+            className="self-start"
+          >
             {mutations.busy ? "Saving..." : "Save Settings"}
           </Button>
           <UpdatedBy name={settings.updatedBy} updatedAt={settings.updatedAt} />

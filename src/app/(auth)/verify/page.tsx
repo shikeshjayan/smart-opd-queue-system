@@ -1,24 +1,54 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { authMockApi } from "@/features/auth/api/auth.mock";
+import { OTPForm } from "@/features/auth/components/OTPForm";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { destinationFor } from "@/features/auth/roles";
+
 export default function VerifyPage() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
+  const router = useRouter();
+  const { authorize } = useAuth();
+  const [params] = useState(() =>
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search)
+  );
+  const phone = params?.get("phone");
+  const next = params?.get("next");
+
+  async function handleVerify(otp: string) {
+    if (!phone) return false;
+    const session = await authMockApi.verifyPatientOtp(phone, otp);
+    if (!session) return false;
+    authorize(session.user);
+    router.push(destinationFor(session.user.role, next));
+    return true;
+  }
+
+  if (!phone) {
+    return (
       <div className="rounded-card border border-ink-200 bg-surface p-6 text-center shadow-card">
         <h1 className="text-xl font-semibold text-ink-900">Verify Your Phone</h1>
         <p className="mt-2 text-sm text-ink-500">
-          Enter the 6-digit code sent to your mobile number.
+          Enter a one-time code sent to your mobile number.
         </p>
-        <div className="mt-6 flex gap-2 justify-center">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <input
-              key={i}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              className="h-12 w-10 rounded-btn border border-ink-300 text-center text-lg font-semibold text-ink-900 focus:outline-2 focus:outline-brand-600"
-              aria-label={`Digit ${i + 1}`}
-            />
-          ))}
-        </div>
+        <Link
+          href="/patient-login"
+          className="mt-5 inline-flex h-11 items-center rounded-btn bg-brand-600 px-5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+        >
+          Start Patient Sign In
+        </Link>
       </div>
-    </main>
+    );
+  }
+
+  return (
+    <div className="rounded-card border border-ink-200 bg-surface p-6 text-center shadow-card">
+      <h1 className="text-xl font-semibold text-ink-900">Verify Your Phone</h1>
+      <div className="mt-4">
+        <OTPForm description={`Enter the 6-digit code sent to ${phone}.`} onVerify={handleVerify} />
+      </div>
+    </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { SessionBadge } from "@/features/auth/components/SessionBadge";
 
 const navItems = [
   { href: "/patient/dashboard", label: "Dashboard" },
@@ -44,6 +46,11 @@ export function PatientHeader() {
             );
           })}
         </nav>
+
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+          <SessionBadge />
+        </div>
+        <LogoutButton compact />
       </div>
     </header>
   );

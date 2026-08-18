@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useConsultation, useConsultationActions } from "@/features/doctor/hooks/useDoctor";
 import { doctorMockApi } from "@/features/doctor/api/doctor.mock";
 import { useDoctorPatient } from "@/features/medical-records/hooks/useMedicalRecords";
+import { usePermissions } from "@/features/auth/hooks/useAuth";
 
 const textareaClass =
   "min-h-[7rem] w-full rounded-btn border border-ink-300 bg-surface px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-2 focus:outline-brand-600 disabled:opacity-50";
@@ -24,6 +25,7 @@ export default function ConsultationPage({
   const { saveDraft, completeEncounter, isSaving, isCompleting, error: actionError } =
     useConsultationActions();
   const clinical = useDoctorPatient(data?.encounter?.patientId ?? "");
+  const { can } = usePermissions();
 
   const seededFor = useRef<string | null>(null);
   const [form, setForm] = useState({
@@ -258,24 +260,32 @@ export default function ConsultationPage({
         </label>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            variant="outline"
-            size="lg"
-            className="flex-1"
-            disabled={isSaving || isCompleting}
-            onClick={handleSaveDraft}
-          >
-            {isSaving ? "Saving..." : "Save Draft"}
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            className="flex-1"
-            disabled={isSaving || isCompleting}
-            onClick={() => setConfirmComplete(true)}
-          >
-            {isCompleting ? "Completing..." : "Complete Consultation"}
-          </Button>
+          {can("EDIT_ENCOUNTER") ? (
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              disabled={isSaving || isCompleting}
+              onClick={handleSaveDraft}
+            >
+              {isSaving ? "Saving..." : "Save Draft"}
+            </Button>
+          ) : (
+            <p className="flex-1 rounded-btn border border-ink-200 bg-ink-100 px-4 py-3 text-center text-sm text-ink-500">
+              You don&apos;t have permission to edit this consultation.
+            </p>
+          )}
+          {can("COMPLETE_ENCOUNTER") && (
+            <Button
+              variant="primary"
+              size="lg"
+              className="flex-1"
+              disabled={isSaving || isCompleting}
+              onClick={() => setConfirmComplete(true)}
+            >
+              {isCompleting ? "Completing..." : "Complete Consultation"}
+            </Button>
+          )}
         </div>
       </form>
 

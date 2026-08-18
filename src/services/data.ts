@@ -1350,7 +1350,34 @@ export function createEncounterForToken(tokenNumber: string): Encounter | undefi
 
 export function setQueueEntryStatus(tokenNumber: string, status: QueueStatus): void {
   const entry = mockQueue.find((q) => q.tokenNumber === tokenNumber);
-  if (entry) entry.status = status;
+  if (entry) {
+    entry.status = status;
+    return;
+  }
+  for (const list of generatedQueues.values()) {
+    const generated = list.find((q) => q.tokenNumber === tokenNumber);
+    if (generated) {
+      generated.status = status;
+      return;
+    }
+  }
+}
+
+export function registerQueueEntry(
+  opdId: string,
+  entry: { tokenNumber: string; patientId: string; patientName: string }
+): QueueEntry | undefined {
+  const queue = listQueue(opdId);
+  if (queue.length === 0 && opdId !== "opd_001") return undefined;
+  const queued: QueueEntry = {
+    tokenNumber: entry.tokenNumber,
+    status: "waiting",
+    isCurrentUser: false,
+    patientId: entry.patientId,
+    patientName: entry.patientName,
+  };
+  queue.push(queued);
+  return queued;
 }
 
 export function updateEncounter(id: string, patch: Partial<Encounter>): Encounter | undefined {

@@ -15,7 +15,7 @@ export default function PublicPage() {
       </p>
       <div className="mt-8 flex gap-3">
         <Link
-          href="/patient/dashboard"
+          href="/patient-login?next=/patient/dashboard"
           className="flex h-12 items-center rounded-btn bg-brand-600 px-6 font-medium text-white transition-colors hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
         >
           Get OPD Token
@@ -30,30 +30,33 @@ export default function PublicPage() {
       <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
         <span className="text-xs uppercase tracking-wide text-ink-400">Demo workspaces</span>
         <Link
-          href="/doctor/dashboard"
+          href="/login?next=/doctor/dashboard"
           className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
         >
           Doctor Workspace
         </Link>
         <Link
-          href="/hospital-admin/dashboard"
+          href="/login?next=/hospital-admin/dashboard"
           className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
         >
           Hospital Admin
         </Link>
         <Link
-          href="/district-admin/dashboard"
+          href="/login?next=/district-admin/dashboard"
           className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
         >
           District Admin
         </Link>
         <Link
-          href="/state-admin/dashboard"
+          href="/login?next=/state-admin/dashboard"
           className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
         >
           State Admin
         </Link>
       </div>
+      <p className="mt-6 text-xs text-ink-400">
+        Sign-in is required to enter any workspace. Unauthorized access is blocked.
+      </p>
     </main>
   );
 }

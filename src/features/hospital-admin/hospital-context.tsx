@@ -4,12 +4,15 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Hospital } from "@/types";
 import { DEFAULT_HOSPITAL_ID } from "@/config/app";
+import { roleLabel } from "@/features/auth/roles";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { adminMockApi } from "./api/admin.mock";
 import type { HospitalAdminContextValue } from "./types/hospital-admin.types";
 
 const HospitalAdminContext = createContext<HospitalAdminContextValue | null>(null);
 
 export function HospitalAdminProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [admin, setAdmin] = useState<HospitalAdminContextValue["admin"]>(null);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [hospitalId, setHospitalId] = useState<string>(DEFAULT_HOSPITAL_ID);
@@ -17,25 +20,28 @@ export function HospitalAdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [profile, list] = await Promise.all([
-        adminMockApi.getProfile(),
-        adminMockApi.listHospitals(),
-      ]);
+      const list = await adminMockApi.listHospitals();
       if (cancelled) return;
-      setAdmin({
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        role: profile.role,
-      });
+      if (user) {
+        setAdmin({
+          id: user.id,
+          name: user.name,
+          email: "",
+          role: roleLabel(user.role),
+        });
+        if (user.scope.hospitalId) {
+          setHospitalId(user.scope.hospitalId);
+          setHospitals(list.filter((h) => h.id === user.scope.hospitalId));
+          return;
+        }
+      }
       setHospitals(list);
-      setHospitalId(profile.hospitalId || DEFAULT_HOSPITAL_ID);
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   const hospital = hospitals.find((h) => h.id === hospitalId) ?? null;
 

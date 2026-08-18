@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ScopeBreadcrumbs } from "@/features/auth/components/ScopeBreadcrumbs";
 import { DistrictAdminProvider, useDistrictAdmin } from "../district-context";
 import { StateAdminProvider, useStateAdmin } from "../state-context";
 import { GovernmentSidebar, type GovernmentNavItem } from "./GovernmentSidebar";
@@ -47,7 +48,10 @@ function GovernmentShellBody({
           homeHref={homeHref}
           scopeLabel={scopeLabel}
         />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+          <ScopeBreadcrumbs />
+          {children}
+        </main>
       </div>
     </div>
   );

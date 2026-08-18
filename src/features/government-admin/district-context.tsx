@@ -1,40 +1,37 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { getDistrictName } from "@/config/districts";
 import { DISTRICT_ADMIN_DISTRICT_ID } from "@/config/app";
-import { governmentMockApi } from "./api/government.mock";
+import type { DistrictId } from "@/config/districts";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { DistrictAdminContextValue } from "./types/government.types";
 
 const DistrictAdminContext = createContext<DistrictAdminContextValue | null>(null);
 
 export function DistrictAdminProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<DistrictAdminContextValue["admin"]>(null);
-  const [districtId, setDistrictId] = useState<DistrictAdminContextValue["districtId"]>(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const profile = await governmentMockApi.getDistrictProfile();
-      if (cancelled) return;
-      setAdmin(profile);
-      setDistrictId(profile.districtId || DISTRICT_ADMIN_DISTRICT_ID);
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const districtId =
+    (user?.scope.districtId as DistrictId | undefined) ?? DISTRICT_ADMIN_DISTRICT_ID;
 
-  const scope = districtId ?? DISTRICT_ADMIN_DISTRICT_ID;
+  const admin = user
+    ? {
+        id: user.id,
+        name: user.name,
+        email: "",
+        phone: "",
+        districtId,
+      }
+    : null;
 
   return (
     <DistrictAdminContext.Provider
       value={{
         admin,
-        districtId: districtId as DistrictAdminContextValue["districtId"],
-        districtName: getDistrictName(scope),
+        districtId,
+        districtName: getDistrictName(districtId),
         loading: !admin,
       }}
     >
