@@ -1165,7 +1165,7 @@ export const mockEncounters: Encounter[] = [
     updatedAt: "2026-08-16T10:00:00",
   },
   {
-    id: "E20260815001",
+    id: "E20260815002",
     patientId: "P10892",
     doctorId: "doc_006",
     opdId: "opd_017",
@@ -1214,7 +1214,7 @@ function buildQueue(): QueueEntry[] {
     [44, "P10305", "Lakshmi N"],
     [45, "P10306", "Suresh V"],
     [46, "P10307", "Anitha R"],
-    [47, DEMO_PATIENT_ID, "Demo Patient"],
+    [47, DEMO_PATIENT_ID, "Rahul K"],
   ];
   for (const [n, id, name] of waiting) entries.push(mk(n, "waiting", { id, name }));
 

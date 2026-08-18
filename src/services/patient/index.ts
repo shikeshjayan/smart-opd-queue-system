@@ -2,13 +2,13 @@ import type { Patient } from "./types";
 
 const mockPatients: Patient[] = [
   {
-    id: "pat_001",
-    name: "Demo Patient",
-    email: "patient@example.com",
-    phone: "+91 90000 00000",
-    dateOfBirth: "1992-05-14",
+    id: "P10294",
+    name: "Rahul K",
+    email: "rahul.k@example.com",
+    phone: "+91 98470 12345",
+    dateOfBirth: "1981-04-12",
     bloodGroup: "O+",
-    address: "Kerala, India",
+    address: "Ernakulam, Kerala",
   },
 ];
 

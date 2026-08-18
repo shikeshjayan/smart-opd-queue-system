@@ -15,20 +15,20 @@ const quickActions: QuickAction[] = [
 
 const notifications: NotificationItem[] = [
   { id: "notif_001", message: "Your appointment is approaching. Your token A-047 is being served.", type: "warning", time: "2 min ago" },
-  { id: "notif_002", message: "Your last visit was on 10 Aug 2026. Visit history updated.", type: "info", time: "1 day ago" },
+  { id: "notif_002", message: "Your last visit was on 16 Aug 2026. Visit history updated.", type: "info", time: "2 days ago" },
 ];
 
 const stats: PatientStat[] = [
-  { id: "visits", label: "Total Visits", value: "12" },
+  { id: "visits", label: "Total Visits", value: "7" },
   { id: "tokens", label: "Tokens This Month", value: "3" },
-  { id: "last-visit", label: "Last Visit", value: "10 Aug" },
+  { id: "last-visit", label: "Last Visit", value: "16 Aug" },
 ];
 
 export const patientMockApi = {
   async getDashboard(patientId: string): Promise<PatientDashboard> {
     const activeToken = await tokenService.getActive(patientId);
     return {
-      patientName: "Demo Patient",
+      patientName: "Rahul K",
       activeToken,
       stats,
       quickActions,

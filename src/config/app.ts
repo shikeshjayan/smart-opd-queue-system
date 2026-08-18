@@ -1,4 +1,4 @@
-export const DEMO_PATIENT_ID = "pat_001";
+export const DEMO_PATIENT_ID = "P10294";
 
 export const DEFAULT_HOSPITAL_ID = "hos_001";
 

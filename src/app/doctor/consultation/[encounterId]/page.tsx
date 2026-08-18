@@ -9,6 +9,7 @@ import { SuccessMessage } from "@/components/feedback/success-message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConsultation, useConsultationActions } from "@/features/doctor/hooks/useDoctor";
 import { doctorMockApi } from "@/features/doctor/api/doctor.mock";
+import { useDoctorPatient } from "@/features/medical-records/hooks/useMedicalRecords";
 
 const textareaClass =
   "min-h-[7rem] w-full rounded-btn border border-ink-300 bg-surface px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-2 focus:outline-brand-600 disabled:opacity-50";
@@ -22,6 +23,7 @@ export default function ConsultationPage({
   const { data, isLoading, error, reload } = useConsultation(encounterId);
   const { saveDraft, completeEncounter, isSaving, isCompleting, error: actionError } =
     useConsultationActions();
+  const clinical = useDoctorPatient(data?.encounter?.patientId ?? "");
 
   const seededFor = useRef<string | null>(null);
   const [form, setForm] = useState({
@@ -139,6 +141,54 @@ export default function ConsultationPage({
           Back to Queue
         </Link>
       </div>
+
+      {clinical.data?.patient && (
+        <section
+          aria-labelledby="consult-clinical-title"
+          className="rounded-card border border-ink-200 bg-surface p-4 shadow-card"
+        >
+          <h2 id="consult-clinical-title" className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+            Important Information
+          </h2>
+          {clinical.isLoading ? (
+            <p className="mt-2 text-sm text-ink-500">Loading clinical summary...</p>
+          ) : clinical.error ? (
+            <p className="mt-2 text-sm text-status-danger">{clinical.error}</p>
+          ) : (
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex flex-wrap gap-1">
+                <dt className="font-medium text-ink-900">Allergies:</dt>
+                <dd className="text-ink-700">
+                  {clinical.data.summary.allergies.length > 0
+                    ? clinical.data.summary.allergies.map((a) => a.substance).join(", ")
+                    : "None recorded"}
+                </dd>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <dt className="font-medium text-ink-900">Conditions:</dt>
+                <dd className="text-ink-700">
+                  {clinical.data.summary.conditions.filter((c) => c.status === "active").length > 0
+                    ? clinical.data.summary.conditions
+                        .filter((c) => c.status === "active")
+                        .map((c) => c.name)
+                        .join(", ")
+                    : "None recorded"}
+                </dd>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                <dt className="font-medium text-ink-900">Medications:</dt>
+                <dd className="text-ink-700">
+                  {clinical.data.summary.medications.length > 0
+                    ? clinical.data.summary.medications
+                        .map((m) => `${m.name} ${m.dosage}`)
+                        .join(", ")
+                    : "None recorded"}
+                </dd>
+              </div>
+            </dl>
+          )}
+        </section>
+      )}
 
       {saved && <SuccessMessage message="Draft saved." />}
       {actionError && (
