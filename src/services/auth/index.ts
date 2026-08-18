@@ -1,37 +1,180 @@
-import type { AuthResponse, User } from "./types";
+import type { PersistedSession, SessionUser, UserRole } from "@/features/auth/types/auth.types";
+import { SESSION_STORAGE_KEY } from "@/features/auth/types/auth.types";
+import type { LoginPending, MockAccount, SessionResult } from "./types";
 
-const mockUser: User = {
-  id: "usr_001",
-  name: "Demo Patient",
-  email: "patient@example.com",
-  role: "patient",
-};
+const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
-const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
+const DEMO_ACCOUNTS: MockAccount[] = [
+  {
+    user: { id: "P10294", name: "Rahul K", role: "patient", scope: {} },
+    patientPhone: "+91 98470 12345",
+    hint: "Patient — Rahul K (phone +91 98470 12345)",
+  },
+  {
+    user: {
+      id: "doc_001",
+      name: "Dr. Anil Kumar",
+      role: "doctor",
+      scope: {
+        stateId: "kerala",
+        districtId: "ernakulam",
+        hospitalId: "hos_001",
+        departmentId: "dep_001",
+      },
+    },
+    staffPassword: "doctor123",
+    hint: "Doctor — doc_001 (Cardiology, GH Ernakulam)",
+  },
+  {
+    user: {
+      id: "stf_001",
+      name: "Radhika Menon",
+      role: "receptionist",
+      scope: { stateId: "kerala", districtId: "ernakulam", hospitalId: "hos_001" },
+    },
+    staffPassword: "recept123",
+    hint: "Receptionist — stf_001 (GH Ernakulam)",
+  },
+  {
+    user: {
+      id: "stf_002",
+      name: "Sindhu Thomas",
+      role: "clinical_staff",
+      scope: { stateId: "kerala", districtId: "ernakulam", hospitalId: "hos_001" },
+    },
+    staffPassword: "nurse123",
+    hint: "Nurse (Clinical Staff) — stf_002 (GH Ernakulam)",
+  },
+  {
+    user: {
+      id: "adm_001",
+      name: "Dr. Sreeja Nambiar",
+      role: "hospital_admin",
+      scope: { stateId: "kerala", districtId: "ernakulam", hospitalId: "hos_001" },
+    },
+    staffPassword: "admin123",
+    hint: "Hospital Admin — adm_001 (GH Ernakulam)",
+  },
+  {
+    user: {
+      id: "dadm_001",
+      name: "K. P. Vishwanath",
+      role: "district_admin",
+      scope: { stateId: "kerala", districtId: "ernakulam" },
+    },
+    staffPassword: "district123",
+    hint: "District Admin — dadm_001 (Ernakulam)",
+  },
+  {
+    user: {
+      id: "sadm_001",
+      name: "Dr. A. Radhakrishnan",
+      role: "state_admin",
+      scope: { stateId: "kerala" },
+    },
+    staffPassword: "state123",
+    hint: "State Admin — sadm_001 (Kerala)",
+  },
+];
+
+function normalize(identifier: string): string {
+  return identifier.replace(/[\s-]/g, "").toLowerCase();
+}
+
+function buildSession(user: SessionUser): PersistedSession {
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + SESSION_DURATION_MS);
+  return {
+    user,
+    issuedAt: issuedAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  };
+}
+
+function persist(session: PersistedSession): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+}
+
+export function readPersistedSession(): PersistedSession | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PersistedSession;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPersistedSession(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(SESSION_STORAGE_KEY);
+}
+
+function findPatientByPhone(phone: string): MockAccount | undefined {
+  return DEMO_ACCOUNTS.find(
+    (account) =>
+      account.user.role === "patient" &&
+      account.patientPhone &&
+      normalize(account.patientPhone) === normalize(phone)
+  );
+}
+
+function findStaffById(staffId: string): MockAccount | undefined {
+  return DEMO_ACCOUNTS.find(
+    (account) => account.user.role !== "patient" && account.user.id.toLowerCase() === normalize(staffId)
+  );
+}
 
 export const authService = {
-  async login(email: string, password: string): Promise<AuthResponse> {
-    await delay();
-    return { token: `mock-${password.length > 0 ? "jwt" : "invalid"}`, user: { ...mockUser, email } };
+  listDemoAccounts(): Pick<MockAccount, "user" | "hint">[] {
+    return DEMO_ACCOUNTS.map(({ user, hint }) => ({ user, hint }));
   },
 
-  async register(payload: { name: string; email: string; password: string }): Promise<AuthResponse> {
-    await delay();
-    return { token: "mock-jwt-token", user: { ...mockUser, ...payload } };
+  requestPatientOtp(phone: string): LoginPending {
+    const account = findPatientByPhone(phone);
+    if (!account) {
+      return { pending: true, identifier: phone };
+    }
+    return { pending: true, identifier: phone, name: account.user.name };
   },
 
-  async verify(token: string): Promise<{ verified: boolean }> {
-    await delay();
-    return { verified: Boolean(token) };
+  verifyPatientOtp(phone: string, otp: string): PersistedSession | null {
+    const account = findPatientByPhone(phone);
+    if (!account || otp.trim() !== "123456") return null;
+    const session = buildSession(account.user);
+    persist(session);
+    return session;
   },
 
-  async forgotPassword(email: string): Promise<{ sent: boolean }> {
-    await delay();
-    return { sent: email.includes("@") };
+  staffLogin(staffId: string, password: string): PersistedSession | null {
+    const account = findStaffById(staffId);
+    if (!account || account.staffPassword !== password) return null;
+    const session = buildSession(account.user);
+    persist(session);
+    return session;
   },
 
-  async me(): Promise<User> {
-    await delay();
-    return mockUser;
+  demoLogin(role: UserRole): PersistedSession | null {
+    const account = DEMO_ACCOUNTS.find((a) => a.user.role === role);
+    if (!account) return null;
+    const session = buildSession(account.user);
+    persist(session);
+    return session;
+  },
+
+  restore(): SessionResult {
+    const session = readPersistedSession();
+    if (!session) return { session: null, reason: "missing" };
+    if (new Date(session.expiresAt).getTime() <= Date.now()) {
+      clearPersistedSession();
+      return { session: null, reason: "expired" };
+    }
+    return { session };
+  },
+
+  logout(): void {
+    clearPersistedSession();
   },
 };

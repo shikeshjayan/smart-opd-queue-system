@@ -1,0 +1,6 @@
+{
+    "systemInstruction": "You operate with an automated continuous memory workflow using `opencode-mem` and `.opencode/memory.json`.\n\nAUTOMATED WORKFLOW RULES:\n1. AUTO-READ: On session start, automatically read `.opencode/memory.json` to retrieve the latest project state, pending tasks, and architecture rules before answering.\n2. AUTO-WRITE: Automatically update `.opencode/memory.json` ONLY when a major task is completed, new files/features are added, or structural updates occur. (DO NOT update on trivial/simple Q&A to save tokens).\n3. TOKEN EFFICIENCY: Maintain the content of `.opencode/memory.json` as a highly summarized structured JSON (under 300 words). Overwrite outdated task entries instead of appending indefinitely.",
+    "memoryFilePath": ".opencode/memory.json",
+    "autoLoadMemory": true,
+    "autoSaveMemory": true
+}

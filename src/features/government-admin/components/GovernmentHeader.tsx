@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { SessionBadge } from "@/features/auth/components/SessionBadge";
 import type { GovernmentNavItem } from "./GovernmentSidebar";
 
 type GovernmentHeaderProps = {
@@ -32,6 +34,10 @@ export function GovernmentHeader({ brand, navItems, homeHref, scopeLabel }: Gove
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-2 lg:flex">
+            <SessionBadge />
+          </div>
+          <LogoutButton compact />
           <span className="inline-flex items-center gap-1.5 rounded-full border border-status-success-soft bg-status-success-soft px-2.5 py-0.5 text-xs font-medium text-status-success">
             <span className="h-1.5 w-1.5 rounded-full bg-status-success" aria-hidden="true" />
             Live

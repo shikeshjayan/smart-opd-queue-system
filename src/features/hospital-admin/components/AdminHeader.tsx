@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/features/auth/components/LogoutButton";
+import { SessionBadge } from "@/features/auth/components/SessionBadge";
 import { useHospitalAdmin } from "../hospital-context";
 import { HospitalSwitcher } from "./HospitalSwitcher";
 
@@ -45,6 +47,10 @@ export function AdminHeader() {
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-2 lg:flex">
+            <SessionBadge />
+          </div>
+          <LogoutButton compact />
           <HospitalSwitcher />
         </div>
       </div>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RoleGuard } from "@/features/auth/components/RoleGuard";
 import { GovernmentShell } from "@/features/government-admin/components/GovernmentShell";
 import type { GovernmentNavItem } from "@/features/government-admin/components/GovernmentSidebar";
 
@@ -13,13 +14,15 @@ const navItems: GovernmentNavItem[] = [
 
 export default function StateAdminLayout({ children }: { children: ReactNode }) {
   return (
-    <GovernmentShell
-      scope="state"
-      brand={{ short: "SA", title: "State Admin" }}
-      navItems={navItems}
-      homeHref="/state-admin/dashboard"
-    >
-      {children}
-    </GovernmentShell>
+    <RoleGuard roles={["state_admin"]}>
+      <GovernmentShell
+        scope="state"
+        brand={{ short: "SA", title: "State Admin" }}
+        navItems={navItems}
+        homeHref="/state-admin/dashboard"
+      >
+        {children}
+      </GovernmentShell>
+    </RoleGuard>
   );
 }

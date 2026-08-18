@@ -1,29 +1,22 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
-import { governmentMockApi } from "./api/government.mock";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { StateAdminContextValue } from "./types/government.types";
 
 const StateAdminContext = createContext<StateAdminContextValue | null>(null);
 
 export function StateAdminProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<StateAdminContextValue["admin"]>(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const profile = await governmentMockApi.getStateProfile();
-      if (cancelled) return;
-      setAdmin(profile);
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const admin = user ? { id: user.id, name: user.name, email: "", phone: "" } : null;
 
-  return <StateAdminContext.Provider value={{ admin, loading: !admin }}>{children}</StateAdminContext.Provider>;
+  return (
+    <StateAdminContext.Provider value={{ admin, loading: !admin }}>
+      {children}
+    </StateAdminContext.Provider>
+  );
 }
 
 export function useStateAdmin(): StateAdminContextValue {

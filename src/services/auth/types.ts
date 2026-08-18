@@ -1,13 +1,21 @@
-export type Role = "patient" | "doctor" | "hospital-admin" | "district-admin" | "state-admin";
+import type { PersistedSession, SessionUser } from "@/features/auth/types/auth.types";
 
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
+export type { PersistedSession, SessionUser };
+
+export type MockAccount = {
+  user: SessionUser;
+  staffPassword?: string;
+  patientPhone?: string;
+  hint: string;
 };
 
-export type AuthResponse = {
-  token: string;
-  user: User;
+export type LoginPending = {
+  pending: true;
+  identifier: string;
+  name?: string;
+};
+
+export type SessionResult = {
+  session: PersistedSession | null;
+  reason?: "expired" | "missing";
 };
