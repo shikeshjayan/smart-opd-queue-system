@@ -23,13 +23,15 @@ import { ConsultationCompleteScreen } from "./ConsultationCompleteScreen";
 import { ConsultationEmptyState } from "./ConsultationEmptyState";
 import { useConsultationForPatient } from "../hooks/useConsultation";
 import { consultationMockApi } from "../api/consultation.mock";
+import { PrescriptionWorkspace } from "@/features/prescription/components/PrescriptionWorkspace";
 
-export type WorkspaceTab = "overview" | "history" | "consultation" | "documents";
+export type WorkspaceTab = "overview" | "history" | "consultation" | "prescription" | "documents";
 
 const TAB_LABELS: Array<[WorkspaceTab, string]> = [
   ["overview", "Overview"],
   ["history", "History"],
   ["consultation", "Consultation"],
+  ["prescription", "Prescription"],
   ["documents", "Documents"],
 ];
 
@@ -164,6 +166,8 @@ export function ConsultationWorkspace({ patientId, defaultTab = "overview" }: Co
           </div>
         </div>
       )}
+
+      {tab === "prescription" && <PrescriptionWorkspace patientId={patientId} />}
 
       {tab === "documents" && <DocumentsTab patientId={patientId} />}
     </div>

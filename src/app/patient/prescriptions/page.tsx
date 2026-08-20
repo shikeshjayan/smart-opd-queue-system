@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Pagination } from "@/features/medical-records/components/Pagination";
-import { PrescriptionCard } from "@/features/medical-records/components/PrescriptionCard";
+import { PrescriptionSummary } from "@/features/prescription/components/PrescriptionSummary";
 import { RecordAccessNotice } from "@/features/medical-records/components/RecordAccessNotice";
-import { usePrescriptions } from "@/features/medical-records/hooks/useMedicalRecords";
+import { usePatientPrescriptions } from "@/features/prescription/hooks/usePrescriptions";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,7 @@ const PAGE_SIZE = 5;
 
 export default function PatientPrescriptionsPage() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, error, reload } = usePrescriptions(page, PAGE_SIZE);
+  const { data, isLoading, error, reload } = usePatientPrescriptions(page, PAGE_SIZE);
 
   if (isLoading) {
     return (
@@ -46,7 +46,7 @@ export default function PatientPrescriptionsPage() {
             {data.items.map((prescription) => (
               <li key={prescription.id}>
                 <Link href={`/patient/prescriptions/${prescription.id}`} className="block">
-                  <PrescriptionCard prescription={prescription} />
+                  <PrescriptionSummary prescription={prescription} />
                 </Link>
               </li>
             ))}

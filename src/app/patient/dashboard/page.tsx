@@ -8,9 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import Link from "next/link";
+import { AllergyWarning } from "@/features/medication/components/AllergyWarning";
+import { MedicationList } from "@/features/medication/components/MedicationList";
+import { usePatientMedicationPanel } from "@/features/medication/hooks/usePatientMedicationPanel";
 
 export default function DashboardPage() {
   const { data, isLoading, error, reload } = usePatientDashboard();
+  const medicationPanel = usePatientMedicationPanel();
 
   if (isLoading) {
     return (
@@ -53,6 +57,25 @@ export default function DashboardPage() {
 
       <QuickActions actions={quickActions} />
       <PatientStats stats={stats} />
+
+      {medicationPanel.error ? (
+        <p className="rounded-card border border-status-danger-soft bg-status-danger-soft p-4 text-sm text-status-danger">
+          {medicationPanel.error}
+        </p>
+      ) : medicationPanel.isLoading ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <AllergyWarning allergies={medicationPanel.allergies ?? []} />
+          <MedicationList
+            entries={medicationPanel.medications.data ?? []}
+            historyHref="/patient/prescriptions"
+          />
+        </div>
+      )}
 
       {notifications.length > 0 && (
         <section aria-labelledby="notifications-title">
