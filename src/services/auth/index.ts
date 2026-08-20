@@ -1,5 +1,6 @@
 import type { PersistedSession, SessionUser, UserRole } from "@/features/auth/types/auth.types";
 import { SESSION_STORAGE_KEY } from "@/features/auth/types/auth.types";
+import { AUTH_COOKIE, env } from "@/config/app";
 import type { LoginPending, MockAccount, SessionResult } from "./types";
 
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
@@ -94,6 +95,10 @@ function buildSession(user: SessionUser): PersistedSession {
 function persist(session: PersistedSession): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+
+  // Write cookie mirror for Next.js middleware
+  const payload = btoa(JSON.stringify({ role: session.user.role, id: session.user.id }));
+  document.cookie = `${AUTH_COOKIE}=${payload}; path=/; max-age=${8 * 60 * 60}; SameSite=Lax`;
 }
 
 export function readPersistedSession(): PersistedSession | null {
@@ -110,6 +115,9 @@ export function readPersistedSession(): PersistedSession | null {
 export function clearPersistedSession(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(SESSION_STORAGE_KEY);
+
+  // Clear cookie mirror
+  document.cookie = `${AUTH_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
 }
 
 function findPatientByPhone(phone: string): MockAccount | undefined {
@@ -141,6 +149,9 @@ export const authService = {
   },
 
   verifyPatientOtp(phone: string, otp: string): PersistedSession | null {
+    if (env.NODE_ENV === "production" && env.NEXT_PUBLIC_ENABLE_DEMO_MODE !== "true") {
+      return null;
+    }
     const account = findPatientByPhone(phone);
     if (!account || otp.trim() !== "123456") return null;
     const session = buildSession(account.user);
@@ -157,6 +168,9 @@ export const authService = {
   },
 
   demoLogin(role: UserRole): PersistedSession | null {
+    if (env.NODE_ENV === "production" && env.NEXT_PUBLIC_ENABLE_DEMO_MODE !== "true") {
+      return null;
+    }
     const account = DEMO_ACCOUNTS.find((a) => a.user.role === role);
     if (!account) return null;
     const session = buildSession(account.user);

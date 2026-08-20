@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ import { CallNextButton } from "@/features/queue/components/CallNextButton";
 import { ConnectionStatus } from "@/features/queue/components/ConnectionStatus";
 import { CurrentToken } from "@/features/queue/components/CurrentToken";
 import { QueueList } from "@/features/queue/components/QueueList";
+import { QueueStatusBanner } from "@/features/queue/components/QueueStatusBanner";
+import { queueOperationalState } from "@/features/queue/utils/queue-status";
+import { PriorityBadge } from "@/features/priority/components/PriorityBadge";
+import type { QueueEntry, QueuePriority } from "@/types";
 import {
   useCallNext,
   useQueueAction,
@@ -44,6 +48,20 @@ export default function DoctorQueuePage() {
   const [opening, setOpening] = useState(false);
 
   const busy = isCalling || isActionBusy;
+
+  const waitingByPriority = useMemo(() => {
+    const groups: Record<QueuePriority, QueueEntry[]> = {
+      emergency: [],
+      priority: [],
+      normal: [],
+    };
+    for (const entry of data?.waiting ?? []) groups[entry.priority].push(entry);
+    return groups;
+  }, [data?.waiting]);
+
+  const priorityWaiting = data
+    ? data.priorityCounts.emergency + data.priorityCounts.priority
+    : 0;
 
   const handleCallConfirmed = useCallback(async () => {
     const entry = await callNext(OPD_ID);
@@ -92,8 +110,8 @@ export default function DoctorQueuePage() {
     setOpening(true);
     const encounter = await doctorMockApi.getOrCreateEncounter(data.current.tokenNumber);
     setOpening(false);
-    if (encounter) {
-      router.push(`/doctor/consultation/${encounter.id}`);
+    if (encounter && encounter.patientId) {
+      router.push(`/doctor/patients/${encounter.patientId}/consultation`);
     }
   }, [data, router]);
 
@@ -144,6 +162,15 @@ export default function DoctorQueuePage() {
         <p role="alert" className="rounded-card border border-status-danger-soft bg-status-danger-soft p-4 text-sm text-status-danger">
           {mutationError}
         </p>
+      )}
+
+      {queueOperationalState(data.opdStatus, data.counts.waiting) !== "normal" && (
+        <QueueStatusBanner
+          state={queueOperationalState(data.opdStatus, data.counts.waiting)}
+          opdName={data.opdName}
+          reason={data.statusReason}
+          updatedAt={data.statusUpdatedAt}
+        />
       )}
 
       {process.env.NODE_ENV === "development" && (
@@ -207,14 +234,39 @@ export default function DoctorQueuePage() {
         <h2 id="waiting-list-title" className="text-lg font-semibold text-ink-900">
           Waiting Patients
         </h2>
-        <p className="mt-0.5 text-sm text-ink-500">{data.counts.waiting} waiting</p>
-        <div className="mt-4">
-          <QueueList
-            entries={data.waiting}
-            busy={busy}
-            onCall={handleCallToken}
-            onSkip={handleSkip}
-          />
+        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-ink-500">
+          <span>{data.counts.waiting} waiting</span>
+          <span className="text-ink-300">&middot;</span>
+          <span>Emergency {data.priorityCounts.emergency}</span>
+          <span className="text-ink-300">&middot;</span>
+          <span>Priority {data.priorityCounts.priority}</span>
+          <span className="text-ink-300">&middot;</span>
+          <span>Normal {data.priorityCounts.normal}</span>
+        </div>
+        {priorityWaiting > 0 && (
+          <p className="mt-2 rounded-card border border-status-danger-soft bg-status-danger-soft px-3 py-2 text-sm font-medium text-status-danger">
+            {priorityWaiting} priority patient{priorityWaiting === 1 ? "" : "s"} waiting
+          </p>
+        )}
+        <div className="mt-4 flex flex-col gap-6">
+          {(["emergency", "priority", "normal"] as const).map((priority) => {
+            const entries = waitingByPriority[priority];
+            if (entries.length === 0) return null;
+            return (
+              <section key={priority} aria-label={`${priority} patients`}>
+                <div className="mb-2 flex items-center gap-2">
+                  <PriorityBadge priority={priority} />
+                  <span className="text-xs text-ink-500">{entries.length}</span>
+                </div>
+                <QueueList
+                  entries={entries}
+                  busy={busy}
+                  onCall={handleCallToken}
+                  onSkip={handleSkip}
+                />
+              </section>
+            );
+          })}
         </div>
       </section>
 

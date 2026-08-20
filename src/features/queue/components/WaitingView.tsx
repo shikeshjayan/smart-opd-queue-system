@@ -1,4 +1,5 @@
 import type { QueueSnapshot } from "../types/queue.types";
+import { QueuePriorityNotice } from "@/features/priority/components/QueuePriorityNotice";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { NotificationHint } from "./NotificationHint";
 import { QueuePosition } from "./QueuePosition";
@@ -45,6 +46,8 @@ export function WaitingView({ snapshot, connection }: WaitingViewProps) {
         </div>
         <WaitingTime minutes={snapshot.estimatedWaitMinutes} />
       </dl>
+
+      <QueuePriorityNotice />
 
       <section aria-labelledby="queue-progress-title">
         <h2 id="queue-progress-title" className="mb-3 text-lg font-semibold text-ink-900">

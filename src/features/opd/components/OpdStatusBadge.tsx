@@ -5,6 +5,7 @@ const config: Record<OPDStatus, { label: string; variant: "success" | "danger" |
   open: { label: "Available", variant: "success" },
   closed: { label: "Closed", variant: "danger" },
   full: { label: "Tokens Full", variant: "warning" },
+  paused: { label: "Paused", variant: "warning" },
   unavailable: { label: "Doctor Unavailable", variant: "info" },
 };
 

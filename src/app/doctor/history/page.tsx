@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAsync } from "@/lib/use-async";
 import { doctorMockApi } from "@/features/doctor/api/doctor.mock";
 import { formatDate } from "@/features/doctor/utils/format";
-import { Badge } from "@/components/ui/badge";
+import { EncounterStatusBadge } from "@/features/encounter/components/EncounterStatusBadge";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -55,9 +55,7 @@ export default function DoctorHistoryPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={encounter.status === "completed" ? "success" : "warning"}>
-                      {encounter.status === "completed" ? "Completed" : "Draft"}
-                    </Badge>
+                    <EncounterStatusBadge status={encounter.status} />
                     <Link
                       href={`/doctor/consultation/${encounter.id}`}
                       className="rounded-btn border border-brand-600 px-3 py-1.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-brand-600"

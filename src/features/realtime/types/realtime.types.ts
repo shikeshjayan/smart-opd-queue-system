@@ -1,3 +1,5 @@
+import type { QueuePriority } from "@/types";
+
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
 
 export type QueueEventType =
@@ -6,6 +8,7 @@ export type QueueEventType =
   | "TOKEN_COMPLETED"
   | "TOKEN_SKIPPED"
   | "TOKEN_CANCELLED"
+  | "PRIORITY_CHANGED"
   | "QUEUE_UPDATED";
 
 type QueueEventBase = {
@@ -46,12 +49,19 @@ export type QueueUpdatedEvent = QueueEventBase & {
   type: "QUEUE_UPDATED";
 };
 
+export type PriorityChangedEvent = QueueEventBase & {
+  type: "PRIORITY_CHANGED";
+  tokenNumber: string;
+  level: QueuePriority;
+};
+
 export type QueueEvent =
   | TokenCalledEvent
   | TokenStartedEvent
   | TokenCompletedEvent
   | TokenSkippedEvent
   | TokenCancelledEvent
+  | PriorityChangedEvent
   | QueueUpdatedEvent;
 
 export type ConnectionChangedEvent = {

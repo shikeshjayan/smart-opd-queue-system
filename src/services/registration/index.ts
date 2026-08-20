@@ -275,7 +275,8 @@ export const registrationService = {
         const capacity = 50;
         let availability: OPDRegistration["availability"];
         if (opd.status === "full") availability = "full";
-        else if (opd.status === "closed" || opd.status === "unavailable") availability = "closed";
+        else if (opd.status === "closed" || opd.status === "unavailable" || opd.status === "paused")
+          availability = "closed";
         else if (generated >= capacity) availability = "full";
         else if (generated >= Math.round(capacity * 0.8)) availability = "almost_full";
         else availability = "available";
@@ -309,7 +310,12 @@ export const registrationService = {
     await delay();
     const opd = getOpd(input.opdId);
     if (!opd) throw new Error("OPD not found");
-    if (opd.status === "full" || opd.status === "closed" || opd.status === "unavailable") {
+    if (
+      opd.status === "full" ||
+      opd.status === "closed" ||
+      opd.status === "unavailable" ||
+      opd.status === "paused"
+    ) {
       throw new Error("This OPD is not accepting tokens right now.");
     }
     const department = getDepartment(opd.departmentId);

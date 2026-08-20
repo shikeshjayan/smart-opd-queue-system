@@ -1,6 +1,6 @@
 import { adminService } from "@/services/admin";
 import { hospitalService } from "@/services/hospital";
-import type { AdminNotification, AdminSettings, Hospital } from "@/types";
+import type { AdminNotification, AdminSettings, Hospital, OPDStatus } from "@/types";
 import type {
   AdminDashboardData,
   AdminDepartmentDetail,
@@ -60,8 +60,8 @@ export const adminMockApi = {
     return adminService.addOpd(input);
   },
 
-  async setOpdStatus(id: string, status: "open" | "closed" | "full" | "unavailable") {
-    return adminService.setOpdStatus(id, status);
+  async setOpdStatus(id: string, status: OPDStatus, reason?: string) {
+    return adminService.setOpdStatus(id, status, reason);
   },
 
   async getOpdDetail(hospitalId: string, opdId: string): Promise<AdminOpdDetail | null> {

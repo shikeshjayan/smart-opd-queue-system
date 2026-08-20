@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { formatDate } from "@/features/hospital-admin/utils/format";
+import { encounterStatusLabel } from "@/features/encounter/utils/status";
 
 export default function PatientDetailPage() {
   const params = useParams<{ patientId: string }>();
@@ -126,7 +127,7 @@ export default function PatientDetailPage() {
                     </p>
                   </div>
                   <Badge variant={encounter.status === "completed" ? "success" : "warning"}>
-                    {encounter.status}
+                    {encounterStatusLabel(encounter.status)}
                   </Badge>
                 </li>
               ))}

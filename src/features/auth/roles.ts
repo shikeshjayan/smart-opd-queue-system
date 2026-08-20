@@ -18,7 +18,7 @@ export function roleHome(role: UserRole): string {
   const homes: Record<UserRole, string> = {
     patient: "/patient/dashboard",
     doctor: "/doctor/dashboard",
-    clinical_staff: "/workspace-pending",
+    clinical_staff: "/clinical/priority",
     receptionist: "/reception/dashboard",
     hospital_admin: "/hospital-admin/dashboard",
     district_admin: "/district-admin/dashboard",
@@ -31,7 +31,7 @@ export function workspacePrefix(role: UserRole): string {
   const prefixes: Record<UserRole, string> = {
     patient: "/patient",
     doctor: "/doctor",
-    clinical_staff: "/workspace-pending",
+    clinical_staff: "/clinical",
     receptionist: "/reception",
     hospital_admin: "/hospital-admin",
     district_admin: "/district-admin",

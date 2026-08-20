@@ -7,6 +7,8 @@ import { ErrorState } from "@/components/feedback/error-state";
 import { ConnectionStatus } from "@/features/queue/components/ConnectionStatus";
 import { QueueList } from "@/features/queue/components/QueueList";
 import { QueueStatusBadge } from "@/features/queue/components/QueueStatusBadge";
+import { QueueStatusBanner } from "@/features/queue/components/QueueStatusBanner";
+import { queueOperationalState } from "@/features/queue/utils/queue-status";
 import { useDoctorQueueRealtime } from "@/features/queue/hooks/useQueueRealtime";
 import { useOpdAvailability } from "@/features/registration/hooks/useRegistration";
 import { useReception } from "@/features/registration/reception-context";
@@ -60,6 +62,15 @@ export default function ReceptionQueuePage() {
         <p className="text-sm text-ink-500">No queue available for this OPD.</p>
       ) : (
         <>
+          {queueOperationalState(queue.data.opdStatus, queue.data.counts.waiting) !== "normal" && (
+            <QueueStatusBanner
+              state={queueOperationalState(queue.data.opdStatus, queue.data.counts.waiting)}
+              opdName={queue.data.opdName}
+              reason={queue.data.statusReason}
+              updatedAt={queue.data.statusUpdatedAt}
+            />
+          )}
+
           {queue.data.current ? (
             <section
               aria-labelledby="current-token-title"

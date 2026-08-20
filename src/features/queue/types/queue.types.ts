@@ -1,4 +1,4 @@
-import type { OPDCounts, QueueEntry } from "@/types";
+import type { OPDCounts, OPDStatus, QueueEntry } from "@/types";
 
 export type PatientQueuePhase =
   | "waiting"
@@ -23,6 +23,9 @@ export type QueueSnapshot = {
   status: QueueEntry["status"];
   entries: QueueEntry[];
   fetchedAt: string;
+  opdStatus: OPDStatus;
+  statusReason?: string;
+  statusUpdatedAt?: string;
 };
 
 export type DoctorQueueSnapshot = {
@@ -32,6 +35,14 @@ export type DoctorQueueSnapshot = {
   next: QueueEntry | null;
   waiting: QueueEntry[];
   counts: OPDCounts;
+  priorityCounts: {
+    emergency: number;
+    priority: number;
+    normal: number;
+  };
+  opdStatus: OPDStatus;
+  statusReason?: string;
+  statusUpdatedAt?: string;
 };
 
 export type DisplaySnapshot = {
@@ -43,4 +54,7 @@ export type DisplaySnapshot = {
   nowServing: string | null;
   nextTokens: string[];
   waitingCount: number;
+  opdStatus: OPDStatus;
+  statusReason?: string;
+  statusUpdatedAt?: string;
 };

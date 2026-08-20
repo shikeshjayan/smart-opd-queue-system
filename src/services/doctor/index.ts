@@ -83,7 +83,7 @@ export const doctorService = {
     patch: Partial<Encounter>
   ): Promise<Encounter | undefined> {
     await delay();
-    return updateEncounter(id, { ...patch, status: "draft" });
+    return updateEncounter(id, { ...patch, status: "in_progress" });
   },
 
   async completeEncounter(
