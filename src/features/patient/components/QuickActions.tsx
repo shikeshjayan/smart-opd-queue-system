@@ -3,6 +3,7 @@ import type { QuickAction } from "../types/patient.types";
 
 const glyphs: Record<string, string> = {
   token: "T",
+  appointments: "A",
   history: "H",
   prescriptions: "P",
   lab: "L",

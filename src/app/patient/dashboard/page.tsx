@@ -13,11 +13,21 @@ import { MedicationList } from "@/features/medication/components/MedicationList"
 import { usePatientMedicationPanel } from "@/features/medication/hooks/usePatientMedicationPanel";
 import { MyTests } from "@/features/diagnostics/components/MyTests";
 import { usePatientTests } from "@/features/diagnostics/hooks/useDiagnosticResults";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useAppointments, useFollowUpRecommendation } from "@/features/appointments/hooks/useAppointments";
+import { AppointmentCard } from "@/features/appointments/components/AppointmentCard";
+import { AppointmentReminder } from "@/features/appointments/components/AppointmentReminder";
+import { FollowUpForm } from "@/features/appointments/components/FollowUpForm";
+import { DEMO_PATIENT_ID } from "@/config/app";
 
 export default function DashboardPage() {
   const { data, isLoading, error, reload } = usePatientDashboard();
   const medicationPanel = usePatientMedicationPanel();
   const tests = usePatientTests("P10294");
+  const { user } = useAuth();
+  const patientId = user?.id ?? DEMO_PATIENT_ID;
+  const appointmentList = useAppointments(patientId);
+  const recommendation = useFollowUpRecommendation(patientId);
 
   if (isLoading) {
     return (
@@ -92,6 +102,45 @@ export default function DashboardPage() {
       ) : (
         <MyTests entries={tests.data ?? []} />
       )}
+
+      {recommendation.data && !appointmentList.isLoading && (
+        <FollowUpForm
+          patientId={patientId}
+          encounterId={recommendation.data.encounter.id}
+          departmentId={recommendation.data.encounter.departmentId}
+          doctorId={recommendation.data.encounter.doctorId}
+          followUp={recommendation.data.followUp}
+          onBooked={() => appointmentList.reload()}
+        />
+      )}
+
+      {!(appointmentList.isLoading || tests.isLoading) && (() => {
+        const today = new Date().toISOString().slice(0, 10);
+        const upcoming = (appointmentList.data ?? [])
+          .filter((a) => ["scheduled", "confirmed", "checked_in"].includes(a.status) && a.scheduledDate >= today)
+          .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate));
+        if (upcoming.length === 0) return null;
+        return (
+          <div className="flex flex-col gap-3">
+            <AppointmentReminder appointments={appointmentList.data ?? []} />
+            <section aria-labelledby="upcoming-appts-title" className="flex flex-col gap-3 rounded-card border border-ink-200 bg-surface p-4 shadow-card">
+              <div className="flex items-center justify-between gap-2">
+                <h2 id="upcoming-appts-title" className="text-lg font-semibold text-ink-900">
+                  Upcoming Appointments
+                </h2>
+                <Link href="/patient/appointments" className="text-sm font-medium text-brand-700 hover:underline">
+                  View all
+                </Link>
+              </div>
+              <div className="flex flex-col gap-2">
+                {upcoming.slice(0, 2).map((appointment) => (
+                  <AppointmentCard key={appointment.id} appointment={appointment} />
+                ))}
+              </div>
+            </section>
+          </div>
+        );
+      })()}
 
       {notifications.length > 0 && (
         <section aria-labelledby="notifications-title">

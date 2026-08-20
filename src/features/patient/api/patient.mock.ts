@@ -8,6 +8,7 @@ import type {
 
 const quickActions: QuickAction[] = [
   { id: "token", label: "Get OPD Token", description: "Book a token at a government hospital", href: "/patient/hospitals" },
+  { id: "appointments", label: "Appointments", description: "Book and view appointments", href: "/patient/appointments" },
   { id: "history", label: "Medical History", description: "View past visits and encounters", href: "/patient/history" },
   { id: "prescriptions", label: "Prescriptions", description: "Access your e-prescriptions", href: "/patient/prescriptions" },
   { id: "lab", label: "Lab Reports", description: "Download lab results", href: "/patient/lab-reports" },

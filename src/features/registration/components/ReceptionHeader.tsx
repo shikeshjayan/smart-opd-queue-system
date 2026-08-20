@@ -9,6 +9,7 @@ import { useReception } from "../reception-context";
 const navItems = [
   { href: "/reception/dashboard", label: "Dashboard" },
   { href: "/reception/registration", label: "Registration" },
+  { href: "/reception/appointments", label: "Appointments" },
   { href: "/reception/patients", label: "Patients" },
   { href: "/reception/tokens", label: "Tokens" },
   { href: "/reception/queue", label: "Live Queue" },
