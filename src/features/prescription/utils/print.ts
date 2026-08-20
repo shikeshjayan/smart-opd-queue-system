@@ -1,4 +1,5 @@
 import type { Prescription } from "@/services/prescription/types";
+import { formatDuration } from "@/services/prescription/types";
 
 export function printPrescription(
   prescription: Prescription,
@@ -7,17 +8,17 @@ export function printPrescription(
 ): void {
   const win = window.open("", "_blank", "width=720,height=900");
   if (!win) return;
-  const issued = prescription.issuedAt;
+  const issued = prescription.finalizedAt ?? prescription.createdAt;
   const dateLabel = issued.slice(0, 10);
 
   const rows = prescription.medicines
     .map(
       (m) => `<tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600">${m.genericName}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600">${m.medicineName}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${m.brandLabel ?? "—"}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${m.dosage}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${m.frequency}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${m.durationDays} days</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${formatDuration(m.duration)}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${m.route ?? "Oral"}</td>
       </tr>`
     )
@@ -39,6 +40,7 @@ export function printPrescription(
         <div class="meta">${prescription.hospitalName} &middot; ${prescription.departmentName}</div>
         <div class="meta">Prescribing doctor: ${prescription.doctorName}</div>
         <div class="meta">Patient: ${patientName} (#${patientId}) &middot; ${dateLabel}</div>
+        <div class="meta">Prescription ID: ${prescription.id}</div>
       </div>
       <table>
         <thead><tr><th>Medicine</th><th>Brand</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Route</th></tr></thead>

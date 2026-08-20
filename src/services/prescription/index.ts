@@ -1,6 +1,15 @@
 import { getPatient } from "../data";
 import { medicineById } from "../medicine";
-import type { PrescribedMedicine, Prescription, PrescriptionDraftItem, MedicationRegimenEntry } from "./types";
+import {
+  durationToDays,
+} from "./types";
+import type {
+  MedicationRegimenEntry,
+  PrescribedMedicine,
+  Prescription,
+  PrescriptionContextRef,
+  PrescriptionDraftItem,
+} from "./types";
 
 const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -31,15 +40,29 @@ function save<T>(key: string, value: T[]): void {
   }
 }
 
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDays(date: string, days: number): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function seedRegimen(): MedicationRegimenEntry[] {
   return [
-    { id: "rxg_001", patientId: "P10294", medicineId: "med_metform", genericName: "Metformin", brandLabel: "Glycomet-GP", dosage: "500 mg", frequency: "1-0-1", startedAt: "2026-04-18", status: "active" },
+    { id: "rxg_001", patientId: "P10294", medicineId: "med_metform", genericName: "Metformin", brandLabel: "Glycomet-GP", dosage: "500 mg", frequency: "1-0-1", startedAt: "2026-04-18", durationDays: 90, expectedEndDate: "2026-07-17", status: "completed" },
     { id: "rxg_002", patientId: "P10294", medicineId: "med_amlod", genericName: "Amlodipine", brandLabel: "Amlong", dosage: "5 mg", frequency: "1-0-0", startedAt: "2026-01-12", status: "active" },
     { id: "rxg_003", patientId: "P10294", medicineId: "med_atorvast", genericName: "Atorvastatin", brandLabel: "Atorva", dosage: "10 mg", frequency: "0-1-0", startedAt: "2026-01-12", status: "active" },
     { id: "rxg_004", patientId: "P10294", medicineId: "med_aspirin", genericName: "Aspirin (Low dose)", brandLabel: "Ecosprin", dosage: "75 mg", frequency: "1-0-0", startedAt: "2026-01-12", status: "active" },
     { id: "rxg_005", patientId: "P10294", medicineId: "med_cetirizine", genericName: "Cetirizine", brandLabel: "Cetzine", dosage: "10 mg", frequency: "0-1-0", startedAt: "2025-12-04", status: "discontinued", discontinuedAt: "2026-01-12", reason: "Symptom resolved" },
-    { id: "rxg_006", patientId: "P10421", medicineId: "med_panto", genericName: "Pantoprazole", brandLabel: "Pan-D", dosage: "40 mg", frequency: "1-0-0", startedAt: "2026-08-19", status: "active" },
+    { id: "rxg_006", patientId: "P10421", medicineId: "med_panto", genericName: "Pantoprazole", brandLabel: "Pan-D", dosage: "40 mg", frequency: "1-0-0", startedAt: "2026-08-19", durationDays: 14, expectedEndDate: "2026-09-02", status: "active" },
   ];
+}
+
+function seedMedicines(items: Array<Omit<PrescribedMedicine, "durationDays">>): PrescribedMedicine[] {
+  return items.map((item) => ({ ...item, durationDays: durationToDays(item.duration) }));
 }
 
 function seedPrescriptions(): Prescription[] {
@@ -48,16 +71,122 @@ function seedPrescriptions(): Prescription[] {
       id: "RX20260819003",
       encounterId: "E20260819003",
       patientId: "P10421",
+      doctorId: "doc_001",
+      hospitalId: "ernakulam-gh",
       issuedAt: "2026-08-19T10:08:00",
+      createdAt: "2026-08-19T10:08:00",
+      finalizedAt: "2026-08-19T10:08:00",
       hospitalName: "Government Hospital Ernakulam",
       departmentName: "Cardiology",
       doctorName: "Dr. Anil Kumar",
+      workflowStatus: "finalized",
       status: "prescribed",
-      medicines: [
-        { id: "pmi_001", medicineId: "med_par", genericName: "Paracetamol", brandLabel: "Calpol", dosage: "650 mg", frequency: "1-1-1", durationDays: 3, route: "Oral", status: "prescribed" },
-        { id: "pmi_002", medicineId: "med_panto", genericName: "Pantoprazole", brandLabel: "Pan-D", dosage: "40 mg", frequency: "1-0-0", durationDays: 14, route: "Oral before breakfast", status: "prescribed" },
-      ],
+      medicines: seedMedicines([
+        {
+          id: "pmi_001",
+          medicineId: "med_par",
+          medicineName: "Paracetamol",
+          genericName: "Paracetamol",
+          brandLabel: "Calpol 650",
+          dosage: "650 mg",
+          frequency: "1-1-1",
+          duration: { value: 3, unit: "days" },
+          route: "Oral",
+          status: "prescribed",
+        },
+        {
+          id: "pmi_002",
+          medicineId: "med_panto",
+          medicineName: "Pantoprazole",
+          genericName: "Pantoprazole",
+          brandLabel: "Pan-D",
+          dosage: "40 mg",
+          frequency: "1-0-0",
+          duration: { value: 14, unit: "days" },
+          route: "Oral",
+          instructions: "Before breakfast",
+          status: "prescribed",
+        },
+      ]),
       instructions: "Take Pantoprazole before breakfast.",
+    },
+    {
+      id: "RX20260819002",
+      encounterId: "E20260819002",
+      patientId: "P10294",
+      doctorId: "doc_001",
+      hospitalId: "ernakulam-gh",
+      issuedAt: "2026-08-18T11:20:00",
+      createdAt: "2026-08-18T11:20:00",
+      finalizedAt: "2026-08-18T11:20:00",
+      hospitalName: "Government Hospital Ernakulam",
+      departmentName: "Cardiology",
+      doctorName: "Dr. Anil Kumar",
+      workflowStatus: "finalized",
+      status: "dispensed",
+      printedAt: "2026-08-18T12:05:00",
+      medicines: seedMedicines([
+        {
+          id: "pmi_003",
+          medicineId: "med_amlod",
+          medicineName: "Amlodipine",
+          genericName: "Amlodipine",
+          brandLabel: "Amlong",
+          dosage: "5 mg",
+          frequency: "1-0-0",
+          duration: { value: 30, unit: "days" },
+          route: "Oral",
+          status: "dispensed",
+          dispensedAt: "2026-08-18T12:05:00",
+        },
+        {
+          id: "pmi_004",
+          medicineId: "med_atorvast",
+          medicineName: "Atorvastatin",
+          genericName: "Atorvastatin",
+          brandLabel: "Atorva",
+          dosage: "10 mg",
+          frequency: "0-1-0",
+          duration: { value: 30, unit: "days" },
+          route: "Oral",
+          instructions: "Take at night",
+          status: "dispensed",
+          dispensedAt: "2026-08-18T12:05:00",
+        },
+      ]),
+      instructions: "Take at night.",
+    },
+    {
+      id: "RX20260819001",
+      encounterId: "E20260819001",
+      patientId: "P10294",
+      doctorId: "doc_001",
+      hospitalId: "ernakulam-gh",
+      issuedAt: "2026-08-15T09:45:00",
+      createdAt: "2026-08-15T09:45:00",
+      finalizedAt: "2026-08-15T09:45:00",
+      hospitalName: "Government Hospital Ernakulam",
+      departmentName: "General Medicine",
+      doctorName: "Dr. Anil Kumar",
+      workflowStatus: "finalized",
+      status: "dispensed",
+      printedAt: "2026-08-15T10:10:00",
+      medicines: seedMedicines([
+        {
+          id: "pmi_005",
+          medicineId: "med_panto",
+          medicineName: "Pantoprazole",
+          genericName: "Pantoprazole",
+          brandLabel: "Pan-D",
+          dosage: "40 mg",
+          frequency: "1-0-0",
+          duration: { value: 14, unit: "days" },
+          route: "Oral",
+          instructions: "Before breakfast",
+          status: "dispensed",
+          dispensedAt: "2026-08-15T10:10:00",
+        },
+      ]),
     },
   ];
 }
@@ -74,8 +203,95 @@ function nextId(prefix: string): string {
   return `${prefix}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+function isDraft(prescription: Prescription): boolean {
+  return prescription.workflowStatus === "draft";
+}
+
+function deriveRegimenStatus(entry: MedicationRegimenEntry): MedicationRegimenEntry {
+  if (entry.status !== "active" || !entry.expectedEndDate) return entry;
+  if (today() > entry.expectedEndDate) {
+    return { ...entry, status: "completed" as const };
+  }
+  return entry;
+}
+
+function buildMedicineFromItem(item: PrescriptionDraftItem, id: string): PrescribedMedicine {
+  const catalog = medicineById(item.medicineId);
+  return {
+    id,
+    medicineId: item.medicineId,
+    medicineName: item.medicineName,
+    genericName: item.genericName ?? catalog?.genericName ?? item.medicineName,
+    brandLabel: item.brandLabel || catalog?.brandNames[0],
+    dosage: item.dosage,
+    frequency: item.frequency,
+    duration: item.duration,
+    durationDays: durationToDays(item.duration),
+    route: item.route || "Oral",
+    instructions: item.instructions,
+    status: "prescribed" as const,
+  };
+}
+
+function makePrescription(
+  encounterId: string,
+  ref: PrescriptionContextRef,
+  items: PrescriptionDraftItem[],
+  instructions: string | undefined,
+  workflowStatus: Prescription["workflowStatus"]
+): Prescription {
+  const now = new Date().toISOString();
+  return {
+    id: `RX${Date.now()}`,
+    encounterId,
+    patientId: ref.patientId,
+    doctorId: ref.doctorId,
+    hospitalId: ref.hospitalId,
+    issuedAt: now,
+    createdAt: now,
+    finalizedAt: workflowStatus === "finalized" ? now : undefined,
+    hospitalName: ref.hospitalName,
+    departmentName: ref.departmentName,
+    doctorName: ref.doctorName,
+    medicines: items.map((item) => buildMedicineFromItem(item, nextId("pmi_"))),
+    instructions,
+    workflowStatus,
+    status: "prescribed",
+  };
+}
+
+function syncRegimen(prescription: Prescription): void {
+  const current = (regimen ?? []).map((r) => ({ ...r }));
+  let changed = false;
+  for (const med of prescription.medicines) {
+    const exists = current.some(
+      (r) =>
+        r.patientId === prescription.patientId &&
+        r.medicineId === med.medicineId &&
+        r.status === "active"
+    );
+    if (exists) continue;
+    const started = today();
+    const durationDays = med.durationDays > 0 ? med.durationDays : undefined;
+    current.unshift({
+      id: nextId("rxg_"),
+      patientId: prescription.patientId,
+      medicineId: med.medicineId,
+      genericName: med.genericName,
+      brandLabel: med.brandLabel,
+      dosage: med.dosage,
+      frequency: med.frequency,
+      startedAt: started,
+      durationDays,
+      expectedEndDate: durationDays ? addDays(started, durationDays) : undefined,
+      status: "active",
+    });
+    changed = true;
+  }
+  if (changed) {
+    regimen = current;
+    save(REGIMEN_KEY, regimen);
+  }
 }
 
 export const prescriptionService = {
@@ -89,14 +305,16 @@ export const prescriptionService = {
     await delay();
     ensureLoaded();
     return (prescriptions ?? [])
-      .filter((p) => p.patientId === patientId)
-      .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt));
+      .filter((p) => p.patientId === patientId && !isDraft(p))
+      .sort((a, b) => (b.finalizedAt ?? b.createdAt).localeCompare(a.finalizedAt ?? a.createdAt));
   },
 
   async listAll(): Promise<Prescription[]> {
     await delay();
     ensureLoaded();
-    return [...(prescriptions ?? [])].sort((a, b) => b.issuedAt.localeCompare(a.issuedAt));
+    return [...(prescriptions ?? [])]
+      .filter((p) => !isDraft(p))
+      .sort((a, b) => (b.finalizedAt ?? b.createdAt).localeCompare(a.finalizedAt ?? a.createdAt));
   },
 
   async getById(prescriptionId: string): Promise<Prescription | undefined> {
@@ -105,79 +323,97 @@ export const prescriptionService = {
     return (prescriptions ?? []).find((p) => p.id === prescriptionId);
   },
 
+  async getDraftForEncounter(encounterId: string): Promise<Prescription | undefined> {
+    await delay();
+    ensureLoaded();
+    return (prescriptions ?? []).find(
+      (p) => p.encounterId === encounterId && p.workflowStatus === "draft"
+    );
+  },
+
   async listRegimen(patientId: string): Promise<MedicationRegimenEntry[]> {
     await delay();
     ensureLoaded();
     return (regimen ?? [])
       .filter((r) => r.patientId === patientId)
+      .map(deriveRegimenStatus)
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   },
 
-  async create(
+  async createDraft(
     encounterId: string,
-    doctorName: string,
-    hospitalName: string,
-    departmentName: string,
-    patientId: string,
+    ref: PrescriptionContextRef,
     items: PrescriptionDraftItem[],
     instructions?: string
   ): Promise<Prescription> {
     await delay();
     ensureLoaded();
-    const meds: PrescribedMedicine[] = items.map((item) => {
-      const med = medicineById(item.medicineId);
-      return {
-        id: nextId("pmi_"),
-        medicineId: item.medicineId,
-        genericName: med?.genericName ?? item.brandLabel,
-        brandLabel: item.brandLabel || med?.brandNames[0],
-        dosage: item.dosage,
-        frequency: item.frequency,
-        durationDays: item.durationDays,
-        route: item.instructions ? "Oral" : med?.route,
-        instructions: item.instructions,
-        status: "prescribed" as const,
-      };
-    });
-    const prescription: Prescription = {
-      id: `RX${Date.now()}`,
-      encounterId,
-      patientId,
-      issuedAt: new Date().toISOString(),
-      hospitalName,
-      departmentName,
-      doctorName,
-      medicines: meds,
-      instructions,
-      status: "prescribed",
-    };
+    const prescription = makePrescription(encounterId, ref, items, instructions, "draft");
     prescriptions = [prescription, ...(prescriptions ?? [])];
     save(PRESCRIPTIONS_KEY, prescriptions);
-
-    let added = false;
-    const existing = regimen ?? [];
-    const next = existing.map((r) => ({ ...r }));
-    for (const item of items) {
-      if (!next.some((r) => r.patientId === patientId && r.medicineId === item.medicineId && r.status === "active")) {
-        next.unshift({
-          id: nextId("rxg_"),
-          patientId,
-          medicineId: item.medicineId,
-          genericName: medicineById(item.medicineId)?.genericName ?? item.brandLabel,
-          brandLabel: item.brandLabel || medicineById(item.medicineId)?.brandNames[0],
-          dosage: item.dosage,
-          frequency: item.frequency,
-          startedAt: today(),
-          status: "active",
-        });
-        added = true;
-      }
-    }
-    if (added) {
-      regimen = next;
-      save(REGIMEN_KEY, regimen);
-    }
     return prescription;
+  },
+
+  async updateDraft(
+    prescriptionId: string,
+    items: PrescriptionDraftItem[],
+    instructions?: string
+  ): Promise<Prescription | undefined> {
+    await delay();
+    ensureLoaded();
+    const list = prescriptions ?? [];
+    const index = list.findIndex((p) => p.id === prescriptionId);
+    if (index === -1 || list[index].workflowStatus !== "draft") return undefined;
+    list[index] = {
+      ...list[index],
+      medicines: items.map((item) => buildMedicineFromItem(item, nextId("pmi_"))),
+      instructions,
+      issuedAt: new Date().toISOString(),
+    };
+    prescriptions = list;
+    save(PRESCRIPTIONS_KEY, prescriptions);
+    return list[index];
+  },
+
+  async finalize(prescriptionId: string): Promise<Prescription | undefined> {
+    await delay();
+    ensureLoaded();
+    const list = prescriptions ?? [];
+    const index = list.findIndex((p) => p.id === prescriptionId);
+    if (index === -1 || list[index].workflowStatus !== "draft") return undefined;
+    const now = new Date().toISOString();
+    list[index] = {
+      ...list[index],
+      workflowStatus: "finalized",
+      finalizedAt: now,
+    };
+    prescriptions = list;
+    save(PRESCRIPTIONS_KEY, prescriptions);
+    syncRegimen(list[index]);
+    return list[index];
+  },
+
+  async cancel(prescriptionId: string, reason?: string): Promise<Prescription | undefined> {
+    await delay();
+    ensureLoaded();
+    const list = prescriptions ?? [];
+    const index = list.findIndex((p) => p.id === prescriptionId);
+    if (index === -1) return undefined;
+    list[index] = { ...list[index], workflowStatus: "cancelled", cancelledReason: reason };
+    prescriptions = list;
+    save(PRESCRIPTIONS_KEY, prescriptions);
+    return list[index];
+  },
+
+  async create(
+    encounterId: string,
+    ref: PrescriptionContextRef,
+    items: PrescriptionDraftItem[],
+    instructions?: string
+  ): Promise<Prescription> {
+    const draft = await this.createDraft(encounterId, ref, items, instructions);
+    const finalized = await this.finalize(draft.id);
+    return finalized ?? draft;
   },
 
   async updateStatus(prescriptionId: string, status: Prescription["status"]): Promise<Prescription | undefined> {
@@ -185,8 +421,12 @@ export const prescriptionService = {
     ensureLoaded();
     const list = prescriptions ?? [];
     const index = list.findIndex((p) => p.id === prescriptionId);
-    if (index === -1) return undefined;
-    list[index] = { ...list[index], status, printedAt: status === "dispensed" ? new Date().toISOString() : list[index].printedAt };
+    if (index === -1 || list[index].workflowStatus !== "finalized") return undefined;
+    list[index] = {
+      ...list[index],
+      status,
+      printedAt: status === "dispensed" ? new Date().toISOString() : list[index].printedAt,
+    };
     prescriptions = list;
     save(PRESCRIPTIONS_KEY, prescriptions);
     return list[index];

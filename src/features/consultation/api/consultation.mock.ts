@@ -24,15 +24,14 @@ export const consultationMockApi = {
     await consultationService.saveDraft(encounterId, sections);
 
     if (prescriptionItems.length > 0) {
-      await prescriptionService.create(
-        encounterId,
-        context.encounter.doctorName,
-        context.encounter.hospitalName,
-        context.encounter.departmentName,
-        context.encounter.patientId,
-        prescriptionItems,
-        instructions
-      );
+      await prescriptionService.create(encounterId, {
+        patientId: context.encounter.patientId,
+        doctorId: context.encounter.doctorId,
+        hospitalId: context.encounter.hospitalId,
+        doctorName: context.encounter.doctorName,
+        hospitalName: context.encounter.hospitalName,
+        departmentName: context.encounter.departmentName,
+      }, prescriptionItems, instructions);
     }
 
     const encounter = await consultationService.complete(encounterId);

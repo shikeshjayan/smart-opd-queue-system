@@ -52,7 +52,7 @@ export const pharmacyMockApi = {
   async getQueue(): Promise<PharmacyQueueEntry[]> {
     const all = await prescriptionService.listAll();
     return all
-      .filter((p) => p.status !== "cancelled" && p.medicines.length > 0)
+      .filter((p) => p.workflowStatus === "finalized" && p.status !== "dispensed" && p.medicines.length > 0)
       .map(entryFor)
       .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
   },

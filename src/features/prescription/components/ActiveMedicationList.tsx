@@ -13,7 +13,7 @@ type ActiveMedicationListProps = {
   patientId: string;
 };
 
-type Phase = "all" | "active" | "discontinued";
+type Phase = "all" | "active" | "completed" | "discontinued";
 
 export function ActiveMedicationList({ patientId }: ActiveMedicationListProps) {
   const { data, isLoading, error, reload } = useActiveMedications(patientId);
@@ -41,12 +41,14 @@ export function ActiveMedicationList({ patientId }: ActiveMedicationListProps) {
 
   const list = data.filter((entry) => {
     if (phase === "active") return entry.status === "active";
+    if (phase === "completed") return entry.status === "completed";
     if (phase === "discontinued") return entry.status === "discontinued";
     return true;
   });
 
   const activeCount = data.filter((e) => e.status === "active").length;
-  const discontinuedCount = data.length - activeCount;
+  const completedCount = data.filter((e) => e.status === "completed").length;
+  const discontinuedCount = data.length - activeCount - completedCount;
 
   const confirmDiscontinue = async () => {
     if (!target) return;
@@ -62,6 +64,7 @@ export function ActiveMedicationList({ patientId }: ActiveMedicationListProps) {
         {(
           [
             ["active", `Active (${activeCount})`],
+            ["completed", `Completed (${completedCount})`],
             ["discontinued", `Discontinued (${discontinuedCount})`],
             ["all", "All"],
           ] as Array<[Phase, string]>
@@ -107,7 +110,7 @@ export function ActiveMedicationList({ patientId }: ActiveMedicationListProps) {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={entry.status === "active" ? "success" : "default"}>
-                  {entry.status === "active" ? "Active" : "Discontinued"}
+                  {entry.status === "active" ? "Active" : entry.status === "completed" ? "Completed" : "Discontinued"}
                 </Badge>
                 {entry.status === "active" && can("EDIT_ENCOUNTER") && (
                   <Button
