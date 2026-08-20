@@ -12,10 +12,14 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { HistoryFilters as HistoryFiltersType } from "@/features/medical-records/types/medical-record.types";
+import { usePatientTests } from "@/features/diagnostics/hooks/useDiagnosticResults";
+import { DiagnosticTimeline } from "@/features/diagnostics/components/DiagnosticTimeline";
+import type { DiagnosticCategory } from "@/services/diagnostics/types";
+import { DEMO_PATIENT_ID } from "@/config/app";
 
 const PAGE_SIZE = 5;
 
-type HistoryTab = "overview" | "timeline" | "visits";
+type HistoryTab = "overview" | "timeline" | "visits" | "diagnostics";
 
 const tabStyles = (active: boolean) =>
   `px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
@@ -29,8 +33,10 @@ export default function PatientHistoryPage() {
   const [activeTab, setActiveTab] = useState<HistoryTab>("overview");
   const [filters, setFilters] = useState<HistoryFiltersType>({ keyword: "" });
   const [page, setPage] = useState(1);
+  const [testCategory, setTestCategory] = useState<"all" | DiagnosticCategory>("all");
 
   const visits = useEncounters(filters, page, PAGE_SIZE);
+  const tests = usePatientTests(DEMO_PATIENT_ID);
 
   if (isLoading) {
     return (
@@ -84,6 +90,14 @@ export default function PatientHistoryPage() {
           className={tabStyles(activeTab === "visits")}
         >
           Visits
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === "diagnostics"}
+          onClick={() => setActiveTab("diagnostics")}
+          className={tabStyles(activeTab === "diagnostics")}
+        >
+          Diagnostics
         </button>
       </div>
 
@@ -167,6 +181,51 @@ export default function PatientHistoryPage() {
               title="No matching visits"
               description="Try adjusting your search or filters to find past visits."
             />
+          )}
+        </div>
+      )}
+
+      {activeTab === "diagnostics" && (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              ["all", "All"],
+              ["laboratory", "Laboratory"],
+              ["imaging", "Imaging"],
+              ["other", "Other"],
+            ] as Array<["all" | DiagnosticCategory, string]>).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={testCategory === value}
+                onClick={() => setTestCategory(value)}
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  testCategory === value
+                    ? "border-brand-600 bg-brand-50 text-brand-700"
+                    : "border-ink-300 text-ink-600 hover:bg-ink-100"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {tests.isLoading ? (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          ) : tests.error ? (
+            <ErrorState message={tests.error} onRetry={tests.reload} />
+          ) : tests.data && tests.data.length > 0 ? (
+            <DiagnosticTimeline
+              entries={tests.data.filter(
+                (entry) => testCategory === "all" || entry.category === testCategory
+              )}
+              hrefFor={(entry) => `/patient/lab-reports/${entry.resultId!}`}
+            />
+          ) : (
+            <EmptyState title="No diagnostics" description="Tests and reports from your visits will appear here." />
           )}
         </div>
       )}

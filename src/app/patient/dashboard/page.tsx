@@ -11,10 +11,13 @@ import Link from "next/link";
 import { AllergyWarning } from "@/features/medication/components/AllergyWarning";
 import { MedicationList } from "@/features/medication/components/MedicationList";
 import { usePatientMedicationPanel } from "@/features/medication/hooks/usePatientMedicationPanel";
+import { MyTests } from "@/features/diagnostics/components/MyTests";
+import { usePatientTests } from "@/features/diagnostics/hooks/useDiagnosticResults";
 
 export default function DashboardPage() {
   const { data, isLoading, error, reload } = usePatientDashboard();
   const medicationPanel = usePatientMedicationPanel();
+  const tests = usePatientTests("P10294");
 
   if (isLoading) {
     return (
@@ -75,6 +78,19 @@ export default function DashboardPage() {
             historyHref="/patient/prescriptions"
           />
         </div>
+      )}
+
+      {tests.error ? (
+        <p className="rounded-card border border-status-danger-soft bg-status-danger-soft p-4 text-sm text-status-danger">
+          {tests.error}
+        </p>
+      ) : tests.isLoading ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : (
+        <MyTests entries={tests.data ?? []} />
       )}
 
       {notifications.length > 0 && (

@@ -15,6 +15,7 @@ export function proxy(request: NextRequest) {
     "/district-admin",
     "/state-admin",
     "/display",
+    "/lab",
   ].some((prefix) => pathname.startsWith(prefix));
 
   if (isWorkspace && !cookie) {
@@ -36,5 +37,6 @@ export const config = {
     "/district-admin/:path*",
     "/state-admin/:path*",
     "/display/:path*",
+    "/lab/:path*",
   ],
 };

@@ -6,35 +6,31 @@ import { LogoutButton } from "@/features/auth/components/LogoutButton";
 import { SessionBadge } from "@/features/auth/components/SessionBadge";
 
 const navItems = [
-  { href: "/doctor/dashboard", label: "Dashboard" },
-  { href: "/doctor/opd", label: "Today's OPD" },
-  { href: "/doctor/queue", label: "Queue" },
-  { href: "/doctor/patients", label: "Patients" },
-  { href: "/doctor/results", label: "Results" },
-  { href: "/doctor/history", label: "History" },
-  { href: "/doctor/profile", label: "Profile" },
+  { href: "/lab/dashboard", label: "Dashboard" },
+  { href: "/lab/orders", label: "Orders" },
+  { href: "/lab/results", label: "Results" },
 ];
 
-export function DoctorHeader() {
+export function LabHeader() {
   const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-40 border-b border-ink-200 bg-surface">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
-        <Link href="/doctor/dashboard" className="flex items-center gap-2 font-semibold text-ink-900">
+        <Link href="/lab/dashboard" className="flex items-center gap-2 font-semibold text-ink-900">
           <span
             className="flex h-8 w-8 items-center justify-center rounded-btn bg-brand-700 text-sm font-bold text-white"
             aria-hidden="true"
           >
-            DR
+            LB
           </span>
-          <span className="hidden sm:inline">Doctor Workspace</span>
+          <span className="hidden sm:inline">Laboratory Workspace</span>
         </Link>
 
-        <nav aria-label="Doctor navigation" className="flex items-center gap-1 overflow-x-auto">
+        <nav aria-label="Laboratory navigation" className="flex items-center gap-1 overflow-x-auto">
           {navItems.map((item) => {
             const isActive =
-              item.href === "/doctor/dashboard"
+              item.href === "/lab/dashboard"
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
             return (

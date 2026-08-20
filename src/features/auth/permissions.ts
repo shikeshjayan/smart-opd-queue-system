@@ -10,6 +10,14 @@ export type Permission =
   | "COMPLETE_ENCOUNTER"
   | "PRESCRIBE_MEDICATION"
   | "REQUEST_CORRECTION"
+  | "ORDER_DIAGNOSTICS"
+  | "VIEW_DIAGNOSTIC_RESULTS"
+  | "REVIEW_DIAGNOSTIC_RESULTS"
+  | "VIEW_LAB_DASHBOARD"
+  | "VIEW_LAB_ORDERS"
+  | "COLLECT_SAMPLES"
+  | "ENTER_RESULTS"
+  | "FINALIZE_RESULTS"
   | "VIEW_PHARMACY_QUEUE"
   | "VIEW_QUEUE"
   | "CALL_PATIENT"
@@ -41,6 +49,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "COMPLETE_ENCOUNTER",
     "PRESCRIBE_MEDICATION",
     "REQUEST_CORRECTION",
+    "ORDER_DIAGNOSTICS",
+    "VIEW_DIAGNOSTIC_RESULTS",
+    "REVIEW_DIAGNOSTIC_RESULTS",
     "VIEW_PHARMACY_QUEUE",
   ],
   clinical_staff: [
@@ -59,6 +70,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "CALL_PATIENT",
     "REQUEST_OVERRIDE",
   ],
+  lab_staff: [
+    "VIEW_OWN_PROFILE",
+    "VIEW_PATIENT",
+    "VIEW_LAB_DASHBOARD",
+    "VIEW_LAB_ORDERS",
+    "COLLECT_SAMPLES",
+    "ENTER_RESULTS",
+    "FINALIZE_RESULTS",
+  ],
   hospital_admin: [
     "VIEW_OWN_PROFILE",
     "VIEW_PATIENT",
@@ -70,6 +90,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "MANAGE_HOSPITAL",
     "VIEW_REPORTS",
     "VIEW_PHARMACY_QUEUE",
+    "VIEW_LAB_DASHBOARD",
+    "VIEW_LAB_ORDERS",
     "ASSESS_PRIORITY",
     "REQUEST_OVERRIDE",
     "APPROVE_OVERRIDE",
