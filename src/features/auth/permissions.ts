@@ -18,6 +18,12 @@ export type Permission =
   | "COLLECT_SAMPLES"
   | "ENTER_RESULTS"
   | "FINALIZE_RESULTS"
+  | "VIEW_OWN_APPOINTMENTS"
+  | "BOOK_APPOINTMENT"
+  | "VIEW_APPOINTMENT_SCHEDULE"
+  | "MANAGE_APPOINTMENTS"
+  | "CHECK_IN_APPOINTMENT"
+  | "MANAGE_SCHEDULING"
   | "VIEW_PHARMACY_QUEUE"
   | "VIEW_QUEUE"
   | "CALL_PATIENT"
@@ -37,7 +43,14 @@ export type Permission =
   | "MANAGE_ASSISTANCE";
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
-  patient: ["VIEW_OWN_PROFILE", "VIEW_OWN_MEDICAL_HISTORY", "VIEW_QUEUE", "REQUEST_ASSISTANCE"],
+  patient: [
+    "VIEW_OWN_PROFILE",
+    "VIEW_OWN_MEDICAL_HISTORY",
+    "VIEW_QUEUE",
+    "REQUEST_ASSISTANCE",
+    "VIEW_OWN_APPOINTMENTS",
+    "BOOK_APPOINTMENT",
+  ],
   doctor: [
     "VIEW_OWN_PROFILE",
     "VIEW_PATIENT",
@@ -53,6 +66,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_DIAGNOSTIC_RESULTS",
     "REVIEW_DIAGNOSTIC_RESULTS",
     "VIEW_PHARMACY_QUEUE",
+    "VIEW_APPOINTMENT_SCHEDULE",
+    "CHECK_IN_APPOINTMENT",
   ],
   clinical_staff: [
     "VIEW_OWN_PROFILE",
@@ -69,6 +84,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_QUEUE",
     "CALL_PATIENT",
     "REQUEST_OVERRIDE",
+    "MANAGE_APPOINTMENTS",
+    "CHECK_IN_APPOINTMENT",
   ],
   lab_staff: [
     "VIEW_OWN_PROFILE",
@@ -92,6 +109,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_PHARMACY_QUEUE",
     "VIEW_LAB_DASHBOARD",
     "VIEW_LAB_ORDERS",
+    "MANAGE_APPOINTMENTS",
+    "CHECK_IN_APPOINTMENT",
+    "MANAGE_SCHEDULING",
     "ASSESS_PRIORITY",
     "REQUEST_OVERRIDE",
     "APPROVE_OVERRIDE",

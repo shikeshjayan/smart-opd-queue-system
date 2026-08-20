@@ -9,6 +9,7 @@ const navItems = [
   { href: "/doctor/dashboard", label: "Dashboard" },
   { href: "/doctor/opd", label: "Today's OPD" },
   { href: "/doctor/queue", label: "Queue" },
+  { href: "/doctor/schedule", label: "Schedule" },
   { href: "/doctor/patients", label: "Patients" },
   { href: "/doctor/results", label: "Results" },
   { href: "/doctor/history", label: "History" },
