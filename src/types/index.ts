@@ -22,7 +22,7 @@ export type Department = {
   status: DepartmentStatus;
 };
 
-export type OPDStatus = "open" | "closed" | "full" | "unavailable";
+export type OPDStatus = "open" | "closed" | "full" | "paused" | "unavailable";
 
 export type OPD = {
   id: string;
@@ -33,6 +33,8 @@ export type OPD = {
   status: OPDStatus;
   currentlyServing: string | null;
   estimatedWaitMinutes: number | null;
+  statusReason?: string;
+  statusUpdatedAt?: string;
 };
 
 export type QueueStatus =
@@ -57,13 +59,17 @@ export type Token = {
   estimatedWaitMinutes: number | null;
 };
 
+export type QueuePriority = "normal" | "priority" | "emergency";
+
 export type QueueEntry = {
   tokenNumber: string;
   status: QueueStatus;
   isCurrentUser: boolean;
   patientId: string | null;
   patientName: string | null;
-  isPriority?: boolean;
+  priority: QueuePriority;
+  overrideAhead?: boolean;
+  position?: number;
 };
 
 export type TokenBundle = {
@@ -102,24 +108,28 @@ export type PatientSummary = {
   knownInfo: PatientKnownInfo;
 };
 
-export type ConsultationStatus = "draft" | "completed";
+export type EncounterStatus =
+  | "open"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 
 export type Encounter = {
   id: string;
   patientId: string;
+  hospitalId: string;
+  departmentId: string;
   doctorId: string;
   opdId: string;
+  tokenId?: string;
   tokenNumber: string;
   date: string;
   hospitalName: string;
   departmentName: string;
   doctorName: string;
-  chiefComplaint: string;
-  symptoms: string;
-  observations: string;
-  assessment: string;
-  plan: string;
-  status: ConsultationStatus;
+  status: EncounterStatus;
+  startedAt?: string;
+  completedAt?: string;
   createdAt: string;
   updatedAt: string;
 };

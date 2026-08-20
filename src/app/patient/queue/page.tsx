@@ -1,17 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useQueueRealtime } from "@/features/queue/hooks/useQueueRealtime";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
+import { useAssistanceActions } from "@/features/priority/hooks/usePriority";
+import { AssistanceRequestDialog } from "@/features/priority/components/AssistanceRequestDialog";
+import { PermissionGuard } from "@/features/auth/components/PermissionGuard";
 import { WaitingView } from "@/features/queue/components/WaitingView";
 import { NearTurnView } from "@/features/queue/components/NearTurnView";
 import { CalledView } from "@/features/queue/components/CalledView";
 import { ConsultationView } from "@/features/queue/components/ConsultationView";
 import { CompletedView } from "@/features/queue/components/CompletedView";
 import { TokenEndedView } from "@/features/queue/components/TokenEndedView";
+import { QueueStatusBanner } from "@/features/queue/components/QueueStatusBanner";
+import { queueOperationalState } from "@/features/queue/utils/queue-status";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import type { QueueSnapshot, PatientQueuePhase } from "@/features/queue/types/queue.types";
@@ -26,6 +32,7 @@ function QueueContent() {
 
   const { user } = useAuth();
   const patientId = user?.id ?? DEMO_PATIENT_ID;
+  const patientName = user?.name ?? "Patient";
 
   const { data: snapshot, isLoading, error, reload, connection, phase } =
     useQueueRealtime(opdId, tokenId);
@@ -34,6 +41,10 @@ function QueueContent() {
     ? { tokenId, tokenNumber: snapshot.tokenNumber, opdId }
     : null;
   const { notify } = useNotifications(patientId, activeToken);
+  const assistance = useAssistanceActions();
+
+  const [reorderNotice, setReorderNotice] = useState(false);
+  const prevAheadRef = useRef<number | null>(null);
 
   const prevPhase = useRef<PatientQueuePhase | null>(null);
   useEffect(() => {
@@ -55,7 +66,34 @@ function QueueContent() {
     prevPhase.current = phase;
   }, [phase, snapshot, notify]);
 
+  useEffect(() => {
+    if (!snapshot || (phase !== "waiting" && phase !== "near_turn")) return;
+    const previous = prevAheadRef.current;
+    prevAheadRef.current = snapshot.patientsAhead;
+    if (previous !== null && snapshot.patientsAhead > previous) {
+      setReorderNotice(true);
+      const timeout = setTimeout(() => setReorderNotice(false), 6000);
+      return () => clearTimeout(timeout);
+    }
+    return undefined;
+  }, [snapshot, phase]);
+
+  const [assistOpen, setAssistOpen] = useState(false);
+  const [assistConfirmed, setAssistConfirmed] = useState(false);
+
+  async function handleAssistanceRequest(type: "mobility" | "communication" | "navigation" | "other") {
+    const result = await assistance.request({
+      patientId,
+      patientName,
+      type,
+    });
+    if (result) setAssistConfirmed(true);
+  }
+
   const offline = connection === "reconnecting" || connection === "disconnected";
+  const canAssist =
+    phase === "waiting" || phase === "near_turn" || phase === "called" || phase === "in_consultation";
+  const opState = snapshot ? queueOperationalState(snapshot.opdStatus, 0) : "normal";
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,9 +131,60 @@ function QueueContent() {
               </p>
             </div>
           )}
+
+          {reorderNotice && (
+            <div
+              role="status"
+              className="rounded-card border border-status-info-soft bg-status-info-soft p-4 text-sm text-status-info"
+            >
+              <p className="font-medium">Queue updated</p>
+              <p className="mt-0.5">
+                The estimated waiting time changed because the hospital handled a priority case.
+              </p>
+            </div>
+          )}
+
+          {opState !== "normal" && (
+            <QueueStatusBanner
+              state={opState}
+              opdName={snapshot.opdName}
+              reason={snapshot.statusReason}
+              updatedAt={snapshot.statusUpdatedAt}
+            />
+          )}
+
           <PhaseView snapshot={snapshot} connection={connection} phase={phase} />
+
+          {canAssist && (
+            <PermissionGuard permission="REQUEST_ASSISTANCE">
+              <div className="rounded-card border border-ink-200 bg-surface p-4 text-center shadow-card">
+                <p className="text-sm text-ink-700">
+                  Need assistance getting through the hospital?
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => {
+                    setAssistConfirmed(false);
+                    setAssistOpen(true);
+                  }}
+                >
+                  Request Assistance
+                </Button>
+              </div>
+            </PermissionGuard>
+          )}
         </>
       )}
+
+      <AssistanceRequestDialog
+        key={String(assistOpen)}
+        open={assistOpen}
+        busy={assistance.isRunning}
+        confirmed={assistConfirmed}
+        onClose={() => setAssistOpen(false)}
+        onConfirm={handleAssistanceRequest}
+      />
     </div>
   );
 }

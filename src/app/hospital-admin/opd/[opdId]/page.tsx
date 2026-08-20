@@ -11,9 +11,12 @@ import {
 import { HealthBadge } from "@/features/hospital-admin/components/HealthBadge";
 import { StatusConfirmDialog } from "@/features/hospital-admin/components/StatusConfirmDialog";
 import { OpdStatusBadge } from "@/features/opd/components/OpdStatusBadge";
+import { QueueStatusBanner } from "@/features/queue/components/QueueStatusBanner";
+import { queueOperationalState } from "@/features/queue/utils/queue-status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import { formatTime } from "@/features/hospital-admin/utils/format";
@@ -25,6 +28,8 @@ export default function OpdDetailPage() {
   const { data, isLoading, error, reload } = useAdminOpdDetail(hospitalId, opdId);
   const mutations = useAdminMutations();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [pauseReason, setPauseReason] = useState("");
 
   if (isLoading) {
     return (
@@ -48,6 +53,18 @@ export default function OpdDetailPage() {
   async function handleConfirmToggle() {
     await mutations.setOpdStatus(opd.id, nextStatus);
     setConfirmOpen(false);
+    reload();
+  }
+
+  async function handlePause() {
+    await mutations.setOpdStatus(opd.id, "paused", pauseReason.trim() || undefined);
+    setPauseOpen(false);
+    setPauseReason("");
+    reload();
+  }
+
+  async function handleResume() {
+    await mutations.setOpdStatus(opd.id, "open");
     reload();
   }
 
@@ -78,17 +95,47 @@ export default function OpdDetailPage() {
           </div>
           <div className="flex items-center gap-2">
             <OpdStatusBadge status={opd.status} />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfirmOpen(true)}
-              disabled={mutations.busy}
-            >
-              {nextStatus === "open" ? "Open Session" : "Close Session"}
-            </Button>
+            {opd.status === "paused" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResume}
+                disabled={mutations.busy}
+              >
+                Resume Session
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPauseOpen(true)}
+                disabled={mutations.busy}
+              >
+                Pause Session
+              </Button>
+            )}
+            {opd.status !== "paused" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmOpen(true)}
+                disabled={mutations.busy}
+              >
+                {nextStatus === "open" ? "Open Session" : "Close Session"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
+
+      {queueOperationalState(opd.status, counts.waiting) !== "normal" && (
+        <QueueStatusBanner
+          state={queueOperationalState(opd.status, counts.waiting)}
+          opdName={opd.name}
+          reason={opd.statusReason}
+          updatedAt={opd.statusUpdatedAt}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
@@ -181,6 +228,30 @@ export default function OpdDetailPage() {
         onConfirm={handleConfirmToggle}
         onClose={() => setConfirmOpen(false)}
       />
+
+      <Dialog open={pauseOpen} onClose={() => setPauseOpen(false)} title="Pause Session">
+        <p className="text-sm text-ink-700">
+          Pausing {opd.name} stops new token issuance and shows a temporary status to patients.
+        </p>
+        <label className="mt-4 block">
+          <span className="text-sm font-medium text-ink-900">Reason (shown to patients)</span>
+          <textarea
+            value={pauseReason}
+            onChange={(e) => setPauseReason(e.target.value)}
+            rows={3}
+            placeholder="e.g. Doctor unavailable"
+            className="mt-1 w-full rounded-btn border border-ink-300 px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-600 focus:outline-none"
+          />
+        </label>
+        <div className="mt-5 flex justify-end gap-3">
+          <Button variant="ghost" disabled={mutations.busy} onClick={() => setPauseOpen(false)}>
+            Cancel
+          </Button>
+          <Button disabled={mutations.busy} onClick={handlePause}>
+            {mutations.busy ? "Pausing…" : "Pause Session"}
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }

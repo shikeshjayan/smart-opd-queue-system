@@ -1,5 +1,6 @@
 import type { QueueEntry, QueueStatus } from "@/types";
 import { Button } from "@/components/ui/button";
+import { PriorityBadge } from "@/features/priority/components/PriorityBadge";
 import { QueueStatusBadge } from "./QueueStatusBadge";
 
 type QueueItemProps = {
@@ -16,14 +17,7 @@ export function QueueItem({ entry, busy = false, onCall, onSkip }: QueueItemProp
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-ink-200 bg-surface px-4 py-3 shadow-card">
       <div className="flex items-center gap-3">
         <span className="text-lg font-semibold tabular-nums text-ink-900">{entry.tokenNumber}</span>
-        {entry.isPriority && (
-          <span
-            className="rounded-full bg-status-warning-soft px-2 py-0.5 text-xs font-semibold text-status-warning"
-            title="Priority patient"
-          >
-            P
-          </span>
-        )}
+        {entry.priority !== "normal" && <PriorityBadge priority={entry.priority} />}
         <div>
           <p className="text-sm font-medium text-ink-900">{entry.patientName ?? "—"}</p>
           {entry.patientId && (

@@ -1,0 +1,43 @@
+import { consultationService } from "@/services/consultation";
+import type { ConsultationSections } from "@/services/consultation/types";
+import { prescriptionService } from "@/services/prescription";
+import type { PrescriptionDraftItem } from "@/services/prescription/types";
+import { doctorMockApi } from "@/features/doctor/api/doctor.mock";
+import type { Encounter } from "@/types";
+
+export const consultationMockApi = {
+  getContext: (encounterId: string) => consultationService.getContext(encounterId),
+  getOrCreateForPatient: (patientId: string) => consultationService.getOrCreateForPatient(patientId),
+
+  saveDraft: (encounterId: string, sections: ConsultationSections) =>
+    consultationService.saveDraft(encounterId, sections),
+
+  async complete(
+    encounterId: string,
+    sections: ConsultationSections,
+    prescriptionItems: PrescriptionDraftItem[],
+    instructions?: string
+  ): Promise<{ encounter: Encounter | undefined; context: Awaited<ReturnType<typeof consultationService.getContext>> }> {
+    const context = await consultationService.getContext(encounterId);
+    if (!context) return { encounter: undefined, context: null };
+
+    await consultationService.saveDraft(encounterId, sections);
+
+    if (prescriptionItems.length > 0) {
+      await prescriptionService.create(
+        encounterId,
+        context.encounter.doctorName,
+        context.encounter.hospitalName,
+        context.encounter.departmentName,
+        context.encounter.patientId,
+        prescriptionItems,
+        instructions
+      );
+    }
+
+    const encounter = await consultationService.complete(encounterId);
+    await doctorMockApi.completeConsultation(context.encounter.tokenNumber);
+    const fresh = await consultationService.getContext(encounterId);
+    return { encounter, context: fresh };
+  },
+};

@@ -11,6 +11,7 @@ const navItems = [
   { href: "/hospital-admin/doctors", label: "Doctors" },
   { href: "/hospital-admin/staff", label: "Staff" },
   { href: "/hospital-admin/queues", label: "Queues" },
+  { href: "/hospital-admin/queue-overrides", label: "Queue Overrides" },
   { href: "/hospital-admin/patients", label: "Patients" },
   { href: "/hospital-admin/reports", label: "Reports" },
   { href: "/hospital-admin/notifications", label: "Notifications" },

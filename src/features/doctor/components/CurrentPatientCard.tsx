@@ -32,10 +32,10 @@ export function CurrentPatientCard({ entry, patient, encounterId }: CurrentPatie
           Open Patient
         </Link>
         <Link
-          href={encounterId ? `/doctor/consultation/${encounterId}` : "#"}
-          aria-disabled={!encounterId}
+          href={encounterId && patient ? `/doctor/patients/${patient.id}/consultation` : "#"}
+          aria-disabled={!encounterId || !patient}
           className={`flex h-10 flex-1 items-center justify-center rounded-btn bg-brand-600 text-sm font-medium text-white transition-colors hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 ${
-            encounterId ? "" : "pointer-events-none opacity-50"
+            encounterId && patient ? "" : "pointer-events-none opacity-50"
           }`}
         >
           Complete

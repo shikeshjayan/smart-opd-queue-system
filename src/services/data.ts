@@ -15,6 +15,7 @@ import type {
   OPDCounts,
   PatientSummary,
   QueueEntry,
+  QueuePriority,
   QueueStatus,
   StaffMember,
   StateAdminProfile,
@@ -1032,40 +1033,56 @@ export const mockPatients: Record<string, PatientSummary> = {
 
 export const mockEncounters: Encounter[] = [
   {
+    id: "E20260819003",
+    patientId: "P10421",
+    doctorId: "doc_001",
+    hospitalId: "hos_001",
+    departmentId: "dep_001",
+    opdId: "opd_001",
+    tokenId: "tok_reg_001",
+    tokenNumber: "A-039",
+    date: "2026-08-19",
+    hospitalName: "Government Hospital Ernakulam",
+    departmentName: "Cardiology",
+    doctorName: "Dr. Anil Kumar",
+    status: "in_progress",
+    startedAt: "2026-08-19T10:05:00",
+    createdAt: "2026-08-19T10:02:00",
+    updatedAt: "2026-08-19T10:05:00",
+  },
+  {
     id: "E20260815001",
     patientId: "P10294",
     doctorId: "doc_001",
+    hospitalId: "hos_001",
+    departmentId: "dep_001",
     opdId: "opd_001",
     tokenNumber: "A-039",
     date: "2026-08-15",
     hospitalName: "Government Hospital Ernakulam",
     departmentName: "Cardiology",
     doctorName: "Dr. Anil Kumar",
-    chiefComplaint: "Chest discomfort since morning",
-    symptoms: "",
-    observations: "",
-    assessment: "",
-    plan: "",
-    status: "draft",
+    status: "completed",
+    startedAt: "2026-08-15T09:25:00",
+    completedAt: "2026-08-15T09:50:00",
     createdAt: "2026-08-15T09:20:00",
-    updatedAt: "2026-08-15T09:20:00",
+    updatedAt: "2026-08-15T09:50:00",
   },
   {
     id: "E20260602001",
     patientId: "P10294",
     doctorId: "doc_001",
+    hospitalId: "hos_001",
+    departmentId: "dep_002",
     opdId: "opd_004",
     tokenNumber: "G-044",
     date: "2026-06-02",
     hospitalName: "Government Hospital Ernakulam",
     departmentName: "General Medicine",
     doctorName: "Dr. Anil Kumar",
-    chiefComplaint: "Chest discomfort",
-    symptoms: "Pain on exertion, relieved by rest",
-    observations: "BP 140/90, pulse 82",
-    assessment: "Suspected angina, need cardiac evaluation",
-    plan: "ECG, lipid profile, review in cardiology",
     status: "completed",
+    startedAt: "2026-06-02T10:10:00",
+    completedAt: "2026-06-02T10:40:00",
     createdAt: "2026-06-02T10:05:00",
     updatedAt: "2026-06-02T10:40:00",
   },
@@ -1073,18 +1090,17 @@ export const mockEncounters: Encounter[] = [
     id: "E20260112001",
     patientId: "P10294",
     doctorId: "doc_001",
+    hospitalId: "hos_001",
+    departmentId: "dep_001",
     opdId: "opd_001",
     tokenNumber: "A-012",
     date: "2026-01-12",
     hospitalName: "Government Hospital Ernakulam",
     departmentName: "Cardiology",
     doctorName: "Dr. Anil Kumar",
-    chiefComplaint: "Routine review",
-    symptoms: "Asymptomatic",
-    observations: "BP 135/85",
-    assessment: "Stable",
-    plan: "Continue medications, review in 6 months",
     status: "completed",
+    startedAt: "2026-01-12T11:05:00",
+    completedAt: "2026-01-12T11:30:00",
     createdAt: "2026-01-12T11:00:00",
     updatedAt: "2026-01-12T11:30:00",
   },
@@ -1092,18 +1108,17 @@ export const mockEncounters: Encounter[] = [
     id: "E20260810001",
     patientId: DEMO_PATIENT_ID,
     doctorId: "doc_001",
+    hospitalId: "hos_001",
+    departmentId: "dep_002",
     opdId: "opd_004",
     tokenNumber: "G-102",
     date: "2026-08-10",
     hospitalName: "Government Hospital Ernakulam",
     departmentName: "General Medicine",
     doctorName: "Dr. Anil Kumar",
-    chiefComplaint: "Fever and headache",
-    symptoms: "Low grade fever, frontal headache",
-    observations: "Temperature 99.5 F",
-    assessment: "Viral infection",
-    plan: "Paracetamol, rest, fluids",
     status: "completed",
+    startedAt: "2026-08-10T09:20:00",
+    completedAt: "2026-08-10T09:50:00",
     createdAt: "2026-08-10T09:15:00",
     updatedAt: "2026-08-10T09:50:00",
   },
@@ -1111,18 +1126,17 @@ export const mockEncounters: Encounter[] = [
     id: "E20260802001",
     patientId: "P10302",
     doctorId: "doc_002",
+    hospitalId: "hos_001",
+    departmentId: "dep_002",
     opdId: "opd_004",
     tokenNumber: "G-055",
     date: "2026-08-02",
     hospitalName: "Government Hospital Ernakulam",
     departmentName: "General Medicine",
     doctorName: "Dr. Geetha Nair",
-    chiefComplaint: "Blood sugar review",
-    symptoms: "Occasional dizziness",
-    observations: "Fasting glucose 168 mg/dL",
-    assessment: "Poorly controlled diabetes",
-    plan: "Adjust Metformin, review diet, retest in 2 weeks",
     status: "completed",
+    startedAt: "2026-08-02T10:15:00",
+    completedAt: "2026-08-02T10:35:00",
     createdAt: "2026-08-02T10:10:00",
     updatedAt: "2026-08-02T10:35:00",
   },
@@ -1130,18 +1144,17 @@ export const mockEncounters: Encounter[] = [
     id: "E20260718001",
     patientId: "P10305",
     doctorId: "doc_003",
+    hospitalId: "hos_001",
+    departmentId: "dep_003",
     opdId: "opd_006",
     tokenNumber: "O-010",
     date: "2026-07-18",
     hospitalName: "Government Hospital Ernakulam",
     departmentName: "Orthopedics",
     doctorName: "Dr. Ramesh Iyer",
-    chiefComplaint: "Knee pain",
-    symptoms: "Pain on climbing stairs, worse in the morning",
-    observations: "Mild crepitus, no effusion",
-    assessment: "Early osteoarthritis",
-    plan: "Physiotherapy, analgesic gel, weight management",
     status: "completed",
+    startedAt: "2026-07-18T11:05:00",
+    completedAt: "2026-07-18T11:25:00",
     createdAt: "2026-07-18T11:00:00",
     updatedAt: "2026-07-18T11:25:00",
   },
@@ -1149,18 +1162,17 @@ export const mockEncounters: Encounter[] = [
     id: "E20260816001",
     patientId: "P10421",
     doctorId: "doc_005",
+    hospitalId: "hos_005",
+    departmentId: "dep_011",
     opdId: "opd_015",
     tokenNumber: "G-031",
     date: "2026-08-16",
     hospitalName: "Government Hospital Aluva",
     departmentName: "General Medicine",
     doctorName: "Dr. Suresh Pillai",
-    chiefComplaint: "Recurrent acidity",
-    symptoms: "Burning sensation after meals",
-    observations: "Epigastric tenderness",
-    assessment: "Gastritis",
-    plan: "PPI once daily, dietary advice",
     status: "completed",
+    startedAt: "2026-08-16T09:35:00",
+    completedAt: "2026-08-16T10:00:00",
     createdAt: "2026-08-16T09:30:00",
     updatedAt: "2026-08-16T10:00:00",
   },
@@ -1168,18 +1180,17 @@ export const mockEncounters: Encounter[] = [
     id: "E20260815002",
     patientId: "P10892",
     doctorId: "doc_006",
+    hospitalId: "hos_005",
+    departmentId: "dep_012",
     opdId: "opd_017",
     tokenNumber: "P-008",
     date: "2026-08-15",
     hospitalName: "Government Hospital Aluva",
     departmentName: "Pediatrics",
     doctorName: "Dr. Divya Krishnan",
-    chiefComplaint: "Child with fever",
-    symptoms: "Fever for 2 days, reduced appetite",
-    observations: "Temperature 100.2 F, throat congested",
-    assessment: "Upper respiratory infection",
-    plan: "Antipyretics, fluids, review if fever persists",
     status: "completed",
+    startedAt: "2026-08-15T10:10:00",
+    completedAt: "2026-08-15T10:30:00",
     createdAt: "2026-08-15T10:05:00",
     updatedAt: "2026-08-15T10:30:00",
   },
@@ -1189,13 +1200,15 @@ function buildQueue(): QueueEntry[] {
   const mk = (
     n: number,
     status: QueueStatus,
-    patient?: { id: string; name: string }
+    patient?: { id: string; name: string },
+    priority: QueuePriority = "normal"
   ): QueueEntry => ({
     tokenNumber: `A-${String(n).padStart(3, "0")}`,
     status,
     isCurrentUser: n === 47,
     patientId: patient?.id ?? null,
     patientName: patient?.name ?? null,
+    priority,
   });
 
   const entries: QueueEntry[] = [];
@@ -1218,8 +1231,13 @@ function buildQueue(): QueueEntry[] {
   ];
   for (const [n, id, name] of waiting) entries.push(mk(n, "waiting", { id, name }));
 
-  const priority = entries.find((e) => e.tokenNumber === "A-043");
-  if (priority) priority.isPriority = true;
+  const byToken = (tokenNumber: string) => entries.find((e) => e.tokenNumber === tokenNumber);
+  const a41 = byToken("A-041");
+  if (a41) a41.priority = "priority";
+  const a43 = byToken("A-043");
+  if (a43) a43.priority = "emergency";
+  const a46 = byToken("A-046");
+  if (a46) a46.priority = "priority";
 
   return entries;
 }
@@ -1247,6 +1265,7 @@ function buildGeneratedQueue(opdId: string, prefix: string, currentServing: stri
     isCurrentUser: false,
     patientId: patient?.id ?? null,
     patientName: patient?.name ?? null,
+    priority: "normal",
   });
 
   const entries: QueueEntry[] = [];
@@ -1324,25 +1343,21 @@ export function createEncounterForToken(tokenNumber: string): Encounter | undefi
   const hospital = department
     ? mockHospitals.find((h) => h.id === department.hospitalId)
     : undefined;
-  const previous = listEncounters(entry.patientId)[0];
   const now = new Date().toISOString();
 
   const encounter: Encounter = {
     id: `E${Date.now()}`,
     patientId: entry.patientId,
     doctorId: DOCTOR.id,
+    hospitalId: hospital?.id ?? DOCTOR.hospitalId,
+    departmentId: department?.id ?? DOCTOR.departmentId,
     opdId: opd?.id ?? "opd_001",
     tokenNumber,
     date: now.slice(0, 10),
     hospitalName: hospital?.name ?? DOCTOR.hospitalName,
     departmentName: department?.name ?? DOCTOR.departmentName,
     doctorName: DOCTOR.name,
-    chiefComplaint: previous?.chiefComplaint ?? "",
-    symptoms: "",
-    observations: "",
-    assessment: "",
-    plan: "",
-    status: "draft",
+    status: "open",
     createdAt: now,
     updatedAt: now,
   };
@@ -1351,19 +1366,32 @@ export function createEncounterForToken(tokenNumber: string): Encounter | undefi
   return encounter;
 }
 
-export function setQueueEntryStatus(tokenNumber: string, status: QueueStatus): void {
+function findQueueEntry(tokenNumber: string): QueueEntry | undefined {
   const entry = mockQueue.find((q) => q.tokenNumber === tokenNumber);
-  if (entry) {
-    entry.status = status;
-    return;
-  }
+  if (entry) return entry;
   for (const list of generatedQueues.values()) {
     const generated = list.find((q) => q.tokenNumber === tokenNumber);
-    if (generated) {
-      generated.status = status;
-      return;
-    }
+    if (generated) return generated;
   }
+  return undefined;
+}
+
+export function setQueueEntryStatus(tokenNumber: string, status: QueueStatus): void {
+  const entry = findQueueEntry(tokenNumber);
+  if (entry) entry.status = status;
+}
+
+export function setQueueEntryPriority(tokenNumber: string, priority: QueuePriority): void {
+  const entry = findQueueEntry(tokenNumber);
+  if (entry) {
+    entry.priority = priority;
+    entry.overrideAhead = false;
+  }
+}
+
+export function setQueueEntryOverride(tokenNumber: string, overrideAhead: boolean): void {
+  const entry = findQueueEntry(tokenNumber);
+  if (entry) entry.overrideAhead = overrideAhead;
 }
 
 export function registerQueueEntry(
@@ -1378,6 +1406,7 @@ export function registerQueueEntry(
     isCurrentUser: false,
     patientId: entry.patientId,
     patientName: entry.patientName,
+    priority: "normal",
   };
   queue.push(queued);
   return queued;
@@ -1613,7 +1642,11 @@ export function addOpd(input: {
   return opd;
 }
 
-export function setOpdStatus(id: string, status: OPD["status"]): void {
+export function setOpdStatus(id: string, status: OPD["status"], reason?: string): void {
   const opd = getOpd(id);
-  if (opd) opd.status = status;
+  if (opd) {
+    opd.status = status;
+    opd.statusReason = status === "paused" ? reason : undefined;
+    opd.statusUpdatedAt = new Date().toISOString();
+  }
 }

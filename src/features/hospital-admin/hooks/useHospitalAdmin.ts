@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAsync } from "@/lib/use-async";
 import { adminMockApi } from "../api/admin.mock";
 import type { AdminSettingsInput } from "@/services/admin/types";
+import type { OPDStatus } from "@/types";
 
 export function useAdminDashboard(hospitalId: string) {
   return useAsync(() => adminMockApi.getDashboard(hospitalId), [hospitalId]);
@@ -111,8 +112,8 @@ export function useAdminMutations() {
       startTime: string;
       endTime: string;
     }) => run(() => adminMockApi.addOpd(input)),
-    setOpdStatus: (id: string, status: "open" | "closed" | "full" | "unavailable") =>
-      run(() => adminMockApi.setOpdStatus(id, status)),
+    setOpdStatus: (id: string, status: OPDStatus, reason?: string) =>
+      run(() => adminMockApi.setOpdStatus(id, status, reason)),
     saveSettings: (hospitalId: string, input: AdminSettingsInput) =>
       run(() => adminMockApi.saveSettings(hospitalId, input)),
     markNotificationRead: (id: string) =>

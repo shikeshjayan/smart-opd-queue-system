@@ -8,6 +8,8 @@ import { Select } from "@/components/ui/select";
 import { CancelTokenDialog } from "@/features/token/components/CancelTokenDialog";
 import { TokenList } from "@/features/token/components/TokenList";
 import { TokenSummary } from "@/features/token/components/TokenSummary";
+import { OverrideRequestDialog } from "@/features/priority/components/OverrideRequestDialog";
+import { useOverrideActions } from "@/features/priority/hooks/usePriority";
 import {
   useOpdAvailability,
   useRegistrationActions,
@@ -39,7 +41,9 @@ export default function ReceptionTokensPage() {
 
   const [cancelTarget, setCancelTarget] = useState<OPDToken | null>(null);
   const [reissueTarget, setReissueTarget] = useState<OPDToken | null>(null);
+  const [overrideTarget, setOverrideTarget] = useState<OPDToken | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const overrides = useOverrideActions();
 
   const departmentOptions = useMemo(
     () => [...new Map((opds.data ?? []).map((opd) => [opd.departmentId, opd.departmentName])).entries()],
@@ -71,6 +75,21 @@ export default function ReceptionTokensPage() {
       setReissueTarget(null);
       setMessage(`Token ${reissueTarget.tokenNumber} reissued as ${replacement.tokenNumber}.`);
       refresh();
+    }
+  }
+
+  async function handleOverrideRequest(reason: string) {
+    if (!overrideTarget) return;
+    const request = await overrides.request({
+      opdId: overrideTarget.opdId,
+      tokenNumber: overrideTarget.tokenNumber,
+      patientId: overrideTarget.patientId,
+      patientName: overrideTarget.patientName,
+      reason,
+    });
+    if (request) {
+      setOverrideTarget(null);
+      setMessage(`Override requested for token ${request.tokenNumber}. Awaiting approval.`);
     }
   }
 
@@ -175,20 +194,27 @@ export default function ReceptionTokensPage() {
             <>
               <button
                 type="button"
-                onClick={() =>
-                  printToken({
-                    tokenNumber: token.tokenNumber,
-                    patientName: token.patientName,
-                    departmentName: token.departmentName,
-                    opdName: token.opdName,
-                    hospitalName: hospital?.name ?? "",
-                    date: token.createdAt,
-                  })
-                }
+                onClick={() => printToken({
+                  tokenNumber: token.tokenNumber,
+                  patientName: token.patientName,
+                  departmentName: token.departmentName,
+                  opdName: token.opdName,
+                  hospitalName: hospital?.name ?? "",
+                  date: token.createdAt,
+                })}
                 className="rounded-btn border border-ink-300 px-2.5 py-1 text-xs font-medium text-ink-700 transition-colors hover:bg-ink-100"
               >
                 Print
               </button>
+              {token.status === "waiting" && (
+                <button
+                  type="button"
+                  onClick={() => setOverrideTarget(token)}
+                  className="rounded-btn border border-brand-600 px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-50"
+                >
+                  Request Override
+                </button>
+              )}
               {token.status !== "cancelled" ? (
                 <button
                   type="button"
@@ -236,6 +262,17 @@ export default function ReceptionTokensPage() {
           </Button>
         </div>
       </Dialog>
+
+      <OverrideRequestDialog
+        key={overrideTarget?.tokenNumber ?? "closed"}
+        open={overrideTarget !== null}
+        tokenNumber={overrideTarget?.tokenNumber ?? null}
+        patientName={overrideTarget?.patientName ?? null}
+        busy={overrides.isRunning}
+        error={overrides.error}
+        onClose={() => setOverrideTarget(null)}
+        onConfirm={handleOverrideRequest}
+      />
     </div>
   );
 }

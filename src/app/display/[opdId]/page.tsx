@@ -7,6 +7,8 @@ import { queueMockApi } from "@/features/queue/api/queue.mock";
 import { useAnnouncement } from "@/features/queue/hooks/useAnnouncement";
 import { AudioAnnouncementPanel } from "@/features/queue/components/AudioAnnouncementPanel";
 import { ConnectionStatus } from "@/features/queue/components/ConnectionStatus";
+import { QueueStatusBanner } from "@/features/queue/components/QueueStatusBanner";
+import { queueOperationalState } from "@/features/queue/utils/queue-status";
 import type { DisplaySnapshot } from "@/features/queue/types/queue.types";
 
 function DisplayContent({ opdId }: { opdId: string }) {
@@ -72,6 +74,7 @@ function DisplayContent({ opdId }: { opdId: string }) {
   }
 
   const isAnnouncing = announcedToken === data.nowServing;
+  const opState = queueOperationalState(data.opdStatus, data.waitingCount);
 
   return (
     <div className="flex min-h-screen flex-col bg-brand-900 text-white">
@@ -125,6 +128,16 @@ function DisplayContent({ opdId }: { opdId: string }) {
 
       <footer className="border-t border-white/10 px-6 py-4">
         <div className="mx-auto flex max-w-5xl flex-col gap-3">
+          {opState !== "normal" && (
+            <div className="flex justify-center">
+              <QueueStatusBanner
+                state={opState}
+                opdName={data.opdName}
+                reason={data.statusReason}
+                updatedAt={data.statusUpdatedAt}
+              />
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-medium tracking-[0.2em] text-brand-200">
               Please wait for your token

@@ -1,5 +1,5 @@
 import { opdService } from "@/services/opd";
-import { queueService } from "@/services/queue";
+import { queueService, orderWaiting } from "@/services/queue";
 import { getDepartment, getDoctor, getHospital, getOpdHospitalId } from "@/services/data";
 import type { QueueEntry } from "@/types";
 import { realtimeClient } from "@/features/realtime/client";
@@ -38,11 +38,9 @@ export const queueMockApi = {
       : 0;
     const visibleEntries = entries.slice(startIndex);
 
-    const userIndex = entries.findIndex((e) => e.tokenNumber === token.tokenNumber);
-    const patientsAhead =
-      userIndex >= 0
-        ? entries.filter((e, index) => index < userIndex && e.status === "waiting").length
-        : token.patientsAhead;
+    const orderedWaiting = orderWaiting(entries.filter((e) => e.status === "waiting"));
+    const myIndex = orderedWaiting.findIndex((e) => e.tokenNumber === token.tokenNumber);
+    const patientsAhead = myIndex >= 0 ? myIndex : token.patientsAhead;
 
     const department = opd.departmentId ? getDepartment(opd.departmentId) : undefined;
     const doctor = getDoctor();
@@ -60,6 +58,9 @@ export const queueMockApi = {
       status: token.status,
       entries: visibleEntries,
       fetchedAt: new Date().toISOString(),
+      opdStatus: opd.status,
+      statusReason: opd.statusReason,
+      statusUpdatedAt: opd.statusUpdatedAt,
     };
   },
 
@@ -78,7 +79,7 @@ export const queueMockApi = {
       entries.find((e) => e.status === "in_consultation") ??
       entries.find((e) => e.status === "called") ??
       null;
-    const waiting = entries.filter((e) => e.status === "waiting");
+    const waiting = orderWaiting(entries.filter((e) => e.status === "waiting"));
     const next = waiting[0] ?? null;
 
     return {
@@ -88,6 +89,14 @@ export const queueMockApi = {
       next,
       waiting,
       counts,
+      priorityCounts: {
+        emergency: waiting.filter((e) => e.priority === "emergency").length,
+        priority: waiting.filter((e) => e.priority === "priority").length,
+        normal: waiting.filter((e) => e.priority === "normal").length,
+      },
+      opdStatus: opd.status,
+      statusReason: opd.statusReason,
+      statusUpdatedAt: opd.statusUpdatedAt,
     };
   },
 
@@ -120,6 +129,9 @@ export const queueMockApi = {
       nowServing,
       nextTokens: waiting.slice(0, 5).map((e) => e.tokenNumber),
       waitingCount: waiting.length,
+      opdStatus: opd.status,
+      statusReason: opd.statusReason,
+      statusUpdatedAt: opd.statusUpdatedAt,
     };
   },
 

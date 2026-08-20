@@ -199,9 +199,9 @@ export const adminService = {
     return addOpd(input);
   },
 
-  async setOpdStatus(id: string, status: OPDStatus): Promise<void> {
+  async setOpdStatus(id: string, status: OPDStatus, reason?: string): Promise<void> {
     await delay();
-    setOpdStatus(id, status);
+    setOpdStatus(id, status, reason);
   },
 
   async getOpdDetail(hospitalId: string, opdId: string): Promise<AdminOpdDetail | null> {

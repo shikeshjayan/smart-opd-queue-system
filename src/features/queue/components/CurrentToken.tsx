@@ -1,5 +1,6 @@
 import type { QueueEntry } from "@/types";
 import { Button } from "@/components/ui/button";
+import { PriorityBadge } from "@/features/priority/components/PriorityBadge";
 import { QueueStatusBadge } from "./QueueStatusBadge";
 
 type CurrentTokenProps = {
@@ -23,8 +24,9 @@ export function CurrentToken({ entry, onStart, onOpenConsultation, onComplete, i
       <p className="mt-1 text-sm text-brand-100">
         {entry.patientName ?? "Patient"} {entry.patientId ? `#${entry.patientId}` : ""}
       </p>
-      <div className="mt-3">
+      <div className="mt-3 flex items-center gap-2">
         <QueueStatusBadge status={entry.status} />
+        {entry.priority !== "normal" && <PriorityBadge priority={entry.priority} />}
       </div>
       <div className="mt-5 flex flex-col gap-3">
         {entry.status === "called" && (

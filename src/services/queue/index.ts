@@ -1,9 +1,11 @@
-import type { QueueEntry, Token } from "@/types";
+import type { QueueEntry, QueuePriority, Token } from "@/types";
 import {
   countQueueStatuses,
   getActiveToken,
   listQueue,
   mockTokens,
+  setQueueEntryOverride,
+  setQueueEntryPriority,
   setQueueEntryStatus,
 } from "../data";
 
@@ -27,6 +29,29 @@ function recordDuration(tokenNumber: string) {
   }
 }
 
+export function priorityRank(priority: QueuePriority): number {
+  if (priority === "emergency") return 0;
+  if (priority === "priority") return 1;
+  return 2;
+}
+
+export function orderWaiting(waiting: QueueEntry[]): QueueEntry[] {
+  return [...waiting].sort((a, b) => {
+    const aOverride = a.overrideAhead ? 0 : 1;
+    const bOverride = b.overrideAhead ? 0 : 1;
+    if (aOverride !== bOverride) return aOverride - bOverride;
+    const rankDiff = priorityRank(a.priority) - priorityRank(b.priority);
+    if (rankDiff !== 0) return rankDiff;
+    const aNum = Number.parseInt(a.tokenNumber.split("-")[1] ?? "0", 10);
+    const bNum = Number.parseInt(b.tokenNumber.split("-")[1] ?? "0", 10);
+    return aNum - bNum;
+  });
+}
+
+function findEntry(opdId: string, tokenNumber: string): QueueEntry | undefined {
+  return listQueue(opdId).find((q) => q.tokenNumber === tokenNumber);
+}
+
 export const queueService = {
   async list(opdId: string): Promise<QueueEntry[]> {
     await delay();
@@ -45,7 +70,7 @@ export const queueService = {
 
   async callNext(opdId: string): Promise<QueueEntry | undefined> {
     await delay();
-    const next = listQueue(opdId).find((q) => q.status === "waiting");
+    const next = orderWaiting(listQueue(opdId).filter((q) => q.status === "waiting"))[0];
     if (next) setQueueEntryStatus(next.tokenNumber, "called");
     return next ? { ...next, status: "called" as const } : undefined;
   },
@@ -61,7 +86,7 @@ export const queueService = {
 
   async startConsultation(tokenNumber: string): Promise<QueueEntry | undefined> {
     await delay();
-    const entry = listQueue("opd_001").find((q) => q.tokenNumber === tokenNumber);
+    const entry = findEntry("opd_001", tokenNumber);
     if (entry) {
       setQueueEntryStatus(tokenNumber, "in_consultation");
       consultationStartedAt.set(tokenNumber, Date.now());
@@ -71,7 +96,7 @@ export const queueService = {
 
   async complete(tokenNumber: string): Promise<QueueEntry | undefined> {
     await delay();
-    const entry = listQueue("opd_001").find((q) => q.tokenNumber === tokenNumber);
+    const entry = findEntry("opd_001", tokenNumber);
     if (entry) {
       setQueueEntryStatus(tokenNumber, "completed");
       recordDuration(tokenNumber);
@@ -81,12 +106,29 @@ export const queueService = {
 
   async skip(tokenNumber: string): Promise<QueueEntry | undefined> {
     await delay();
-    const entry = listQueue("opd_001").find((q) => q.tokenNumber === tokenNumber);
+    const entry = findEntry("opd_001", tokenNumber);
     if (entry) {
       setQueueEntryStatus(tokenNumber, "skipped");
       consultationStartedAt.delete(tokenNumber);
     }
     return entry ? { ...entry, status: "skipped" as const } : undefined;
+  },
+
+  async setPriority(
+    tokenNumber: string,
+    priority: QueuePriority
+  ): Promise<QueueEntry | undefined> {
+    await delay();
+    const entry = findEntry("opd_001", tokenNumber);
+    if (entry) setQueueEntryPriority(tokenNumber, priority);
+    return entry ? { ...entry, priority } : undefined;
+  },
+
+  async setOverrideAhead(tokenNumber: string, overrideAhead: boolean): Promise<QueueEntry | undefined> {
+    await delay();
+    const entry = findEntry("opd_001", tokenNumber);
+    if (entry) setQueueEntryOverride(tokenNumber, overrideAhead);
+    return entry ? { ...entry, overrideAhead } : undefined;
   },
 
   async counts(opdId: string) {
