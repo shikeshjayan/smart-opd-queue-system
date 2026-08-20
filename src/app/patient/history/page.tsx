@@ -16,6 +16,7 @@ import { usePatientTests } from "@/features/diagnostics/hooks/useDiagnosticResul
 import { DiagnosticTimeline } from "@/features/diagnostics/components/DiagnosticTimeline";
 import type { DiagnosticCategory } from "@/services/diagnostics/types";
 import { DEMO_PATIENT_ID } from "@/config/app";
+import { RecentDocuments } from "@/features/medical-documents/components/RecentDocuments";
 
 const PAGE_SIZE = 5;
 
@@ -136,6 +137,18 @@ export default function PatientHistoryPage() {
                 </button>
               </>
             )}
+          </section>
+
+          <section aria-labelledby="recent-documents-title">
+            <h2 id="recent-documents-title" className="text-lg font-semibold text-ink-900">
+              Recent Documents
+            </h2>
+            <div className="mt-3">
+              <RecentDocuments
+                patientId={DEMO_PATIENT_ID}
+                viewAllHref="/patient/documents"
+              />
+            </div>
           </section>
         </div>
       )}

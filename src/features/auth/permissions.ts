@@ -40,7 +40,18 @@ export type Permission =
   | "APPROVE_OVERRIDE"
   | "VIEW_PRIORITY_AUDIT"
   | "REQUEST_ASSISTANCE"
-  | "MANAGE_ASSISTANCE";
+  | "MANAGE_ASSISTANCE"
+  | "VIEW_OWN_DOCUMENTS"
+  | "UPLOAD_OWN_DOCUMENT"
+  | "DOWNLOAD_OWN_DOCUMENT"
+  | "VIEW_PATIENT_DOCUMENTS"
+  | "UPLOAD_PATIENT_DOCUMENT"
+  | "DOWNLOAD_PATIENT_DOCUMENT"
+  | "VIEW_LAB_DOCUMENTS"
+  | "UPLOAD_LAB_DOCUMENTS"
+  | "VIEW_DOCUMENT_METADATA"
+  | "MANAGE_DOCUMENTS"
+  | "VIEW_DOCUMENT_AUDIT";
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   patient: [
@@ -50,6 +61,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "REQUEST_ASSISTANCE",
     "VIEW_OWN_APPOINTMENTS",
     "BOOK_APPOINTMENT",
+    "VIEW_OWN_DOCUMENTS",
+    "UPLOAD_OWN_DOCUMENT",
+    "DOWNLOAD_OWN_DOCUMENT",
   ],
   doctor: [
     "VIEW_OWN_PROFILE",
@@ -68,6 +82,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_PHARMACY_QUEUE",
     "VIEW_APPOINTMENT_SCHEDULE",
     "CHECK_IN_APPOINTMENT",
+    "VIEW_PATIENT_DOCUMENTS",
+    "UPLOAD_PATIENT_DOCUMENT",
+    "DOWNLOAD_PATIENT_DOCUMENT",
   ],
   clinical_staff: [
     "VIEW_OWN_PROFILE",
@@ -86,6 +103,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "REQUEST_OVERRIDE",
     "MANAGE_APPOINTMENTS",
     "CHECK_IN_APPOINTMENT",
+    "VIEW_DOCUMENT_METADATA",
   ],
   lab_staff: [
     "VIEW_OWN_PROFILE",
@@ -95,6 +113,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "COLLECT_SAMPLES",
     "ENTER_RESULTS",
     "FINALIZE_RESULTS",
+    "VIEW_LAB_DOCUMENTS",
+    "UPLOAD_LAB_DOCUMENTS",
   ],
   hospital_admin: [
     "VIEW_OWN_PROFILE",
@@ -117,6 +137,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "APPROVE_OVERRIDE",
     "VIEW_PRIORITY_AUDIT",
     "MANAGE_ASSISTANCE",
+    "VIEW_DOCUMENT_METADATA",
+    "MANAGE_DOCUMENTS",
+    "VIEW_DOCUMENT_AUDIT",
   ],
   district_admin: [
     "VIEW_OWN_PROFILE",

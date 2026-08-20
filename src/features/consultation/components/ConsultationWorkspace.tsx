@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useAsync } from "@/lib/use-async";
 import { MedicalSummary } from "@/features/medical-records/components/MedicalSummary";
 import { MedicalTimeline } from "@/features/medical-records/components/MedicalTimeline";
 import { HistoryFilters as HistoryFiltersComponent } from "@/features/medical-records/components/HistoryFilters";
-import { RecordAccessNotice } from "@/features/medical-records/components/RecordAccessNotice";
 import { EncounterCard } from "@/features/medical-records/components/EncounterCard";
-import { DocumentCard } from "@/features/medical-records/components/DocumentCard";
 import { PrescriptionHistory } from "@/features/prescription/components/PrescriptionHistory";
-import { medicalRecordsMockApi } from "@/features/medical-records/api/medical-records.mock";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +21,8 @@ import { useConsultationForPatient } from "../hooks/useConsultation";
 import { consultationMockApi } from "../api/consultation.mock";
 import { PrescriptionWorkspace } from "@/features/prescription/components/PrescriptionWorkspace";
 import { DiagnosticsWorkspace } from "@/features/diagnostics/components/DiagnosticsWorkspace";
+import { DocumentsWorkspace } from "@/features/medical-documents/components/DocumentsWorkspace";
+import { RecentDocuments } from "@/features/medical-documents/components/RecentDocuments";
 
 export type WorkspaceTab = "overview" | "history" | "consultation" | "prescription" | "diagnostics" | "documents";
 
@@ -173,7 +171,7 @@ export function ConsultationWorkspace({ patientId, defaultTab = "overview" }: Co
 
       {tab === "diagnostics" && <DiagnosticsWorkspace patientId={patientId} />}
 
-      {tab === "documents" && <DocumentsTab patientId={patientId} />}
+      {tab === "documents" && <DocumentsWorkspace patientId={patientId} audience="doctor" />}
     </div>
   );
 }
@@ -227,39 +225,15 @@ function HistoryTab({
           <PrescriptionHistory patientId={patientId} />
         </div>
       </section>
-    </div>
-  );
-}
 
-function DocumentsTab({ patientId }: { patientId: string }) {
-  const { data, isLoading, error, reload } = useAsync(
-    () => medicalRecordsMockApi.listDocuments(patientId),
-    [patientId]
-  );
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </div>
-    );
-  }
-
-  if (error) return <ErrorState message={error} onRetry={reload} />;
-
-  return (
-    <div className="flex flex-col gap-4">
-      <RecordAccessNotice audience="doctor" />
-      {!data || data.length === 0 ? (
-        <EmptyState title="No documents" description="Documents linked to this patient will appear here." />
-      ) : (
-        <ol className="flex flex-col gap-3">
-          {data.map((document) => (
-            <DocumentCard key={document.id} document={document} />
-          ))}
-        </ol>
-      )}
+      <section aria-labelledby="recent-documents-title">
+        <h2 id="recent-documents-title" className="text-lg font-semibold text-ink-900">
+          Recent Documents
+        </h2>
+        <div className="mt-3">
+          <RecentDocuments patientId={patientId} viewAllHref={`/doctor/patients/${patientId}/documents`} />
+        </div>
+      </section>
     </div>
   );
 }
