@@ -3,6 +3,7 @@ export type UserRole =
   | "doctor"
   | "clinical_staff"
   | "receptionist"
+  | "lab_staff"
   | "hospital_admin"
   | "district_admin"
   | "state_admin";

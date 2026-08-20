@@ -48,6 +48,16 @@ const DEMO_ACCOUNTS: MockAccount[] = [
   },
   {
     user: {
+      id: "lab_001",
+      name: "Sneha Nair",
+      role: "lab_staff",
+      scope: { stateId: "kerala", districtId: "ernakulam", hospitalId: "hos_001" },
+    },
+    staffPassword: "lab123",
+    hint: "Lab Staff — lab_001 (GH Ernakulam Laboratory)",
+  },
+  {
+    user: {
       id: "adm_001",
       name: "Dr. Sreeja Nambiar",
       role: "hospital_admin",

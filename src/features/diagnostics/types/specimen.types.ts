@@ -1,0 +1,1 @@
+export type { Specimen, SpecimenStatus } from "@/services/diagnostics/types";
