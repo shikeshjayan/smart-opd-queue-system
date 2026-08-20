@@ -12,6 +12,7 @@ const quickActions = [
   { label: "Register Patient", description: "New or existing patient", href: "/reception/registration", shortcut: "F2" },
   { label: "Find Patient", description: "Search across hospitals", href: "/reception/patients", shortcut: "Ctrl+K" },
   { label: "Today's Tokens", description: "View and manage tokens", href: "/reception/tokens" },
+  { label: "Live Queue", description: "Monitor current queue", href: "/reception/queue" },
   { label: "Registration History", description: "Filter past registrations", href: "/reception/history" },
 ];
 

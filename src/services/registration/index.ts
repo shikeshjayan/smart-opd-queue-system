@@ -92,7 +92,7 @@ type SeedRecord = Omit<
 };
 
 const seedRecords: SeedRecord[] = [
-  { id: "reg_001", patientId: "P10294", patientName: "Rahul K", isNewPatient: false, hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", tokenNumber: "A-039", registrationType: "walk_in", createdAt: "2026-08-18T09:05:00" },
+  { id: "reg_001", patientId: "P10421", patientName: "Anu M", isNewPatient: false, hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", tokenNumber: "A-039", registrationType: "walk_in", createdAt: "2026-08-18T09:05:00" },
   { id: "reg_002", patientId: "P10301", patientName: "Meera S", isNewPatient: false, hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", tokenNumber: "A-040", registrationType: "walk_in", createdAt: "2026-08-18T09:20:00" },
   { id: "reg_003", patientId: "P10302", patientName: "Arun T", isNewPatient: false, hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", tokenNumber: "A-041", registrationType: "appointment", appointmentId: "APT-2031", createdAt: "2026-08-18T09:35:00" },
   { id: "reg_004", patientId: "P10303", patientName: "Fathima K", isNewPatient: false, hospitalId: "hos_001", departmentId: "dep_002", departmentName: "General Medicine", opdId: "opd_004", opdName: "Morning OPD", tokenNumber: "G-055", registrationType: "walk_in", createdAt: "2026-08-18T09:50:00" },
@@ -114,7 +114,7 @@ const registrationRecords: RegistrationRecord[] = seedRecords.map((record) => ({
 }));
 
 const registeredTokens: OPDToken[] = [
-  { id: "tok_reg_001", tokenNumber: "A-039", patientId: "P10294", patientName: "Rahul K", hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", status: "in_consultation", registrationType: "walk_in", createdAt: "2026-08-18T09:05:00" },
+  { id: "tok_reg_001", tokenNumber: "A-039", patientId: "P10421", patientName: "Anu M", hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", status: "in_consultation", registrationType: "walk_in", createdAt: "2026-08-18T09:05:00" },
   { id: "tok_reg_002", tokenNumber: "A-040", patientId: "P10301", patientName: "Meera S", hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", status: "waiting", registrationType: "walk_in", createdAt: "2026-08-18T09:20:00" },
   { id: "tok_reg_003", tokenNumber: "A-041", patientId: "P10302", patientName: "Arun T", hospitalId: "hos_001", departmentId: "dep_001", departmentName: "Cardiology", opdId: "opd_001", opdName: "Morning OPD", status: "waiting", registrationType: "appointment", createdAt: "2026-08-18T09:35:00" },
   { id: "tok_reg_004", tokenNumber: "G-055", patientId: "P10303", patientName: "Fathima K", hospitalId: "hos_001", departmentId: "dep_002", departmentName: "General Medicine", opdId: "opd_004", opdName: "Morning OPD", status: "waiting", registrationType: "walk_in", createdAt: "2026-08-18T09:50:00" },

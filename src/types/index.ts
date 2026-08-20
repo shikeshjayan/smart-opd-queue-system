@@ -63,6 +63,7 @@ export type QueueEntry = {
   isCurrentUser: boolean;
   patientId: string | null;
   patientName: string | null;
+  isPriority?: boolean;
 };
 
 export type TokenBundle = {

@@ -11,6 +11,7 @@ const navItems = [
   { href: "/reception/registration", label: "Registration" },
   { href: "/reception/patients", label: "Patients" },
   { href: "/reception/tokens", label: "Tokens" },
+  { href: "/reception/queue", label: "Live Queue" },
   { href: "/reception/history", label: "History" },
 ];
 

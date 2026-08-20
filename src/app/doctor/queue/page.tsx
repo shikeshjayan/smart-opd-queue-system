@@ -1,28 +1,42 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { doctorMockApi } from "@/features/doctor/api/doctor.mock";
 import { CallNextButton } from "@/features/queue/components/CallNextButton";
+import { ConnectionStatus } from "@/features/queue/components/ConnectionStatus";
 import { CurrentToken } from "@/features/queue/components/CurrentToken";
 import { QueueList } from "@/features/queue/components/QueueList";
 import {
   useCallNext,
-  useDoctorQueue,
   useQueueAction,
 } from "@/features/queue/hooks/useQueue";
+import { useDoctorQueueRealtime } from "@/features/queue/hooks/useQueueRealtime";
+import { QUEUE_OPD_ID } from "@/features/queue/config";
+import {
+  isAutoAdvancing,
+  onAutoAdvanceChange,
+  startAutoAdvance,
+  stopAutoAdvance,
+} from "@/features/realtime/simulator";
+import { useRealtime } from "@/features/realtime/hooks/useRealtime";
 
-const OPD_ID = "opd_001";
+const OPD_ID = QUEUE_OPD_ID;
 
 export default function DoctorQueuePage() {
   const router = useRouter();
-  const { data, isLoading, error, reload } = useDoctorQueue(OPD_ID);
+  const { data, isLoading, error, reload, connection } = useDoctorQueueRealtime(OPD_ID);
   const { callNext, isRunning: isCalling, error: callError } = useCallNext();
   const { run, isRunning: isActionBusy, error: actionError } = useQueueAction();
+  const { simulateDisconnect } = useRealtime();
+  const [autoAdvancing, setAutoAdvancing] = useState(isAutoAdvancing());
+
+  useEffect(() => onAutoAdvanceChange(() => setAutoAdvancing(isAutoAdvancing())), []);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
@@ -67,6 +81,12 @@ export default function DoctorQueuePage() {
     if (entry) reload();
   }, [run, data, reload]);
 
+  const handleComplete = useCallback(async () => {
+    if (!data?.current) return;
+    const entry = await run("complete", data.current.tokenNumber);
+    if (entry) reload();
+  }, [run, data, reload]);
+
   const handleOpenConsultation = useCallback(async () => {
     if (!data?.current) return;
     setOpening(true);
@@ -76,6 +96,14 @@ export default function DoctorQueuePage() {
       router.push(`/doctor/consultation/${encounter.id}`);
     }
   }, [data, router]);
+
+  const handleToggleAutoAdvance = useCallback(() => {
+    if (isAutoAdvancing()) {
+      stopAutoAdvance();
+    } else {
+      void startAutoAdvance(OPD_ID, { intervalMs: 6000 });
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -95,9 +123,21 @@ export default function DoctorQueuePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold text-ink-900">OPD Queue</h1>
-        <p className="mt-1 text-sm text-ink-500">{data.opdName}</p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-ink-900">OPD Queue</h1>
+          <p className="mt-1 text-sm text-ink-500">{data.opdName}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/display/${OPD_ID}`}
+            target="_blank"
+            className="text-sm font-medium text-brand-700 hover:underline"
+          >
+            Open display
+          </Link>
+          <ConnectionStatus status={connection} />
+        </div>
       </div>
 
       {mutationError && (
@@ -106,11 +146,35 @@ export default function DoctorQueuePage() {
         </p>
       )}
 
+      {process.env.NODE_ENV === "development" && (
+        <div className="flex flex-wrap items-center gap-2 rounded-card border border-ink-200 bg-surface p-3 text-xs text-ink-500 shadow-card">
+          <span className="font-medium text-ink-700">Simulation</span>
+          <button
+            type="button"
+            onClick={handleToggleAutoAdvance}
+            className="rounded-btn border border-ink-300 px-2.5 py-1 font-medium text-ink-700 transition-colors hover:bg-ink-100"
+          >
+            {autoAdvancing ? "Stop auto-advance" : "Start auto-advance"}
+          </button>
+          <button
+            type="button"
+            onClick={simulateDisconnect}
+            className="rounded-btn border border-ink-300 px-2.5 py-1 font-medium text-ink-700 transition-colors hover:bg-ink-100"
+          >
+            Simulate disconnect
+          </button>
+          {autoAdvancing && (
+            <span className="text-status-warning">Queue advancing every few seconds…</span>
+          )}
+        </div>
+      )}
+
       {data.current ? (
         <CurrentToken
           entry={data.current}
           isBusy={busy || opening}
           onStart={data.current.status === "called" ? handleStartConsultation : undefined}
+          onComplete={data.current.status === "in_consultation" ? handleComplete : undefined}
           onOpenConsultation={handleOpenConsultation}
         />
       ) : (

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AllergyCard } from "@/features/medical-records/components/AllergyCard";
 import { ConditionCard } from "@/features/medical-records/components/ConditionCard";
 import { MedicationCard } from "@/features/medical-records/components/MedicationCard";
@@ -102,7 +103,23 @@ export default function ProfilePage() {
         </Section>
 
         <Section title="Preferences" id="preferences">
-          <p className="text-sm text-ink-900">Preferred language: {data.languagePreference}</p>
+          <dl className="divide-y divide-ink-100 text-sm">
+            <div className="flex justify-between py-2">
+              <dt className="text-ink-500">Preferred language</dt>
+              <dd className="font-medium text-ink-900">{data.languagePreference}</dd>
+            </div>
+            <div className="flex justify-between py-2">
+              <dt className="text-ink-500">Notifications</dt>
+              <dd className="font-medium text-ink-900">
+                <Link
+                  href="/patient/notifications?tab=preferences"
+                  className="text-brand-700 hover:underline"
+                >
+                  Manage notification preferences
+                </Link>
+              </dd>
+            </div>
+          </dl>
         </Section>
 
         <div className="flex flex-col gap-4">

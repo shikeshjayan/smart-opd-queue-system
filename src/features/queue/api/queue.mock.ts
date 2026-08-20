@@ -1,7 +1,20 @@
 import { opdService } from "@/services/opd";
 import { queueService } from "@/services/queue";
+import { getDepartment, getDoctor, getHospital, getOpdHospitalId } from "@/services/data";
 import type { QueueEntry } from "@/types";
-import type { DoctorQueueSnapshot, QueueSnapshot } from "../types/queue.types";
+import { realtimeClient } from "@/features/realtime/client";
+import type {
+  TokenCalledEvent,
+  TokenCompletedEvent,
+  TokenSkippedEvent,
+  TokenStartedEvent,
+} from "@/features/realtime/types/realtime.types";
+import type { DisplaySnapshot, DoctorQueueSnapshot, QueueSnapshot } from "../types/queue.types";
+import { estimateWaitMinutes } from "../utils/waiting-time";
+
+function emit(event: Omit<TokenCalledEvent, "type" | "at">) {
+  realtimeClient.emit({ ...event, type: "TOKEN_CALLED", at: new Date().toISOString() });
+}
 
 export const queueMockApi = {
   async getSnapshot(opdId: string, tokenId: string): Promise<QueueSnapshot> {
@@ -15,20 +28,38 @@ export const queueMockApi = {
       throw new Error("Queue information not found");
     }
 
-    const nowServing = opd.currentlyServing;
+    const nowServing =
+      entries.find((e) => e.status === "in_consultation")?.tokenNumber ??
+      entries.find((e) => e.status === "called")?.tokenNumber ??
+      opd.currentlyServing;
+
     const startIndex = nowServing
       ? Math.max(0, entries.findIndex((e) => e.tokenNumber === nowServing))
       : 0;
     const visibleEntries = entries.slice(startIndex);
 
+    const userIndex = entries.findIndex((e) => e.tokenNumber === token.tokenNumber);
+    const patientsAhead =
+      userIndex >= 0
+        ? entries.filter((e, index) => index < userIndex && e.status === "waiting").length
+        : token.patientsAhead;
+
+    const department = opd.departmentId ? getDepartment(opd.departmentId) : undefined;
+    const doctor = getDoctor();
+
     return {
       tokenNumber: token.tokenNumber,
       opdName: opd.name,
+      departmentName: department?.name ?? null,
+      doctorName: doctor.opdId === opdId ? doctor.name : null,
+      room: opdId === "opd_001" ? "Room 04" : null,
       nowServing,
-      patientsAhead: token.patientsAhead,
-      estimatedWaitMinutes: token.estimatedWaitMinutes ?? opd.estimatedWaitMinutes,
+      patientsAhead,
+      estimatedWaitMinutes:
+        token.status === "waiting" ? estimateWaitMinutes(patientsAhead) : null,
       status: token.status,
       entries: visibleEntries,
+      fetchedAt: new Date().toISOString(),
     };
   },
 
@@ -60,23 +91,90 @@ export const queueMockApi = {
     };
   },
 
+  async getDisplaySnapshot(opdId: string): Promise<DisplaySnapshot> {
+    const [opd, entries, doctor] = await Promise.all([
+      opdService.getById(opdId),
+      queueService.list(opdId),
+      Promise.resolve(getDoctor()),
+    ]);
+
+    if (!opd) {
+      throw new Error("OPD not found");
+    }
+
+    const hospitalId = getOpdHospitalId(opdId);
+    const hospital = hospitalId ? getHospital(hospitalId) : undefined;
+    const department = opd.departmentId ? getDepartment(opd.departmentId) : undefined;
+    const waiting = entries.filter((e) => e.status === "waiting");
+    const nowServing =
+      entries.find((e) => e.status === "in_consultation")?.tokenNumber ??
+      entries.find((e) => e.status === "called")?.tokenNumber ??
+      opd.currentlyServing;
+
+    return {
+      hospitalName: hospital?.name ?? "Government Hospital",
+      departmentName: department?.name ?? null,
+      opdName: opd.name,
+      doctorName: doctor.opdId === opdId ? doctor.name : null,
+      room: opdId === "opd_001" ? "Room 04" : null,
+      nowServing,
+      nextTokens: waiting.slice(0, 5).map((e) => e.tokenNumber),
+      waitingCount: waiting.length,
+    };
+  },
+
   async callNext(opdId: string): Promise<QueueEntry | undefined> {
-    return queueService.callNext(opdId);
+    const entry = await queueService.callNext(opdId);
+    if (entry) {
+      emit({ opdId, tokenNumber: entry.tokenNumber, message: `Token ${entry.tokenNumber} has been called` });
+    }
+    return entry;
   },
 
   async callToken(tokenNumber: string): Promise<QueueEntry | undefined> {
-    return queueService.callToken(tokenNumber);
+    const entry = await queueService.callToken(tokenNumber);
+    if (entry) {
+      emit({ opdId: "opd_001", tokenNumber, message: `Token ${tokenNumber} has been called` });
+    }
+    return entry;
   },
 
   async startConsultation(tokenNumber: string): Promise<QueueEntry | undefined> {
-    return queueService.startConsultation(tokenNumber);
+    const entry = await queueService.startConsultation(tokenNumber);
+    if (entry) {
+      const event: Omit<TokenStartedEvent, "at"> = {
+        type: "TOKEN_STARTED",
+        opdId: "opd_001",
+        tokenNumber,
+      };
+      realtimeClient.emit({ ...event, at: new Date().toISOString() });
+    }
+    return entry;
   },
 
   async completeToken(tokenNumber: string): Promise<QueueEntry | undefined> {
-    return queueService.complete(tokenNumber);
+    const entry = await queueService.complete(tokenNumber);
+    if (entry) {
+      const event: Omit<TokenCompletedEvent, "at"> = {
+        type: "TOKEN_COMPLETED",
+        opdId: "opd_001",
+        tokenNumber,
+      };
+      realtimeClient.emit({ ...event, at: new Date().toISOString() });
+    }
+    return entry;
   },
 
   async skip(tokenNumber: string): Promise<QueueEntry | undefined> {
-    return queueService.skip(tokenNumber);
+    const entry = await queueService.skip(tokenNumber);
+    if (entry) {
+      const event: Omit<TokenSkippedEvent, "at"> = {
+        type: "TOKEN_SKIPPED",
+        opdId: "opd_001",
+        tokenNumber,
+      };
+      realtimeClient.emit({ ...event, at: new Date().toISOString() });
+    }
+    return entry;
   },
 };
