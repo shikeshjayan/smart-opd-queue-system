@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useHospitalAdmin } from "@/features/hospital-admin/hospital-context";
+import { hospitalOpsService } from "@/services/hospital-ops";
 import {
   useAdminDepartments,
   useAdminMutations,
@@ -62,6 +63,10 @@ export default function OpdPage() {
   async function handleConfirmToggle() {
     if (!confirmTarget) return;
     await mutations.setOpdStatus(confirmTarget.opdId, confirmTarget.nextStatus);
+    void hospitalOpsService.logOpdStatusChange(
+      confirmTarget.name ?? confirmTarget.opdId,
+      confirmTarget.nextStatus
+    );
     setConfirmTarget(null);
     reload();
   }
