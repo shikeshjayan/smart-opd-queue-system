@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useHospitalAdmin } from "@/features/hospital-admin/hospital-context";
+import { hospitalOpsService } from "@/services/hospital-ops";
 import {
   useAdminOpdDetail,
   useAdminMutations,
@@ -52,12 +53,19 @@ export default function OpdDetailPage() {
 
   async function handleConfirmToggle() {
     await mutations.setOpdStatus(opd.id, nextStatus);
+    void hospitalOpsService.logOpdStatusChange(`${department?.name ?? ""} ${opd.name}`.trim(), nextStatus);
     setConfirmOpen(false);
     reload();
   }
 
   async function handlePause() {
     await mutations.setOpdStatus(opd.id, "paused", pauseReason.trim() || undefined);
+    void hospitalOpsService.logOpdStatusChange(
+      `${department?.name ?? ""} ${opd.name}`.trim(),
+      "paused",
+      undefined,
+      pauseReason.trim() || undefined
+    );
     setPauseOpen(false);
     setPauseReason("");
     reload();
@@ -65,6 +73,7 @@ export default function OpdDetailPage() {
 
   async function handleResume() {
     await mutations.setOpdStatus(opd.id, "open");
+    void hospitalOpsService.logOpdStatusChange(`${department?.name ?? ""} ${opd.name}`.trim(), "open");
     reload();
   }
 

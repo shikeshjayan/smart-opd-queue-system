@@ -4,19 +4,42 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useHospitalAdmin } from "../hospital-context";
 
-const navItems = [
-  { href: "/hospital-admin/dashboard", label: "Dashboard" },
-  { href: "/hospital-admin/departments", label: "Departments" },
-  { href: "/hospital-admin/opd", label: "OPD Sessions" },
-  { href: "/hospital-admin/doctors", label: "Doctors" },
-  { href: "/hospital-admin/staff", label: "Staff" },
-  { href: "/hospital-admin/queues", label: "Queues" },
-  { href: "/hospital-admin/queue-overrides", label: "Queue Overrides" },
-  { href: "/hospital-admin/scheduling", label: "Scheduling" },
-  { href: "/hospital-admin/patients", label: "Patients" },
-  { href: "/hospital-admin/reports", label: "Reports" },
-  { href: "/hospital-admin/notifications", label: "Notifications" },
-  { href: "/hospital-admin/settings", label: "Settings" },
+const navGroups: Array<{ label: string; items: Array<{ href: string; label: string }> }> = [
+  {
+    label: "Operations",
+    items: [
+      { href: "/hospital-admin/dashboard", label: "Dashboard" },
+      { href: "/hospital-admin/departments", label: "Departments" },
+      { href: "/hospital-admin/opd", label: "OPD Sessions" },
+      { href: "/hospital-admin/schedules", label: "Schedules" },
+      { href: "/hospital-admin/queues", label: "Queues" },
+      { href: "/hospital-admin/services", label: "Services" },
+      { href: "/hospital-admin/appointments", label: "Appointments" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { href: "/hospital-admin/doctors", label: "Doctors" },
+      { href: "/hospital-admin/staff", label: "Staff" },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      { href: "/hospital-admin/reports", label: "Reports" },
+      { href: "/hospital-admin/audit", label: "Audit Activity" },
+    ],
+  },
+  {
+    label: "More",
+    items: [
+      { href: "/hospital-admin/patients", label: "Patients" },
+      { href: "/hospital-admin/queue-overrides", label: "Queue Overrides" },
+      { href: "/hospital-admin/notifications", label: "Notifications" },
+      { href: "/hospital-admin/settings", label: "Settings" },
+    ],
+  },
 ];
 
 export function AdminSidebar() {
@@ -39,35 +62,42 @@ export function AdminSidebar() {
       </Link>
 
       <nav aria-label="Hospital admin navigation" className="flex-1 overflow-y-auto px-2 py-4">
-        <ul className="flex flex-col gap-1">
-          {navItems.map((item) => {
-            const isActive =
-              item.href === "/hospital-admin/dashboard"
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`block rounded-btn px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-brand-600 ${
-                    isActive
-                      ? "bg-brand-100 text-brand-700"
-                      : "text-ink-500 hover:bg-ink-100 hover:text-ink-900"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {navGroups.map((group) => (
+          <div key={group.label} className="mb-4">
+            <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-400">
+              {group.label}
+            </p>
+            <ul className="flex flex-col">
+              {group.items.map((item) => {
+                const active =
+                  pathname === item.href || (item.href !== "/hospital-admin/dashboard" && pathname.startsWith(`${item.href}/`));
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`block rounded-btn px-3 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? "bg-brand-50 text-brand-700"
+                          : "text-ink-600 hover:bg-surface-muted hover:text-ink-900"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      <div className="border-t border-ink-200 px-4 py-4">
-        <p className="truncate text-sm font-medium text-ink-900">{admin?.name}</p>
-        <p className="truncate text-xs text-ink-500">{admin?.role}</p>
-      </div>
+      {admin && (
+        <div className="border-t border-ink-200 px-4 py-3 text-xs text-ink-500">
+          <p className="font-medium text-ink-700">{admin.name}</p>
+          <p>{admin.role}</p>
+        </div>
+      )}
     </aside>
   );
 }

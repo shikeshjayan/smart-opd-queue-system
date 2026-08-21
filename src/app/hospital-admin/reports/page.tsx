@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useHospitalAdmin } from "@/features/hospital-admin/hospital-context";
-import { useAdminReports } from "@/features/hospital-admin/hooks/useHospitalAdmin";
+import { useOpsReport } from "@/features/hospital-admin/hooks/useHospitalOps";
+import type { ReportType } from "@/services/hospital-ops/types";
+import { downloadReportCsv, printReport } from "@/features/hospital-admin/utils/report-export";
+import { usePermissions } from "@/features/auth/hooks/useAuth";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -14,12 +18,24 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import { EmptyState } from "@/components/feedback/empty-state";
-import { formatDate } from "@/features/hospital-admin/utils/format";
+
+const REPORT_TYPES: Array<{ value: ReportType; label: string }> = [
+  { value: "daily_opd", label: "Daily OPD Report" },
+  { value: "department_performance", label: "Department Performance" },
+  { value: "appointment_report", label: "Appointment Report" },
+  { value: "queue_report", label: "Queue Report" },
+  { value: "patient_volume", label: "Patient Volume" },
+  { value: "doctor_workload", label: "Doctor Workload" },
+  { value: "laboratory_volume", label: "Laboratory Volume" },
+  { value: "pharmacy_volume", label: "Pharmacy Volume" },
+];
 
 export default function ReportsPage() {
   const { hospitalId } = useHospitalAdmin();
-  const { data, isLoading, error, reload } = useAdminReports(hospitalId);
+  const [reportType, setReportType] = useState<ReportType>("daily_opd");
+  const { data, isLoading, error, reload } = useOpsReport(hospitalId, reportType);
+  const { can } = usePermissions();
+  const canExport = can("VIEW_REPORTS") && can("EXPORT_REPORTS");
 
   if (isLoading) {
     return (
@@ -35,106 +51,98 @@ export default function ReportsPage() {
     return <ErrorState message={error ?? "Unable to load reports."} onRetry={reload} />;
   }
 
-  const totalCards = [
-    { id: "tokens", label: "Tokens Issued", value: data.totals.tokens },
-    { id: "completed", label: "Completed", value: data.totals.completed },
-    { id: "consultations", label: "Consultations", value: data.totals.consultations },
-    { id: "missed", label: "Not Completed", value: data.totals.missed },
-  ];
-
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Reports" description={`${data.hospital.name} · ${data.period}`} />
-
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {totalCards.map((item) => (
-          <div key={item.id} className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
-            <dt className="text-xs text-ink-500">{item.label}</dt>
-            <dd className="mt-1 text-3xl font-bold text-ink-900">{item.value}</dd>
+      <PageHeader
+        title="Reports"
+        description={`Operational reports · ${data.period}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={!canExport}
+              title={canExport ? "Export as CSV" : "You don't have permission to export"}
+              onClick={() => downloadReportCsv(data)}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!canExport}
+              title={canExport ? "Print report" : "You don't have permission to print"}
+              onClick={() => printReport()}
+            >
+              Print
+            </Button>
           </div>
-        ))}
-      </dl>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity by Department</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.byDepartment.length === 0 ? (
-            <EmptyState title="No department activity" />
-          ) : (
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-surface-muted hover:bg-surface-muted">
-                    <TableHead>Department</TableHead>
-                    <TableHead className="text-right">Tokens</TableHead>
-                    <TableHead className="text-right">Waiting</TableHead>
-                    <TableHead className="text-right">Completed</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.byDepartment.map((row) => (
-                    <TableRow key={row.departmentId}>
-                      <TableCell className="font-medium text-ink-900">{row.departmentName}</TableCell>
-                      <TableCell className="text-right text-ink-700">{row.tokens}</TableCell>
-                      <TableCell className="text-right text-ink-700">{row.waiting}</TableCell>
-                      <TableCell className="text-right font-semibold text-ink-900">
-                        {row.completed}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+      {!canExport && (
+        <p className="rounded-card border border-status-warning bg-status-warning-soft p-3 text-sm text-status-warning">
+          Exports are available to users with reporting permissions. Your scope is limited to this hospital.
+        </p>
+      )}
 
-          <ul className="flex flex-col gap-2 md:hidden">
-            {data.byDepartment.map((row) => (
-              <li
-                key={row.departmentId}
-                className="flex items-center justify-between gap-2 rounded-token border border-ink-200 p-3"
-              >
-                <span className="font-medium text-ink-900">{row.departmentName}</span>
-                <span className="text-sm text-ink-700">
-                  {row.tokens} tokens · {row.completed} done
-                </span>
-              </li>
+      <label className="block max-w-sm">
+        <span className="sr-only">Report type</span>
+        <select
+          className="h-11 w-full rounded-btn border border-ink-300 bg-surface px-3 text-sm text-ink-900 focus:outline-2 focus:outline-brand-600"
+          value={reportType}
+          onChange={(e) => setReportType(e.target.value as ReportType)}
+        >
+          {REPORT_TYPES.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <article id="ops-report" aria-label={data.title} className="flex flex-col gap-4 rounded-card border border-ink-200 bg-surface p-5 shadow-card">
+        <header>
+          <h2 className="text-lg font-semibold text-ink-900">{data.title}</h2>
+          <p className="text-xs text-ink-400">{data.period}</p>
+        </header>
+
+        {data.summary.length > 0 && (
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {data.summary.map((item) => (
+              <div key={item.label} className="rounded-token bg-surface-muted p-3">
+                <dt className="text-xs text-ink-500">{item.label}</dt>
+                <dd className="mt-1 text-xl font-bold tabular-nums text-ink-900">{item.value}</dd>
+              </div>
             ))}
-          </ul>
-        </CardContent>
-      </Card>
+          </dl>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Encounters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.recentEncounters.length === 0 ? (
-            <EmptyState title="No recent encounters" />
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {data.recentEncounters.map((encounter) => (
-                <li
-                  key={encounter.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-token border border-ink-200 p-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-ink-900">
-                      {encounter.patientId} · {encounter.departmentName}
-                    </p>
-                    <p className="text-sm text-ink-500">
-                      {encounter.doctorName} · Token {encounter.tokenNumber} ·{" "}
-                      {formatDate(encounter.date)}
-                    </p>
-                  </div>
-                  <span className="text-xs text-ink-400">{encounter.id}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+        {data.table.rows.length === 0 ? (
+          <p className="text-sm text-ink-500">No data for this report yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-surface-muted hover:bg-surface-muted">
+                  {data.table.columns.map((column) => (
+                    <TableHead key={column}>{column}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.table.rows.map((row, i) => (
+                  <TableRow key={i}>
+                    {row.map((cell, j) => (
+                      <TableCell key={j} className={j === 0 ? "font-medium text-ink-900" : "tabular-nums text-ink-700"}>
+                        {cell}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </article>
     </div>
   );
 }

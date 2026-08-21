@@ -11,6 +11,7 @@ import {
   registerQueueEntry,
   setQueueEntryStatus,
 } from "../data";
+import { getTokenConfigSync, getTokenPrefixSync } from "@/services/hospital-ops";
 import type {
   NewPatientInput,
   OPDRegistration,
@@ -131,6 +132,8 @@ function last4(phone: string): string {
 }
 
 function prefixFor(opd: { id: string; departmentId: string; currentlyServing: string | null }): string {
+  const configured = getTokenPrefixSync(opd.departmentId);
+  if (configured) return configured;
   const fromServing = opd.currentlyServing?.split("-")[0]?.toUpperCase();
   if (fromServing) return fromServing;
   return DEPARTMENT_LETTERS[opd.departmentId] ?? "T";
@@ -320,13 +323,28 @@ export const registrationService = {
     }
     const department = getDepartment(opd.departmentId);
     const queue = listQueue(opd.id);
+    const tokenConfig = getTokenConfigSync("hos_001");
     const prefix = prefixFor(opd);
+    const todayPrefix = new Date().toISOString().slice(0, 10);
+    const sameDay = (iso?: string) => Boolean(iso && iso.slice(0, 10) === todayPrefix);
+    const registrationNumbers = registrationRecords
+      .filter((r) => r.opdId === opd.id && (!tokenConfig?.dailyReset || sameDay(r.createdAt)))
+      .map((r) => r.tokenNumber);
+    const tokenNumbers = registeredTokens
+      .filter((t) => t.opdId === opd.id && (!tokenConfig?.dailyReset || sameDay(t.createdAt)))
+      .map((t) => t.tokenNumber);
     const maxNumber = Math.max(
       maxNumberFor(prefix, queue.map((q) => q.tokenNumber)),
-      maxNumberFor(prefix, registrationRecords.filter((r) => r.opdId === opd.id).map((r) => r.tokenNumber)),
-      maxNumberFor(prefix, registeredTokens.filter((t) => t.opdId === opd.id).map((t) => t.tokenNumber))
+      maxNumberFor(prefix, registrationNumbers),
+      maxNumberFor(prefix, tokenNumbers)
     );
-    const tokenNumber = `${prefix}-${String(maxNumber + 1).padStart(3, "0")}`;
+    const nextNumber = maxNumber + 1;
+    if (tokenConfig && nextNumber > tokenConfig.maxDailyTokens) {
+      throw new Error(
+        `Maximum daily tokens (${tokenConfig.maxDailyTokens}) reached for this department. Please try tomorrow.`
+      );
+    }
+    const tokenNumber = `${prefix}-${String(nextNumber).padStart(3, "0")}`;
 
     const now = new Date().toISOString();
     const token: OPDToken = {

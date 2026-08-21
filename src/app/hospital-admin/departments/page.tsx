@@ -8,8 +8,11 @@ import {
   useAdminMutations,
 } from "@/features/hospital-admin/hooks/useHospitalAdmin";
 import { useQueueOverview } from "@/features/hospital-admin/hooks/useHospitalAdmin";
+import { useDepartmentConfigs } from "@/features/hospital-admin/hooks/useHospitalOps";
+import { usePermissions } from "@/features/auth/hooks/useAuth";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { DepartmentFormDialog } from "@/features/hospital-admin/components/DepartmentFormDialog";
+import { DepartmentConfigDialog } from "@/features/hospital-admin/components/DepartmentConfigDialog";
 import { StatusConfirmDialog } from "@/features/hospital-admin/components/StatusConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +35,10 @@ export default function DepartmentsPage() {
   const mutations = useAdminMutations();
 
   const [showAdd, setShowAdd] = useState(false);
+  const [configTarget, setConfigTarget] = useState<string>("");
+  const { data: deptConfigs } = useDepartmentConfigs(hospitalId);
+  const { can } = usePermissions();
+  const canManage = can("MANAGE_DEPARTMENTS");
   const [confirmTarget, setConfirmTarget] = useState<{
     id: string;
     name: string;
@@ -95,6 +102,7 @@ export default function DepartmentsPage() {
               <TableHeader>
                 <TableRow className="bg-surface-muted hover:bg-surface-muted">
                   <TableHead>Department</TableHead>
+                  <TableHead>Code</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Waiting</TableHead>
                   <TableHead className="text-right">OPD Sessions</TableHead>
@@ -111,6 +119,9 @@ export default function DepartmentsPage() {
                       >
                         {department.name}
                       </Link>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-ink-500">
+                      {deptConfigs?.find((c) => c.id === department.id)?.code || "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={department.status === "active" ? "success" : "danger"}>
@@ -129,6 +140,15 @@ export default function DepartmentsPage() {
                         >
                           View
                         </Link>
+                        {canManage && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConfigTarget(department.id)}
+                          >
+                            Configure
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -201,6 +221,14 @@ export default function DepartmentsPage() {
         error={mutations.error}
         onSubmit={handleAdd}
         onClose={() => setShowAdd(false)}
+      />
+
+      <DepartmentConfigDialog
+        open={configTarget !== ""}
+        departmentId={configTarget}
+        hospitalId={hospitalId}
+        onClose={() => setConfigTarget("")}
+        onSaved={reload}
       />
 
       <StatusConfirmDialog
