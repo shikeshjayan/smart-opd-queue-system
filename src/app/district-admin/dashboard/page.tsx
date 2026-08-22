@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useDistrictAdmin } from "@/features/government-admin/district-context";
-import { useDistrictDashboard } from "@/features/government-admin/hooks/useGovernmentAdmin";
+import { useState, useEffect } from "react";
+import { useDistrictAdmin } from "@/features/auth/context";
+import {
+  useDistrictDashboard,
+  useDistrictComparison,
+  useDistrictCapacity,
+} from "@/features/district-admin/hooks/useDistrictAdminData";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { LiveIndicator } from "@/features/government-admin/components/LiveIndicator";
 import { StatGrid } from "@/features/government-admin/components/StatGrid";
@@ -19,12 +24,21 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
+import { DistrictMap } from "@/features/district-admin/components/DistrictMap";
+import { HospitalComparison } from "@/features/district-admin/components/HospitalComparison";
+import { CapacityOverview } from "@/features/district-admin/components/CapacityOverview";
 
 export default function DistrictAdminDashboardPage() {
   const { admin, districtId } = useDistrictAdmin();
-  const { data, isLoading, error, reload } = useDistrictDashboard(districtId ?? "ernakulam");
+  const { data: dashboard, isLoading, error, reload } = useDistrictDashboard(
+    districtId ?? "ernakulam"
+  );
+  const { data: comparison, isLoading: comparisonLoading } =
+    useDistrictComparison(districtId ?? "ernakulam");
+  const { data: capacity, isLoading: capacityLoading } =
+    useDistrictCapacity(districtId ?? "ernakulam");
 
-  if (isLoading || !districtId) {
+  if (isLoading || !districtId || comparisonLoading || capacityLoading) {
     return (
       <div className="flex flex-col gap-6">
         <Skeleton className="h-9 w-2/3" />
@@ -35,11 +49,22 @@ export default function DistrictAdminDashboardPage() {
     );
   }
 
-  if (error || !data) {
-    return <ErrorState message={error ?? "Unable to load dashboard."} onRetry={reload} />;
+  if (error || !dashboard || !comparison || !capacity) {
+    return (
+      <ErrorState
+        message={error ?? "Unable to load dashboard."}
+        onRetry={reload}
+      />
+    );
   }
 
-  const { performance, hospitals, alerts, longestQueue } = data;
+  const {
+    performance,
+    hospitals,
+    alerts,
+    longestQueue,
+    announcements,
+  } = dashboard;
 
   const stats = [
     { id: "hospitals", label: "Hospitals", value: performance.hospitals },
