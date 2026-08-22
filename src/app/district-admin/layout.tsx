@@ -10,6 +10,14 @@ const navItems: GovernmentNavItem[] = [
   { href: "/district-admin/opd", label: "OPD Activity" },
   { href: "/district-admin/reports", label: "Reports" },
   { href: "/district-admin/alerts", label: "Alerts" },
+  { href: "/district-admin/departments", label: "Departments" },
+  { href: "/district-admin/services", label: "Services" },
+  { href: "/district-admin/capacity", label: "Capacity" },
+  { href: "/district-admin/staff", label: "Staff" },
+  { href: "/district-admin/referrals", label: "Referrals" },
+  { href: "/district-admin/announcements", label: "Announcements" },
+  { href: "/district-admin/audit", label: "Audit" },
+  { href: "/district-admin/settings", label: "Settings" },
 ];
 
 export default function DistrictAdminLayout({ children }: { children: ReactNode }) {

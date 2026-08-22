@@ -39,6 +39,9 @@ export type Permission =
   | "VIEW_REPORTS"
   | "VIEW_DISTRICT_DATA"
   | "VIEW_STATE_DATA"
+  | "MANAGE_DISTRICT_SETTINGS"
+  | "PUBLISH_ANNOUNCEMENTS"
+  | "VIEW_DISTRICT_AUDIT"
   | "EXPORT_REPORTS"
   | "ASSESS_PRIORITY"
   | "REQUEST_OVERRIDE"
@@ -157,6 +160,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_QUEUE",
     "VIEW_REPORTS",
     "VIEW_DISTRICT_DATA",
+    "MANAGE_DISTRICT_SETTINGS",
+    "PUBLISH_ANNOUNCEMENTS",
+    "VIEW_DISTRICT_AUDIT",
     "EXPORT_REPORTS",
   ],
   state_admin: [
