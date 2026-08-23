@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { DEMO_PATIENT_ID } from "@/config/app";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAsync } from "@/lib/use-async";
 import { tokenService } from "@/services/token";
@@ -30,8 +29,8 @@ function BellIcon() {
 
 export function NotificationBell() {
   const { user } = useAuth();
-  const patientId = user?.id ?? DEMO_PATIENT_ID;
-  const activeToken = useAsync(() => tokenService.getActive(patientId), [patientId]);
+  const patientId = user?.id;
+  const activeToken = useAsync(() => patientId ? tokenService.getActive(patientId) : Promise.resolve(null), [patientId]);
   const active: ActiveToken | null = activeToken.data
     ? {
         tokenId: activeToken.data.token.id,
@@ -40,7 +39,7 @@ export function NotificationBell() {
       }
     : null;
   const { unreadCount, notifications, markAllRead, isLoading } = useNotifications(
-    patientId,
+    patientId ?? "",
     active
   );
 

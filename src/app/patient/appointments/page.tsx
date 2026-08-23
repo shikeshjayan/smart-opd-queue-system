@@ -13,11 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import type { Appointment } from "@/services/appointments/types";
-import { DEMO_PATIENT_ID } from "@/config/app";
 
 export default function PatientAppointmentsPage() {
   const { user } = useAuth();
-  const patientId = user?.id ?? DEMO_PATIENT_ID;
+  const patientId = user?.id ?? "";
   const { data, isLoading, error, reload } = useAppointments(patientId);
   const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);

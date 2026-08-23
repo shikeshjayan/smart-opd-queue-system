@@ -27,34 +27,7 @@ export default function PublicPage() {
           Login
         </Link>
       </div>
-      <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-        <span className="text-xs uppercase tracking-wide text-ink-400">Demo workspaces</span>
-        <Link
-          href="/login?next=/doctor/dashboard"
-          className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
-        >
-          Doctor Workspace
-        </Link>
-        <Link
-          href="/login?next=/hospital-admin/dashboard"
-          className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
-        >
-          Hospital Admin
-        </Link>
-        <Link
-          href="/login?next=/district-admin/dashboard"
-          className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
-        >
-          District Admin
-        </Link>
-        <Link
-          href="/login?next=/state-admin/dashboard"
-          className="rounded-full border border-ink-300 px-4 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
-        >
-          State Admin
-        </Link>
-      </div>
-      <p className="mt-6 text-xs text-ink-400">
+      <p className="mt-10 text-xs text-ink-400">
         Sign-in is required to enter any workspace. Unauthorized access is blocked.
       </p>
     </main>

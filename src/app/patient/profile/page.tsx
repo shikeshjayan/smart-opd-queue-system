@@ -5,6 +5,7 @@ import { AllergyCard } from "@/features/medical-records/components/AllergyCard";
 import { ConditionCard } from "@/features/medical-records/components/ConditionCard";
 import { MedicationCard } from "@/features/medical-records/components/MedicationCard";
 import { RecordAccessNotice } from "@/features/medical-records/components/RecordAccessNotice";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { usePatientProfile } from "@/features/medical-records/hooks/useMedicalRecords";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +26,8 @@ function Section({ title, id, children }: { title: string; id: string; children:
 }
 
 export default function ProfilePage() {
-  const { data, isLoading, error, reload } = usePatientProfile();
+  const { user } = useAuth();
+  const { data, isLoading, error, reload } = usePatientProfile(user?.id ?? "");
 
   if (isLoading) {
     return (

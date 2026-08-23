@@ -1,10 +1,10 @@
-import { hospitalService } from "@/services/hospital";
+import { listHospitals, getHospital } from "@/server/actions/hospitals";
 import type { Hospital } from "@/types";
 import type { HospitalQuery } from "../types/hospital.types";
 
 export const hospitalMockApi = {
   async list(query: HospitalQuery): Promise<Hospital[]> {
-    const hospitals = await hospitalService.list();
+    const hospitals = await listHospitals();
     const district = query.district;
     const search = query.search?.trim().toLowerCase();
 
@@ -19,6 +19,7 @@ export const hospitalMockApi = {
   },
 
   async getById(id: string): Promise<Hospital | undefined> {
-    return hospitalService.getById(id);
+    const h = await getHospital(id);
+    return h ?? undefined;
   },
 };

@@ -18,14 +18,13 @@ import { useAppointments, useFollowUpRecommendation } from "@/features/appointme
 import { AppointmentCard } from "@/features/appointments/components/AppointmentCard";
 import { AppointmentReminder } from "@/features/appointments/components/AppointmentReminder";
 import { FollowUpForm } from "@/features/appointments/components/FollowUpForm";
-import { DEMO_PATIENT_ID } from "@/config/app";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const patientId = user?.id ?? "";
   const { data, isLoading, error, reload } = usePatientDashboard();
   const medicationPanel = usePatientMedicationPanel();
-  const tests = usePatientTests("P10294");
-  const { user } = useAuth();
-  const patientId = user?.id ?? DEMO_PATIENT_ID;
+  const tests = usePatientTests(patientId);
   const appointmentList = useAppointments(patientId);
   const recommendation = useFollowUpRecommendation(patientId);
 

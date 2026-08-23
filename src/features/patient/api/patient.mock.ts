@@ -1,4 +1,4 @@
-import { tokenService } from "@/services/token";
+import { getPatient, listEncounters } from "@/server/actions/patients";
 import type {
   NotificationItem,
   PatientDashboard,
@@ -14,23 +14,25 @@ const quickActions: QuickAction[] = [
   { id: "lab", label: "Lab Reports", description: "Download lab results", href: "/patient/lab-reports" },
 ];
 
-const notifications: NotificationItem[] = [
-  { id: "notif_001", message: "Your appointment is approaching. Your token A-047 is being served.", type: "warning", time: "2 min ago" },
-  { id: "notif_002", message: "Your last visit was on 16 Aug 2026. Visit history updated.", type: "info", time: "2 days ago" },
-];
-
-const stats: PatientStat[] = [
-  { id: "visits", label: "Total Visits", value: "7" },
-  { id: "tokens", label: "Tokens This Month", value: "3" },
-  { id: "last-visit", label: "Last Visit", value: "16 Aug" },
-];
-
 export const patientMockApi = {
   async getDashboard(patientId: string): Promise<PatientDashboard> {
-    const activeToken = await tokenService.getActive(patientId);
+    const patient = await getPatient(patientId);
+    const encounters = await listEncounters(patientId);
+    const completedVisits = encounters.filter((e) => e.status === "completed").length;
+    const lastVisit = encounters[0];
+
+    const stats: PatientStat[] = [
+      { id: "visits", label: "Total Visits", value: String(completedVisits || 0) },
+      { id: "last-visit", label: "Last Visit", value: lastVisit ? new Date(lastVisit.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "None" },
+    ];
+
+    const notifications: NotificationItem[] = lastVisit
+      ? [{ id: "notif_latest", message: `Your last visit was on ${new Date(lastVisit.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.`, type: "info", time: "recent" }]
+      : [];
+
     return {
-      patientName: "Rahul K",
-      activeToken,
+      patientName: patient?.name ?? "Patient",
+      activeToken: null,
       stats,
       quickActions,
       notifications,

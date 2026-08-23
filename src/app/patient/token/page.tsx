@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { tokenService } from "@/services/token";
-import { DEMO_PATIENT_ID } from "@/config/app";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
@@ -14,11 +14,12 @@ import { useAsync } from "@/lib/use-async";
 function TokenContent() {
   const searchParams = useSearchParams();
   const opdId = searchParams.get("opd") ?? "";
+  const { user } = useAuth();
 
   const { data: bundle, isLoading, error } = useAsync(() => {
-    if (!opdId) return Promise.resolve(null);
-    return tokenService.create(opdId, DEMO_PATIENT_ID);
-  }, [opdId]);
+    if (!opdId || !user?.id) return Promise.resolve(null);
+    return tokenService.create(opdId, user.id);
+  }, [opdId, user?.id]);
 
   const [confirmed, setConfirmed] = useState(false);
   const [confirming, setConfirming] = useState(false);

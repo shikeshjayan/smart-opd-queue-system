@@ -1,27 +1,49 @@
-import { appointmentService } from "@/services/appointments";
-import type { AppointmentBookingInput, ScheduleConfig } from "@/services/appointments/types";
+import {
+  listAppointmentsByPatient,
+  listAppointmentsByHospital,
+  getAppointment,
+  getAvailableSlots,
+  bookAppointment,
+  cancelAppointment,
+  rescheduleAppointment,
+  checkInAppointment,
+  markNoShow,
+} from "@/server/actions/appointments";
+import type { Appointment, AppointmentSlot } from "@/services/appointments/types";
 
 export const appointmentsMockApi = {
-  listForPatient: (patientId: string) => appointmentService.listForPatient(patientId),
-  listAll: () => appointmentService.listAll(),
-  listBetween: (from: string, to: string) => appointmentService.listBetween(from, to),
-  listForDate: (date: string) => appointmentService.listForDate(date),
-  listForDoctorOnDate: (doctorId: string, date: string) =>
-    appointmentService.listForDoctorOnDate(doctorId, date),
-  getById: (id: string) => appointmentService.getById(id),
-  getSlots: (date: string, departmentId: string, doctorId?: string) =>
-    appointmentService.getSlots(date, departmentId, doctorId),
-  book: (input: AppointmentBookingInput) => appointmentService.book(input),
-  confirm: (id: string) => appointmentService.confirm(id),
-  cancel: (id: string, reason?: string) => appointmentService.cancel(id, reason),
-  reschedule: (id: string, date: string, time?: string) =>
-    appointmentService.reschedule(id, date, time),
-  checkIn: (id: string) => appointmentService.checkIn(id),
-  markNoShow: (id: string) => appointmentService.markNoShow(id),
-  markCompletedForToken: (tokenNumber: string, encounterId?: string) =>
-    appointmentService.markCompletedForToken(tokenNumber, encounterId),
-  listScheduleConfigs: () => appointmentService.listScheduleConfigs(),
-  getScheduleConfig: (departmentId: string, doctorId?: string) =>
-    appointmentService.getScheduleConfig(departmentId, doctorId),
-  saveScheduleConfig: (config: ScheduleConfig) => appointmentService.saveScheduleConfig(config),
+  listForPatient: (patientId: string): Promise<Appointment[]> =>
+    listAppointmentsByPatient(patientId) as Promise<Appointment[]>,
+  listAll: (): Promise<Appointment[]> =>
+    listAppointmentsByHospital("") as Promise<Appointment[]>,
+  listBetween: (_from: string, _to: string): Promise<Appointment[]> =>
+    listAppointmentsByHospital("") as Promise<Appointment[]>,
+  listForDate: (date: string): Promise<Appointment[]> =>
+    listAppointmentsByHospital("", date) as Promise<Appointment[]>,
+  listForDoctorOnDate: (_doctorId: string, date: string): Promise<Appointment[]> =>
+    listAppointmentsByHospital("", date) as Promise<Appointment[]>,
+  getById: (id: string): Promise<Appointment | null> =>
+    getAppointment(id) as Promise<Appointment | null>,
+  getSlots: (date: string, departmentId: string, doctorId?: string): Promise<AppointmentSlot[]> =>
+    getAvailableSlots(date, departmentId, doctorId) as unknown as Promise<AppointmentSlot[]>,
+  book: (input: any): Promise<Appointment> =>
+    bookAppointment(input) as Promise<Appointment>,
+  confirm: (id: string): Promise<Appointment | null> =>
+    getAppointment(id) as Promise<Appointment | null>,
+  cancel: (id: string, reason?: string): Promise<Appointment> =>
+    cancelAppointment(id, reason) as Promise<Appointment>,
+  reschedule: (id: string, date: string, time?: string): Promise<any> =>
+    rescheduleAppointment(id, date, time ?? "") as Promise<any>,
+  checkIn: (id: string): Promise<any> =>
+    checkInAppointment(id) as Promise<any>,
+  markNoShow: (id: string): Promise<Appointment | null> =>
+    markNoShow(id) as Promise<Appointment | null>,
+  markCompletedForToken: (_tokenNumber: string, _encounterId?: string): Promise<any> =>
+    Promise.resolve(null),
+  listScheduleConfigs: (): Promise<any[]> =>
+    Promise.resolve([]),
+  getScheduleConfig: (_departmentId: string, _doctorId?: string): Promise<any> =>
+    Promise.resolve(null),
+  saveScheduleConfig: (config: any): Promise<any> =>
+    Promise.resolve(config),
 };

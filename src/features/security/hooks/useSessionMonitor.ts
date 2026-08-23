@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { authService } from "@/services/auth";
+import { restoreSession } from "@/server/actions/auth";
 
 const POLL_INTERVAL_MS = 30_000;
 const WARN_THRESHOLD_MS = 15 * 60_000;
@@ -10,22 +10,31 @@ export function useSessionMonitor() {
   const [msRemaining, setMsRemaining] = useState<number | null>(null);
 
   useEffect(() => {
-    const tick = () => {
-      const session = authService.restore();
-      if (!session.session) {
-        setMsRemaining(null);
-        return;
+    let active = true;
+    const tick = async () => {
+      try {
+        const result = await restoreSession();
+        if (!active) return;
+        if (!result.session) {
+          setMsRemaining(null);
+          return;
+        }
+        const remaining = new Date(result.session.expiresAt).getTime() - Date.now();
+        setMsRemaining(Math.max(0, remaining));
+      } catch {
+        if (active) setMsRemaining(null);
       }
-      const remaining = new Date(session.session.expiresAt).getTime() - Date.now();
-      setMsRemaining(Math.max(0, remaining));
     };
     tick();
     const interval = setInterval(tick, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
-  const continueSession = useCallback(() => {
-    authService.extendSession();
+  const continueSession = useCallback(async () => {
+    await restoreSession();
     setMsRemaining(8 * 60 * 60 * 1000);
   }, []);
 

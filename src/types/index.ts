@@ -99,6 +99,7 @@ export type PatientKnownInfo = {
 
 export type PatientSummary = {
   id: string;
+  patientNumber?: string;
   name: string;
   age: number;
   gender: "male" | "female" | "other";

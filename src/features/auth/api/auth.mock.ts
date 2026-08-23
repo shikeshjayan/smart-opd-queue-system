@@ -1,41 +1,36 @@
-import { authService } from "@/services/auth";
-import type { UserRole } from "../types/auth.types";
+import {
+  staffLogin as staffLoginAction,
+  verifyPatientOtp,
+  requestPatientOtp,
+  restoreSession,
+  logoutAction,
+} from "@/server/actions/auth";
 
 const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
 
 export const authMockApi = {
-  async listDemoAccounts() {
-    await delay();
-    return authService.listDemoAccounts();
-  },
-
   async requestPatientOtp(phone: string) {
     await delay();
-    return authService.requestPatientOtp(phone);
+    return requestPatientOtp(phone);
   },
 
   async verifyPatientOtp(phone: string, otp: string) {
     await delay();
-    return authService.verifyPatientOtp(phone, otp);
+    return verifyPatientOtp(phone, otp);
   },
 
   async staffLogin(staffId: string, password: string) {
     await delay();
-    return authService.staffLogin(staffId, password);
-  },
-
-  async demoLogin(role: UserRole) {
-    await delay();
-    return authService.demoLogin(role);
+    return staffLoginAction(staffId, password);
   },
 
   async restore() {
     await delay();
-    return authService.restore();
+    return restoreSession();
   },
 
   async logout() {
     await delay();
-    authService.logout();
+    await logoutAction();
   },
 };

@@ -1,5 +1,5 @@
 import { medicalRecordsService } from "@/services/medical-records";
-import type { HistoryFilters } from "../types/medical-record.types";
+import type { HistoryFilters, PatientEncounter } from "../types/medical-record.types";
 
 export const medicalRecordsMockApi = {
   getHistory: (patientId: string) => medicalRecordsService.getHistory(patientId),
@@ -17,4 +17,6 @@ export const medicalRecordsMockApi = {
   getProfile: (patientId: string) => medicalRecordsService.getProfile(patientId),
   getDoctorPatientView: (patientId: string) =>
     medicalRecordsService.getDoctorPatientView(patientId),
+  searchPatients: (query: string, hospitalId?: string): Promise<PatientEncounter[]> =>
+    medicalRecordsService.searchPatients(query, hospitalId),
 };
