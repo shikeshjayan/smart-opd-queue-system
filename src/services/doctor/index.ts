@@ -5,6 +5,8 @@ import type {
   OPDCounts,
   PatientSummary,
 } from "@/types";
+import { auditService } from "@/services/security";
+import { getCurrentActor } from "@/features/security/utils/current-actor";
 import {
   countQueueStatuses,
   createEncounterForToken,
@@ -91,6 +93,23 @@ export const doctorService = {
     patch: Partial<Encounter>
   ): Promise<Encounter | undefined> {
     await delay();
-    return updateEncounter(id, { ...patch, status: "completed" });
+    const result = updateEncounter(id, { ...patch, status: "completed" });
+    if (result) {
+      const actor = getCurrentActor();
+      if (actor) {
+        auditService.log({
+          actorId: actor.id,
+          actorName: actor.name,
+          actorRole: actor.role,
+          action: "ENCOUNTER_COMPLETED",
+          resourceType: "Encounter",
+          resourceId: id,
+          hospitalId: result.hospitalId,
+          districtId: actor.scope.districtId,
+          result: "success",
+        });
+      }
+    }
+    return result;
   },
 };

@@ -1,6 +1,8 @@
 import type { PersistedSession, SessionUser, UserRole } from "@/features/auth/types/auth.types";
 import { SESSION_STORAGE_KEY } from "@/features/auth/types/auth.types";
 import { AUTH_COOKIE, env } from "@/config/app";
+import { auditService } from "@/services/security";
+import { securityService } from "@/services/security";
 import type { LoginPending, MockAccount, SessionResult } from "./types";
 
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
@@ -163,17 +165,69 @@ export const authService = {
       return null;
     }
     const account = findPatientByPhone(phone);
-    if (!account || otp.trim() !== "123456") return null;
+    if (!account || otp.trim() !== "123456") {
+      securityService.record({
+        type: "failed_login",
+        severity: "warning",
+        message: `Failed OTP verification for ${phone}.`,
+      });
+      auditService.log({
+        actorId: account?.user.id ?? "unknown",
+        actorName: account?.user.name ?? "Unknown",
+        actorRole: "patient",
+        action: "LOGIN",
+        resourceType: "Session",
+        resourceId: phone,
+        result: "failure",
+      });
+      return null;
+    }
     const session = buildSession(account.user);
     persist(session);
+    auditService.log({
+      actorId: account.user.id,
+      actorName: account.user.name,
+      actorRole: "patient",
+      action: "LOGIN",
+      resourceType: "Session",
+      resourceId: account.user.id,
+      result: "success",
+    });
     return session;
   },
 
   staffLogin(staffId: string, password: string): PersistedSession | null {
     const account = findStaffById(staffId);
-    if (!account || account.staffPassword !== password) return null;
+    if (!account || account.staffPassword !== password) {
+      securityService.record({
+        type: "failed_login",
+        severity: "warning",
+        message: `Failed login attempt for staff id “${staffId}”.`,
+      });
+      auditService.log({
+        actorId: staffId,
+        actorName: account?.user.name ?? "Unknown",
+        actorRole: account?.user.role ?? "-",
+        action: "LOGIN",
+        resourceType: "Session",
+        resourceId: staffId,
+        result: "failure",
+      });
+      return null;
+    }
     const session = buildSession(account.user);
     persist(session);
+    auditService.log({
+      actorId: account.user.id,
+      actorName: account.user.name,
+      actorRole: account.user.role,
+      action: "LOGIN",
+      resourceType: "Session",
+      resourceId: account.user.id,
+      hospitalId: account.user.scope.hospitalId,
+      districtId: account.user.scope.districtId,
+      result: "success",
+    });
     return session;
   },
 
@@ -185,6 +239,17 @@ export const authService = {
     if (!account) return null;
     const session = buildSession(account.user);
     persist(session);
+    auditService.log({
+      actorId: account.user.id,
+      actorName: account.user.name,
+      actorRole: account.user.role,
+      action: "LOGIN",
+      resourceType: "Session",
+      resourceId: account.user.id,
+      hospitalId: account.user.scope.hospitalId,
+      districtId: account.user.scope.districtId,
+      result: "success",
+    });
     return session;
   },
 
@@ -198,7 +263,33 @@ export const authService = {
     return { session };
   },
 
+  extendSession(): PersistedSession | null {
+    const session = readPersistedSession();
+    if (!session) return null;
+    if (new Date(session.expiresAt).getTime() <= Date.now()) {
+      clearPersistedSession();
+      return null;
+    }
+    const extended = buildSession(session.user);
+    persist(extended);
+    return extended;
+  },
+
   logout(): void {
+    const session = readPersistedSession();
+    if (session) {
+      auditService.log({
+        actorId: session.user.id,
+        actorName: session.user.name,
+        actorRole: session.user.role,
+        action: "LOGOUT",
+        resourceType: "Session",
+        resourceId: session.user.id,
+        hospitalId: session.user.scope.hospitalId,
+        districtId: session.user.scope.districtId,
+        result: "success",
+      });
+    }
     clearPersistedSession();
   },
 };

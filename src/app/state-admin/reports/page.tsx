@@ -1,143 +1,94 @@
 "use client";
-
-import { useState } from "react";
-import { useReports } from "@/features/government-admin/hooks/useGovernmentAdmin";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
-import { ExportActions } from "@/features/government-admin/components/ExportActions";
-import { DateRangeFilter } from "@/components/date-range-filter";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import type { GovernmentReportRow } from "@/services/government/types";
+import { stateAdminService } from "@/services/state";
+import type { ExportableReport } from "@/lib/report-export";
 
-export default function StateReportsPage() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+const REPORT_TYPES = [
+  "OPD Performance", "Hospital Performance", "District Performance",
+  "Service Availability", "Capacity Report", "Waiting Time Report",
+  "Appointment Report", "Diagnostic Report", "Resource Report"
+];
 
-  const { data, isLoading, error, reload } = useReports("state", null, {
-    from: from || undefined,
-    to: to || undefined,
-  });
+export default function ReportsPage() {
+  const [reportType, setReportType] = useState("opd_performance");
+  const [data, setData] = useState<ExportableReport | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-6">
-        <Skeleton className="h-9 w-48" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    stateAdminService.getReport(reportType as "opd_performance")
+      .then((result) => { if (active) { setData(result); setError(null); } })
+      .catch((err) => { if (active) setError(err instanceof Error ? err.message : "Failed"); })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
+  }, [reportType]);
 
-  if (error || !data) {
-    return <ErrorState message={error ?? "Unable to load reports."} onRetry={reload} />;
-  }
+  if (isLoading) return <Skeleton className="h-64" />;
+  if (error) return <ErrorState message={error} />;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="space-y-6">
       <PageHeader
-        title="Reports"
-        description={`State-wide operational report · ${data.period}`}
-        actions={<ExportActions />}
+        title="State Reports"
+        description="Generate and export state-wide reports"
       />
-
-      <Card>
-        <CardContent className="pt-6">
-          <DateRangeFilter from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-ink-500">Tokens</p>
-            <p className="mt-1 text-3xl font-bold text-ink-900">{data.totals.tokens}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-ink-500">Completed</p>
-            <p className="mt-1 text-3xl font-bold text-ink-900">{data.totals.completed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-ink-500">Consultations</p>
-            <p className="mt-1 text-3xl font-bold text-ink-900">{data.totals.consultations}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-ink-500">Missed</p>
-            <p className="mt-1 text-3xl font-bold text-ink-900">{data.totals.missed}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="hidden md:block">
-        <div className="overflow-hidden rounded-card border border-ink-200 shadow-card">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-surface-muted hover:bg-surface-muted">
-                <TableHead>District</TableHead>
-                <TableHead className="text-right">Tokens</TableHead>
-                <TableHead className="text-right">Completed</TableHead>
-                <TableHead className="text-right">Waiting</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.rows.map((row: GovernmentReportRow) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium text-ink-900">{row.label}</TableCell>
-                  <TableCell className="text-right text-ink-700">{row.tokens}</TableCell>
-                  <TableCell className="text-right text-ink-700">{row.completed}</TableCell>
-                  <TableCell className="text-right text-ink-700">{row.waiting}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      <ul className="flex flex-col gap-3 md:hidden">
-        {data.rows.map((row: GovernmentReportRow) => (
-          <li key={row.id} className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
-            <p className="font-medium text-ink-900">{row.label}</p>
-            <p className="mt-1 text-sm text-ink-700">
-              {row.tokens} tokens &middot; {row.completed} completed &middot; {row.waiting} waiting
-            </p>
-          </li>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {REPORT_TYPES.map((type) => (
+          <button
+            key={type}
+            onClick={() => setReportType(type.toLowerCase().replace(/\s+/g, "_"))}
+            className={`p-4 border rounded-card text-left transition-colors ${
+              reportType === type.toLowerCase().replace(/\s+/g, "_")
+                ? "bg-brand-50 border-brand-300"
+                : "border-ink-200 hover:bg-ink-50"
+            }`}
+          >
+            <span className="font-medium text-ink-900">{type}</span>
+          </button>
         ))}
-      </ul>
-
-      <section aria-labelledby="recent-encounters-title">
-        <h2 id="recent-encounters-title" className="mb-3 text-lg font-semibold text-ink-900">
-          Recent Encounters
-        </h2>
-        <div className="overflow-hidden rounded-card border border-ink-200 shadow-card">
-          <ul className="flex flex-col divide-y divide-ink-200">
-            {data.recentEncounters.map((encounter) => (
-              <li key={encounter.id} className="flex flex-wrap items-center justify-between gap-2 bg-surface p-4">
-                <div>
-                  <p className="font-medium text-ink-900">{encounter.patientName}</p>
-                  <p className="text-sm text-ink-500">
-                    {encounter.hospitalName} &middot; {encounter.departmentName}
-                  </p>
+      </div>
+      {data && (
+        <div className="mt-8 p-6 border border-ink-200 rounded-card bg-surface">
+          <h3 className="text-lg font-semibold mb-4 capitalize">
+            {reportType.replace(/_/g, " ")} Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {data.summary.map((item, i) => (
+              <div key={i} className="p-4 bg-ink-50 rounded-card text-center">
+                <div className="text-sm text-ink-500">{item.label}</div>
+                <div className="text-2xl font-bold text-ink-900">
+                  {typeof item.value === "number" ? item.value.toLocaleString("en-IN") : item.value}
                 </div>
-                <span className="text-sm text-ink-500">{encounter.date}</span>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-ink-200">
+                  {data.table.columns.map((col) => (
+                    <th key={col} className="text-left p-2 font-medium text-ink-700">{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.table.rows.map((row, i) => (
+                  <tr key={i} className="border-b border-ink-100 last:border-0">
+                    {row.map((cell, j) => (
+                      <td key={j} className="p-2 text-ink-700">{cell}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </section>
+      )}
     </div>
   );
 }
