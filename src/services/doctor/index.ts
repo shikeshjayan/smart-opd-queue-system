@@ -7,6 +7,7 @@ import type {
 } from "@/types";
 import { auditService } from "@/services/security";
 import { getCurrentActor } from "@/features/security/utils/current-actor";
+import { integrationService } from "@/integrations/service";
 import {
   countQueueStatuses,
   createEncounterForToken,
@@ -109,6 +110,7 @@ export const doctorService = {
           result: "success",
         });
       }
+      integrationService.enqueueEvent("encounter.sync", id, "health-record");
     }
     return result;
   },

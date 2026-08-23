@@ -72,7 +72,11 @@ export type Permission =
   | "MANAGE_OWN_CONSENT"
   | "REQUEST_PATIENT_CONSENT"
   | "VIEW_CONSENT_REGISTRY"
-  | "ENABLE_MFA";
+  | "ENABLE_MFA"
+  | "VIEW_INTEGRATIONS"
+  | "MANAGE_INTEGRATIONS"
+  | "VIEW_INTEGRATION_LOGS"
+  | "RETRY_INTEGRATION";
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   patient: [
@@ -173,6 +177,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_DOCUMENT_METADATA",
     "MANAGE_DOCUMENTS",
     "VIEW_DOCUMENT_AUDIT",
+    "VIEW_INTEGRATIONS",
+    "MANAGE_INTEGRATIONS",
+    "VIEW_INTEGRATION_LOGS",
+    "RETRY_INTEGRATION",
   ],
   district_admin: [
     "VIEW_OWN_PROFILE",
@@ -198,6 +206,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "SCHEDULE_REPORTS",
     "VIEW_SYSTEM_HEALTH",
     "MANAGE_EMERGENCY_MODE",
+    "VIEW_INTEGRATIONS",
+    "MANAGE_INTEGRATIONS",
+    "VIEW_INTEGRATION_LOGS",
+    "RETRY_INTEGRATION",
   ],
 };
 

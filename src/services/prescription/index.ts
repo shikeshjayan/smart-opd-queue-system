@@ -2,6 +2,7 @@ import { getPatient } from "../data";
 import { medicineById } from "../medicine";
 import { auditService } from "@/services/security";
 import { getCurrentActor } from "@/features/security/utils/current-actor";
+import { integrationService } from "@/integrations/service";
 import {
   durationToDays,
 } from "./types";
@@ -406,6 +407,7 @@ export const prescriptionService = {
         result: "success",
       });
     }
+    integrationService.enqueueEvent("prescription.sync", prescriptionId, "health-record");
     return list[index];
   },
 
