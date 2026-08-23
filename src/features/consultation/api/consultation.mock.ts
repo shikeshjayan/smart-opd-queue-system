@@ -3,7 +3,6 @@ import type { ConsultationSections } from "@/services/consultation/types";
 import { prescriptionService } from "@/services/prescription";
 import type { PrescriptionDraftItem } from "@/services/prescription/types";
 import { doctorMockApi } from "@/features/doctor/api/doctor.mock";
-import { appointmentService } from "@/services/appointments";
 import type { Encounter } from "@/types";
 
 export const consultationMockApi = {
@@ -37,9 +36,6 @@ export const consultationMockApi = {
 
     const encounter = await consultationService.complete(encounterId);
     await doctorMockApi.completeConsultation(context.encounter.tokenNumber);
-    if (encounter) {
-      await appointmentService.markCompletedForToken(context.encounter.tokenNumber, encounter.id);
-    }
     const fresh = await consultationService.getContext(encounterId);
     return { encounter, context: fresh };
   },

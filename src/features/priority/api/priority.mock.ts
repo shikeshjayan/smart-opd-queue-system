@@ -1,5 +1,4 @@
-import { listOpdsByHospital, listQueue } from "@/services/data";
-import { queueService, orderWaiting } from "@/services/queue";
+import { listOpdsByHospital, listQueue, setPriority, setOverrideAhead } from "@/server/actions/queue";
 import { realtimeClient } from "@/features/realtime/client";
 import type { PriorityLevel } from "../types/priority.types";
 import type {
@@ -69,11 +68,18 @@ function persistOverrides() {
 export const priorityMockApi = {
   async getAssessmentList(hospitalId: string): Promise<AssessmentRow[]> {
     await delay();
+    const opds = await listOpdsByHospital(hospitalId) as any[];
     const rows: AssessmentRow[] = [];
-    for (const opd of listOpdsByHospital(hospitalId)) {
-      const queue = listQueue(opd.id);
-      const ordered = orderWaiting(queue.filter((q) => q.status === "waiting"));
-      ordered.forEach((entry, index) => {
+    for (const opd of opds) {
+      const queue = await listQueue(opd.id) as any[];
+      const ordered = queue
+        .filter((q: any) => q.status === "waiting")
+        .sort((a: any, b: any) => {
+          const rank = (p: string) => (p === "emergency" ? 0 : p === "priority" ? 1 : 2);
+          const ra = rank(a.priority ?? "normal"), rb = rank(b.priority ?? "normal");
+          return ra !== rb ? ra - rb : (a.tokenNumber ?? "").localeCompare(b.tokenNumber ?? "");
+        });
+      ordered.forEach((entry: any, index: number) => {
         const assessment = assessmentsStore.find(
           (a) => a.tokenNumber === entry.tokenNumber && a.opdId === opd.id
         );
@@ -103,7 +109,7 @@ export const priorityMockApi = {
     assessedBy: string;
   }): Promise<PriorityAssessment | undefined> {
     await delay();
-    const entry = await queueService.setPriority(input.tokenNumber, input.level);
+    const entry = await setPriority(input.tokenNumber, input.level);
     if (!entry) return undefined;
 
     const previous = assessmentsStore.find(
@@ -266,7 +272,7 @@ export const priorityMockApi = {
     request.reviewedAt = new Date().toISOString();
     persistOverrides();
 
-    await queueService.setOverrideAhead(request.tokenNumber, true);
+    await setOverrideAhead(request.tokenNumber, true);
 
     auditStore.unshift({
       id: nextId("aud_", auditStore.map((a) => a.id)),

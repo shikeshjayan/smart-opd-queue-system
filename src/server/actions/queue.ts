@@ -5,7 +5,29 @@ import { dbConnect } from "@/lib/db";
 import { QueueEntryModel, QueueAuditModel, OpdModel, HospitalModel, DepartmentModel, DoctorModel } from "@/lib/models";
 import { plain } from "@/lib/models";
 
-export async function listQueue(opdId: string): Promise<any[]> {
+const GRACE_PERIOD_MS = 5 * 60 * 1000;
+
+async function audit(opdId: string, tokenNumber: string, patientId: string, patientName: string, fromStatus: string, toStatus: string, actorId: string, metadata?: Record<string, unknown>) {
+  await QueueAuditModel.create({
+    opdId, tokenNumber, patientId, patientName,
+    fromStatus, toStatus, actorId,
+    timestamp: new Date(),
+    metadata,
+  });
+}
+
+function sortWaiting(entries: Array<{ tokenNumber: string; priority: string; overrideAhead?: boolean }>) {
+  const rank = (p: string) => (p === "emergency" ? 0 : p === "priority" ? 1 : 2);
+  return [...entries].sort((a, b) => {
+    if (a.overrideAhead && !b.overrideAhead) return -1;
+    if (!a.overrideAhead && b.overrideAhead) return 1;
+    const r = rank(a.priority) - rank(b.priority);
+    if (r !== 0) return r;
+    return (a.tokenNumber ?? "").localeCompare(b.tokenNumber ?? "");
+  });
+}
+
+export async function listQueue(opdId: string) {
   await dbConnect();
   const docs = await QueueEntryModel.find({ opdId }).sort({ tokenNumber: 1 }).lean();
   return (docs as any[]).map(d => plain(d));
@@ -20,14 +42,7 @@ export async function getOpdById(opdId: string) {
 export async function getQueueCounts(opdId: string) {
   await dbConnect();
   const entries = await QueueEntryModel.find({ opdId }).lean<{ status: string }[]>();
-  const counts = {
-    total: entries.length,
-    completed: 0,
-    waiting: 0,
-    skipped: 0,
-    inConsultation: 0,
-    cancelled: 0,
-  };
+  const counts = { total: entries.length, completed: 0, waiting: 0, skipped: 0, inConsultation: 0, cancelled: 0 };
   for (const e of entries) {
     if (e.status === "completed") counts.completed++;
     else if (e.status === "waiting") counts.waiting++;
@@ -38,92 +53,113 @@ export async function getQueueCounts(opdId: string) {
   return counts;
 }
 
-export async function orderWaitingEntries(entries: any[]): Promise<any[]> {
-  return [...entries].sort((a, b) => {
-    const priorityOrder = (p: string) => (p === "emergency" ? 0 : p === "priority" ? 1 : 2);
-    if (a.overrideAhead && !b.overrideAhead) return -1;
-    if (!a.overrideAhead && b.overrideAhead) return 1;
-    const pa = priorityOrder(a.priority);
-    const pb = priorityOrder(b.priority);
-    if (pa !== pb) return pa - pb;
-    return (a.tokenNumber ?? "").localeCompare(b.tokenNumber ?? "");
-  });
+export async function orderWaitingEntries(entries: any[]) {
+  return sortWaiting(entries);
 }
 
-export async function callNextEntry(opdId: string): Promise<any> {
+export async function callNextEntry(opdId: string, actorId = "system") {
   await dbConnect();
-  const waitingDocs = await QueueEntryModel.find({ opdId, status: "waiting" }).lean();
-  if (!waitingDocs.length) return undefined;
 
-  const sorted = (waitingDocs as any[]).sort((a: any, b: any) => {
-    const priorityOrder = (p: string) => (p === "emergency" ? 0 : p === "priority" ? 1 : 2);
-    if (a.overrideAhead && !b.overrideAhead) return -1;
-    if (!a.overrideAhead && b.overrideAhead) return 1;
-    const pa = priorityOrder(a.priority);
-    const pb = priorityOrder(b.priority);
-    if (pa !== pb) return pa - pb;
-    return (a.tokenNumber ?? "").localeCompare(b.tokenNumber ?? "");
-  });
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { opdId, status: "waiting" },
+    { $set: { status: "called", updatedAt: new Date().toISOString() } },
+    { new: true, sort: { priority: 1, tokenNumber: 1 } }
+  ).lean();
 
-  const nextToken = sorted[0].tokenNumber;
+  if (!entry) return null;
 
-  await QueueEntryModel.updateOne(
-    { opdId, tokenNumber: nextToken, status: "waiting" },
-    { $set: { status: "called", updatedAt: new Date().toISOString() } }
-  );
-
-  await QueueAuditModel.create({
-    opdId,
-    tokenNumber: nextToken,
-    patientId: sorted[0].patientId,
-    patientName: sorted[0].patientName,
-    fromStatus: "waiting",
-    toStatus: "called",
-    timestamp: new Date(),
-  });
-
-  const updated = await QueueEntryModel.findOne({ opdId, tokenNumber: nextToken }).lean();
-  return plain(updated);
+  await audit(opdId, (entry as any).tokenNumber, (entry as any).patientId ?? "", (entry as any).patientName ?? "", "waiting", "called", actorId);
+  return plain(entry);
 }
 
-export async function callTokenEntry(tokenNumber: string): Promise<any> {
+export async function startConsultationEntry(tokenNumber: string, opdId = "", actorId = "system") {
   await dbConnect();
-  await QueueEntryModel.updateOne(
-    { tokenNumber, status: "waiting" },
-    { $set: { status: "called", updatedAt: new Date().toISOString() } }
-  );
-  const doc = await QueueEntryModel.findOne({ tokenNumber }).lean();
-  return plain(doc);
+
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { tokenNumber, status: "called" },
+    { $set: { status: "in_consultation", updatedAt: new Date().toISOString() } },
+    { new: true }
+  ).lean();
+
+  if (!entry) throw new Error("Token not in 'called' state");
+  const e = entry as any;
+  await audit(e.opdId ?? opdId, tokenNumber, e.patientId ?? "", e.patientName ?? "", "called", "in_consultation", actorId);
+  return plain(entry);
 }
 
-export async function startConsultationEntry(tokenNumber: string): Promise<any> {
+export async function completeTokenEntry(tokenNumber: string, opdId = "", actorId = "system") {
   await dbConnect();
-  await QueueEntryModel.updateOne(
-    { tokenNumber, status: { $in: ["called", "waiting"] } },
-    { $set: { status: "in_consultation", updatedAt: new Date().toISOString() } }
-  );
-  const doc = await QueueEntryModel.findOne({ tokenNumber }).lean();
-  return plain(doc);
+
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { tokenNumber, status: "in_consultation" },
+    { $set: { status: "completed", updatedAt: new Date().toISOString() } },
+    { new: true }
+  ).lean();
+
+  if (!entry) throw new Error("Token not in 'in_consultation' state");
+  const e = entry as any;
+  await audit(e.opdId ?? opdId, tokenNumber, e.patientId ?? "", e.patientName ?? "", "in_consultation", "completed", actorId);
+  return plain(entry);
 }
 
-export async function completeTokenEntry(tokenNumber: string): Promise<any> {
+export async function skipTokenEntry(tokenNumber: string, opdId = "", actorId = "system", reason = "patient_unavailable") {
   await dbConnect();
-  await QueueEntryModel.updateOne(
-    { tokenNumber, status: { $in: ["in_consultation", "called"] } },
-    { $set: { status: "completed", updatedAt: new Date().toISOString() } }
-  );
-  const doc = await QueueEntryModel.findOne({ tokenNumber }).lean();
-  return plain(doc);
+
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { tokenNumber, status: { $in: ["waiting", "called"] } },
+    { $set: { status: "skipped", updatedAt: new Date().toISOString() } },
+    { new: true }
+  ).lean();
+
+  if (!entry) throw new Error("Token not in a skippable state");
+  const e = entry as any;
+  const from = e.status === "skipped" ? "waiting" : "called";
+  await audit(e.opdId ?? opdId, tokenNumber, e.patientId ?? "", e.patientName ?? "", from, "skipped", actorId, { reason });
+  return plain(entry);
 }
 
-export async function skipTokenEntry(tokenNumber: string): Promise<any> {
+export async function recallEntry(tokenNumber: string, opdId = "", actorId = "system") {
   await dbConnect();
-  await QueueEntryModel.updateOne(
-    { tokenNumber, status: { $in: ["called", "waiting"] } },
-    { $set: { status: "skipped", updatedAt: new Date().toISOString() } }
-  );
-  const doc = await QueueEntryModel.findOne({ tokenNumber }).lean();
-  return plain(doc);
+
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { tokenNumber, status: "skipped" },
+    { $set: { status: "called", updatedAt: new Date().toISOString() } },
+    { new: true }
+  ).lean();
+
+  if (!entry) throw new Error("Token not in 'skipped' state");
+  const e = entry as any;
+  await audit(e.opdId ?? opdId, tokenNumber, e.patientId ?? "", e.patientName ?? "", "skipped", "called", actorId);
+  return plain(entry);
+}
+
+export async function markNoShowEntry(tokenNumber: string, opdId = "", actorId = "system") {
+  await dbConnect();
+
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { tokenNumber, status: "called" },
+    { $set: { status: "no_show", updatedAt: new Date().toISOString() } },
+    { new: true }
+  ).lean();
+
+  if (!entry) throw new Error("Token not in 'called' state");
+  const e = entry as any;
+  await audit(e.opdId ?? opdId, tokenNumber, e.patientId ?? "", e.patientName ?? "", "called", "no_show", actorId);
+  return plain(entry);
+}
+
+export async function markNoShowExpired() {
+  await dbConnect();
+  const cutoff = new Date(Date.now() - GRACE_PERIOD_MS);
+  const expired = await QueueEntryModel.find({ status: "called", updatedAt: { $lt: cutoff.toISOString() } }).lean();
+  for (const entry of expired as any[]) {
+    await QueueEntryModel.findOneAndUpdate(
+      { _id: entry._id, status: "called" },
+      { $set: { status: "no_show", updatedAt: new Date().toISOString() } }
+    );
+    await audit(entry.opdId, entry.tokenNumber, entry.patientId ?? "", entry.patientName ?? "", "called", "no_show", "system", { reason: "grace_period_expired" });
+  }
+  return expired.length;
 }
 
 export async function getHospitalForOpd(opdId: string) {
@@ -157,4 +193,33 @@ export async function updateOpdStatus(opdId: string, status: string, reason?: st
   const update: Record<string, unknown> = { status, statusUpdatedAt: new Date().toISOString() };
   if (status === "paused") update.statusReason = reason;
   await OpdModel.updateOne({ _id: opdId }, { $set: update });
+}
+
+export async function setPriority(tokenNumber: string, priority: string, actorId = "system") {
+  await dbConnect();
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { tokenNumber },
+    { $set: { priority, overrideAhead: false, updatedAt: new Date().toISOString() } },
+    { new: true }
+  ).lean();
+  return plain(entry);
+}
+
+export async function setOverrideAhead(tokenNumber: string, overrideAhead: boolean, actorId = "system") {
+  await dbConnect();
+  const entry = await QueueEntryModel.findOneAndUpdate(
+    { tokenNumber },
+    { $set: { overrideAhead, updatedAt: new Date().toISOString() } },
+    { new: true }
+  ).lean();
+  return plain(entry);
+}
+
+export async function listOpdsByHospital(hospitalId: string) {
+  await dbConnect();
+  const deptDocs = await (DepartmentModel as any).find({ hospitalId }).lean();
+  const deptIds = (deptDocs as any[]).map((d: any) => d._id);
+  if (!deptIds.length) return [];
+  const docs = await (OpdModel as any).find({ departmentId: { $in: deptIds } }).lean();
+  return (docs as any[]).map((d: any) => plain(d));
 }
