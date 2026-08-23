@@ -65,8 +65,14 @@ export type Permission =
   | "VIEW_LAB_DOCUMENTS"
   | "UPLOAD_LAB_DOCUMENTS"
   | "VIEW_DOCUMENT_METADATA"
-  | "MANAGE_DOCUMENTS"
-  | "VIEW_DOCUMENT_AUDIT";
+  | "VIEW_DOCUMENT_AUDIT"
+  | "VIEW_SECURITY_EVENTS"
+  | "MANAGE_OWN_SESSIONS"
+  | "VIEW_OWN_CONSENT"
+  | "MANAGE_OWN_CONSENT"
+  | "REQUEST_PATIENT_CONSENT"
+  | "VIEW_CONSENT_REGISTRY"
+  | "ENABLE_MFA";
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   patient: [
@@ -79,6 +85,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_OWN_DOCUMENTS",
     "UPLOAD_OWN_DOCUMENT",
     "DOWNLOAD_OWN_DOCUMENT",
+    "MANAGE_OWN_SESSIONS",
+    "VIEW_OWN_CONSENT",
+    "MANAGE_OWN_CONSENT",
   ],
   doctor: [
     "VIEW_OWN_PROFILE",
@@ -100,6 +109,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "VIEW_PATIENT_DOCUMENTS",
     "UPLOAD_PATIENT_DOCUMENT",
     "DOWNLOAD_PATIENT_DOCUMENT",
+    "MANAGE_OWN_SESSIONS",
+    "REQUEST_PATIENT_CONSENT",
   ],
   clinical_staff: [
     "VIEW_OWN_PROFILE",
@@ -109,6 +120,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "ASSESS_PRIORITY",
     "REQUEST_OVERRIDE",
     "MANAGE_ASSISTANCE",
+    "MANAGE_OWN_SESSIONS",
   ],
   receptionist: [
     "VIEW_OWN_PROFILE",

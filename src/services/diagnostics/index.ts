@@ -1,5 +1,7 @@
 import type { Encounter } from "@/types";
 import { getPatient } from "../data";
+import { auditService } from "@/services/security";
+import { getCurrentActor } from "@/features/security/utils/current-actor";
 import type {
   CatalogParameter,
   DiagnosticCategory,
@@ -620,6 +622,20 @@ export const diagnosticsService = {
     results = list;
     save(RESULTS_KEY, results);
     refreshOrderStatus(list[index].orderId);
+    const actor = getCurrentActor();
+    if (actor) {
+      auditService.log({
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        action: "DIAGNOSTIC_RESULT_FINALIZED",
+        resourceType: "Diagnostic Result",
+        resourceId: resultId,
+        hospitalId: (orders ?? []).find((o) => o.id === list[index].orderId)?.hospitalId,
+        districtId: actor.scope.districtId,
+        result: "success",
+      });
+    }
     return list[index];
   },
 

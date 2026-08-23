@@ -14,6 +14,7 @@ const navItems = [
   { href: "/patient/queue", label: "Queue" },
   { href: "/patient/notifications", label: "Notifications" },
   { href: "/patient/profile", label: "Profile" },
+  { href: "/patient/privacy", label: "Privacy" },
 ];
 
 export function PatientHeader() {

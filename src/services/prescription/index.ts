@@ -1,5 +1,7 @@
 import { getPatient } from "../data";
 import { medicineById } from "../medicine";
+import { auditService } from "@/services/security";
+import { getCurrentActor } from "@/features/security/utils/current-actor";
 import {
   durationToDays,
 } from "./types";
@@ -390,6 +392,20 @@ export const prescriptionService = {
     prescriptions = list;
     save(PRESCRIPTIONS_KEY, prescriptions);
     syncRegimen(list[index]);
+    const actor = getCurrentActor();
+    if (actor) {
+      auditService.log({
+        actorId: actor.id,
+        actorName: actor.name,
+        actorRole: actor.role,
+        action: "PRESCRIPTION_FINALIZED",
+        resourceType: "Prescription",
+        resourceId: prescriptionId,
+        hospitalId: actor.scope.hospitalId,
+        districtId: actor.scope.districtId,
+        result: "success",
+      });
+    }
     return list[index];
   },
 
