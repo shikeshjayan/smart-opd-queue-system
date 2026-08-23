@@ -113,6 +113,7 @@ export type MedicalDocument = {
 export type EncounterDetail = {
   encounter: PatientEncounter;
   chiefComplaint: string;
+  clinicalNotes: ClinicalNotes;
   summary: string;
   plan: string;
   diagnosis: {
@@ -123,6 +124,15 @@ export type EncounterDetail = {
   prescriptions: Prescription[];
   labs: LabReport[];
   followUp: string | null;
+};
+
+export type ClinicalNotes = {
+  chiefComplaint: string;
+  history: string;
+  examination: string;
+  assessment: string;
+  plan: string;
+  followUp?: string;
 };
 
 export type MedicalSummary = {

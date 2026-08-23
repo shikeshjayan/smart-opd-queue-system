@@ -993,6 +993,7 @@ export const mockGovernmentAlerts: GovernmentAlert[] = [
 export const mockPatients: Record<string, PatientSummary> = {
   P10294: {
     id: "P10294",
+    patientNumber: "KL-ERN-10294",
     name: "Rahul K",
     age: 45,
     gender: "male",
@@ -1007,6 +1008,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10301: {
     id: "P10301",
+    patientNumber: "KL-ERN-10301",
     name: "Meera S",
     age: 34,
     gender: "female",
@@ -1016,6 +1018,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10302: {
     id: "P10302",
+    patientNumber: "KL-ERN-10302",
     name: "Arun T",
     age: 58,
     gender: "male",
@@ -1026,6 +1029,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10303: {
     id: "P10303",
+    patientNumber: "KL-ERN-10303",
     name: "Fathima K",
     age: 29,
     gender: "female",
@@ -1035,6 +1039,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10304: {
     id: "P10304",
+    patientNumber: "KL-ERN-10304",
     name: "John P",
     age: 62,
     gender: "male",
@@ -1044,6 +1049,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10305: {
     id: "P10305",
+    patientNumber: "KL-ERN-10305",
     name: "Lakshmi N",
     age: 41,
     gender: "female",
@@ -1053,6 +1059,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10306: {
     id: "P10306",
+    patientNumber: "KL-ERN-10306",
     name: "Suresh V",
     age: 50,
     gender: "male",
@@ -1062,6 +1069,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10307: {
     id: "P10307",
+    patientNumber: "KL-ERN-10307",
     name: "Anitha R",
     age: 36,
     gender: "female",
@@ -1071,6 +1079,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10421: {
     id: "P10421",
+    patientNumber: "KL-ALV-10421",
     name: "Anu M",
     age: 27,
     gender: "female",
@@ -1081,6 +1090,7 @@ export const mockPatients: Record<string, PatientSummary> = {
   },
   P10892: {
     id: "P10892",
+    patientNumber: "KL-ALV-10892",
     name: "Suresh P",
     age: 55,
     gender: "male",

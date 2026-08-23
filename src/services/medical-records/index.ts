@@ -1,5 +1,6 @@
 import type {
   Allergy,
+  ClinicalNotes,
   Condition,
   DoctorPatientView,
   EncounterDetail,
@@ -16,7 +17,7 @@ import type {
   Prescription,
   VisitType,
 } from "@/features/medical-records/types/medical-record.types";
-import { getPatient } from "../data";
+import { getPatient, mockPatients } from "../data";
 
 const delay = () => new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -414,6 +415,63 @@ const followUpSeeds: Record<string, string> = {
   MR20250721001: "Annual review.",
 };
 
+const clinicalNotesSeeds: Record<string, ClinicalNotes> = {
+  MR20260816001: {
+    chiefComplaint: "Chest discomfort since morning",
+    history: "45-year-old male with known hypertension and diabetes presents with chest discomfort on exertion for 3 days. Pain is substernal, pressure-like, radiating to left arm, lasting 5-10 minutes, relieved by rest. No similar pain at rest. No shortness of breath, syncope, or palpitations.",
+    examination: "BP 138/86 mmHg, pulse 78/min regular, RR 16/min. Heart sounds normal, no murmurs. Lungs clear. No pedal oedema.",
+    assessment: "Suspected stable angina pectoris. Known hypertension and diabetes mellitus.",
+    plan: "Start antiplatelet and statin therapy. Repeat lipid profile. Cardiology follow-up after 2 weeks.",
+    followUp: "Review after 2 weeks.",
+  },
+  MR20260810001: {
+    chiefComplaint: "Fever and headache for 2 days",
+    history: "45-year-old male with fever (100.5°F) and frontal headache for 2 days. Associated with body aches. No cough, no GI symptoms. No contact with sick individuals.",
+    examination: "Temperature 99.5°F, throat congested, bilateral tonsils grade I enlarged. Chest clear. Abdomen soft. Examination otherwise unremarkable.",
+    assessment: "Viral fever. Acute upper respiratory infection.",
+    plan: "Paracetamol as needed, rest, fluids. Review if fever persists beyond 3 days.",
+  },
+  MR20260602001: {
+    chiefComplaint: "Recurrent chest tightness on exertion",
+    history: "Patient reports recurrent chest tightness during physical activity for 2 weeks. Pain relieved by rest. No similar episodes at rest. Previous history of hypertension.",
+    examination: "BP 142/90 mmHg, pulse 82/min regular. Heart and lung examination unremarkable.",
+    assessment: "Angina pectoris (suspected). Hypertension.",
+    plan: "Ordered lipid profile. Referred to Cardiology, GH Ernakulam for further evaluation.",
+    followUp: "Cardiology review at GH Ernakulam after referral.",
+  },
+  MR20260418001: {
+    chiefComplaint: "Blood sugar review",
+    history: "Known diabetic for 5 years on Metformin. Routine follow-up for blood sugar monitoring.",
+    examination: "BP 132/84 mmHg, pulse 76/min. General examination unremarkable.",
+    assessment: "Type 2 diabetes mellitus — partially controlled.",
+    plan: "Continue Metformin. Dietary review with nutrition counselling.",
+    followUp: "Retest blood sugar after 2 weeks.",
+  },
+  MR20260112001: {
+    chiefComplaint: "Routine review",
+    history: "Known hypertensive on Amlodipine. Asymptomatic. Adherent to current regimen.",
+    examination: "BP 135/85 mmHg, pulse 74/min regular. Examination within normal limits.",
+    assessment: "Hypertension — controlled on current medication.",
+    plan: "Continue current medications. Review blood pressure and lipid profile in 6 months.",
+    followUp: "Review in 6 months.",
+  },
+  MR20251204001: {
+    chiefComplaint: "Seasonal cough and cold",
+    history: "Productive cough with nasal congestion for 4 days. Mild fever on first day. No breathing difficulty.",
+    examination: "Temperature normal on examination. Throat mildly congested. Chest clear.",
+    assessment: "Acute upper respiratory infection.",
+    plan: "Antihistamine and cough syrup as prescribed. Increase fluid intake.",
+  },
+  MR20250721001: {
+    chiefComplaint: "Routine check-up",
+    history: "Known hypertensive. Asymptomatic. Regular follow-up.",
+    examination: "BP 128/82 mmHg, pulse 72/min. Routine parameters within limits.",
+    assessment: "Hypertension — well controlled.",
+    plan: "Continue current regimen. Annual cardiac review.",
+    followUp: "Annual review.",
+  },
+};
+
 function sortDesc(a: PatientEncounter, b: PatientEncounter): number {
   return b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt);
 }
@@ -493,9 +551,17 @@ export const medicalRecordsService = {
     const encounter = encounters.find((e) => e.id === encounterId && e.patientId === patientId);
     if (!encounter) return null;
     const diagnosis = diagnosisSeeds[encounterId];
+    const clinicalNotes = clinicalNotesSeeds[encounterId] ?? {
+      chiefComplaint: encounter.reason,
+      history: "",
+      examination: "",
+      assessment: "",
+      plan: planSeeds[encounterId] ?? "",
+    };
     return {
       encounter,
       chiefComplaint: encounter.reason,
+      clinicalNotes,
       summary: summarySeeds[encounterId] ?? "",
       plan: planSeeds[encounterId] ?? "",
       diagnosis: diagnosis ? { ...diagnosis } : null,
@@ -572,5 +638,35 @@ export const medicalRecordsService = {
       encounters: encountersFor(patientId),
       facets: buildFacets(patientId),
     };
+  },
+
+  async searchPatients(query: string, hospitalId?: string): Promise<PatientEncounter[]> {
+    await delay();
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const results = Object.values(mockPatients).filter((p) => {
+      const matchesQuery =
+        p.id.toLowerCase().includes(q) ||
+        (p.patientNumber && p.patientNumber.toLowerCase().includes(q)) ||
+        p.name.toLowerCase().includes(q) ||
+        p.phone.replace(/\D/g, "").includes(q.replace(/\D/g, ""));
+      if (hospitalId) return matchesQuery && p.registeredHospitalId === hospitalId;
+      return matchesQuery;
+    });
+    return results.map((p) => ({
+      id: p.id,
+      patientId: p.id,
+      hospitalId: p.registeredHospitalId,
+      hospitalName: "",
+      departmentId: "",
+      departmentName: "",
+      doctorId: "",
+      doctorName: "",
+      date: "",
+      reason: "",
+      visitType: "consultation" as const,
+      status: "completed" as const,
+      createdAt: "",
+    }));
   },
 };
