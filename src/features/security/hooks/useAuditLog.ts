@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { AuditEvent } from "@/types/security.types";
-import { auditMockApi, type AuditFilters } from "../api/audit.mock";
+import { auditMockApi, recordAudit as recordAuditMock, type AuditFilters } from "../api/audit.mock";
 
 export function useAuditLog() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
@@ -25,5 +25,5 @@ export function useAuditLog() {
 }
 
 export function recordAudit(entry: Omit<AuditEvent, "id" | "timestamp">) {
-  return auditMockApi.log(entry);
+  return recordAuditMock(entry);
 }

@@ -15,7 +15,7 @@ import type { HistoryFilters as HistoryFiltersType } from "@/features/medical-re
 import { usePatientTests } from "@/features/diagnostics/hooks/useDiagnosticResults";
 import { DiagnosticTimeline } from "@/features/diagnostics/components/DiagnosticTimeline";
 import type { DiagnosticCategory } from "@/services/diagnostics/types";
-import { DEMO_PATIENT_ID } from "@/config/app";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { RecentDocuments } from "@/features/medical-documents/components/RecentDocuments";
 
 const PAGE_SIZE = 5;
@@ -30,14 +30,16 @@ const tabStyles = (active: boolean) =>
   }`;
 
 export default function PatientHistoryPage() {
-  const { data, isLoading, error, reload } = usePatientHistory();
+  const { user } = useAuth();
+  const patientId = user?.id ?? "";
+  const { data, isLoading, error, reload } = usePatientHistory(patientId);
   const [activeTab, setActiveTab] = useState<HistoryTab>("overview");
   const [filters, setFilters] = useState<HistoryFiltersType>({ keyword: "" });
   const [page, setPage] = useState(1);
   const [testCategory, setTestCategory] = useState<"all" | DiagnosticCategory>("all");
 
-  const visits = useEncounters(filters, page, PAGE_SIZE);
-  const tests = usePatientTests(DEMO_PATIENT_ID);
+  const visits = useEncounters(filters, page, PAGE_SIZE, patientId);
+  const tests = usePatientTests(patientId);
 
   if (isLoading) {
     return (
@@ -145,7 +147,7 @@ export default function PatientHistoryPage() {
             </h2>
             <div className="mt-3">
               <RecentDocuments
-                patientId={DEMO_PATIENT_ID}
+                patientId={patientId}
                 viewAllHref="/patient/documents"
               />
             </div>

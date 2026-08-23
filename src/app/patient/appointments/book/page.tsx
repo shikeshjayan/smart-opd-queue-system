@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { formatDate } from "@/features/medical-records/utils/format";
 import { formatSlotTime } from "@/features/appointments/utils/appointments-validation";
 import type { Appointment } from "@/services/appointments/types";
-import { DEMO_PATIENT_ID } from "@/config/app";
 
 export default function BookAppointmentPage() {
   const { user } = useAuth();
-  const patientId = user?.id ?? DEMO_PATIENT_ID;
+  const patientId = user?.id ?? "";
   const [booked, setBooked] = useState<Appointment | null>(null);
 
   if (booked) {

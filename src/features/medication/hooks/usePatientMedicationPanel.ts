@@ -1,11 +1,14 @@
 import { useAsync } from "@/lib/use-async";
-import { DEMO_PATIENT_ID } from "@/config/app";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { medicationsMockApi } from "../api/medication.mock";
 import { medicalRecordsMockApi } from "@/features/medical-records/api/medical-records.mock";
 
 export function usePatientMedicationPanel() {
-  const medications = useAsync(() => medicationsMockApi.listForPatient(DEMO_PATIENT_ID), []);
-  const history = useAsync(() => medicalRecordsMockApi.getHistory(DEMO_PATIENT_ID), []);
+  const { user } = useAuth();
+  const patientId = user?.id ?? "";
+
+  const medications = useAsync(() => medicationsMockApi.listForPatient(patientId), [patientId]);
+  const history = useAsync(() => medicalRecordsMockApi.getHistory(patientId), [patientId]);
 
   return {
     medications,

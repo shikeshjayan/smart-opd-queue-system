@@ -10,7 +10,6 @@ import { NotificationList } from "@/features/notifications/components/Notificati
 import { NotificationPreferences } from "@/features/notifications/components/NotificationPreferences";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import type { NotificationType } from "@/features/notifications/types/notification.types";
-import { DEMO_PATIENT_ID } from "@/config/app";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 
 const CATEGORY_OPTIONS: Array<{ value: NotificationType | "all"; label: string }> = [
@@ -24,7 +23,7 @@ const CATEGORY_OPTIONS: Array<{ value: NotificationType | "all"; label: string }
 function NotificationsContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const patientId = user?.id ?? DEMO_PATIENT_ID;
+  const patientId = user?.id ?? "";
 
   const { notifications, isLoading, error, reload, unreadCount, markRead, markAllRead, preferences, savePreferences, preferencesLoading } =
     useNotifications(patientId, null);

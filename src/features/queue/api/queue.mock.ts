@@ -1,6 +1,17 @@
-import { opdService } from "@/services/opd";
-import { queueService, orderWaiting } from "@/services/queue";
-import { getDepartment, getDoctor, getHospital, getOpdHospitalId } from "@/services/data";
+import {
+  listQueue,
+  getOpdById,
+  getQueueCounts,
+  orderWaitingEntries,
+  callNextEntry,
+  callTokenEntry,
+  startConsultationEntry,
+  completeTokenEntry,
+  skipTokenEntry,
+  getHospitalForOpd,
+  getDepartmentForOpd,
+  getDoctorForOpd,
+} from "@/server/actions/queue";
 import type { QueueEntry } from "@/types";
 import { realtimeClient } from "@/features/realtime/client";
 import type {
@@ -18,13 +29,13 @@ function emit(event: Omit<TokenCalledEvent, "type" | "at">) {
 
 export const queueMockApi = {
   async getSnapshot(opdId: string, tokenId: string): Promise<QueueSnapshot> {
-    const [opd, token, entries] = await Promise.all([
-      opdService.getById(opdId),
-      queueService.getStatus(tokenId),
-      queueService.list(opdId),
+    const [opd, entries, counts] = await Promise.all([
+      getOpdById(opdId),
+      listQueue(opdId),
+      getQueueCounts(opdId),
     ]);
 
-    if (!opd || !token) {
+    if (!opd) {
       throw new Error("Queue information not found");
     }
 
@@ -33,30 +44,25 @@ export const queueMockApi = {
       entries.find((e) => e.status === "called")?.tokenNumber ??
       opd.currentlyServing;
 
-    const startIndex = nowServing
-      ? Math.max(0, entries.findIndex((e) => e.tokenNumber === nowServing))
-      : 0;
-    const visibleEntries = entries.slice(startIndex);
+    const orderedWaiting = await orderWaitingEntries(entries.filter((e) => e.status === "waiting"));
+    const myIndex = orderedWaiting.findIndex((e) => e.tokenNumber === tokenId);
+    const patientsAhead = myIndex >= 0 ? myIndex : 0;
 
-    const orderedWaiting = orderWaiting(entries.filter((e) => e.status === "waiting"));
-    const myIndex = orderedWaiting.findIndex((e) => e.tokenNumber === token.tokenNumber);
-    const patientsAhead = myIndex >= 0 ? myIndex : token.patientsAhead;
-
-    const department = opd.departmentId ? getDepartment(opd.departmentId) : undefined;
-    const doctor = getDoctor();
+    const department = opd.departmentId ? await getDepartmentForOpd(opdId) : null;
+    const doctor = await getDoctorForOpd(opdId);
 
     return {
-      tokenNumber: token.tokenNumber,
+      tokenNumber: tokenId,
       opdName: opd.name,
       departmentName: department?.name ?? null,
-      doctorName: doctor.opdId === opdId ? doctor.name : null,
-      room: opdId === "opd_001" ? "Room 04" : null,
+      doctorName: doctor?.name ?? null,
+      room: doctor ? `Room ${String(doctor.id).slice(-2)}` : null,
       nowServing,
       patientsAhead,
       estimatedWaitMinutes:
-        token.status === "waiting" ? estimateWaitMinutes(patientsAhead) : null,
-      status: token.status,
-      entries: visibleEntries,
+        counts.waiting > 0 ? estimateWaitMinutes(patientsAhead) : null,
+      status: entries.find((e) => e.tokenNumber === tokenId)?.status ?? "waiting",
+      entries: entries.filter((e) => e.tokenNumber >= (nowServing ?? "")),
       fetchedAt: new Date().toISOString(),
       opdStatus: opd.status,
       statusReason: opd.statusReason,
@@ -66,9 +72,9 @@ export const queueMockApi = {
 
   async getDoctorQueue(opdId: string): Promise<DoctorQueueSnapshot> {
     const [opd, entries, counts] = await Promise.all([
-      opdService.getById(opdId),
-      queueService.list(opdId),
-      queueService.counts(opdId),
+      getOpdById(opdId),
+      listQueue(opdId),
+      getQueueCounts(opdId),
     ]);
 
     if (!opd) {
@@ -79,11 +85,11 @@ export const queueMockApi = {
       entries.find((e) => e.status === "in_consultation") ??
       entries.find((e) => e.status === "called") ??
       null;
-    const waiting = orderWaiting(entries.filter((e) => e.status === "waiting"));
+    const waiting = await orderWaitingEntries(entries.filter((e) => e.status === "waiting"));
     const next = waiting[0] ?? null;
 
     return {
-      opdId: opd.id,
+      opdId: opd.id ?? opdId,
       opdName: opd.name,
       current,
       next,
@@ -101,19 +107,18 @@ export const queueMockApi = {
   },
 
   async getDisplaySnapshot(opdId: string): Promise<DisplaySnapshot> {
-    const [opd, entries, doctor] = await Promise.all([
-      opdService.getById(opdId),
-      queueService.list(opdId),
-      Promise.resolve(getDoctor()),
+    const [opd, entries] = await Promise.all([
+      getOpdById(opdId),
+      listQueue(opdId),
     ]);
 
     if (!opd) {
       throw new Error("OPD not found");
     }
 
-    const hospitalId = getOpdHospitalId(opdId);
-    const hospital = hospitalId ? getHospital(hospitalId) : undefined;
-    const department = opd.departmentId ? getDepartment(opd.departmentId) : undefined;
+    const hospital = await getHospitalForOpd(opdId);
+    const department = await getDepartmentForOpd(opdId);
+    const doctor = await getDoctorForOpd(opdId);
     const waiting = entries.filter((e) => e.status === "waiting");
     const nowServing =
       entries.find((e) => e.status === "in_consultation")?.tokenNumber ??
@@ -124,8 +129,8 @@ export const queueMockApi = {
       hospitalName: hospital?.name ?? "Government Hospital",
       departmentName: department?.name ?? null,
       opdName: opd.name,
-      doctorName: doctor.opdId === opdId ? doctor.name : null,
-      room: opdId === "opd_001" ? "Room 04" : null,
+      doctorName: doctor?.name ?? null,
+      room: doctor ? `Room ${String(doctor.id).slice(-2)}` : null,
       nowServing,
       nextTokens: waiting.slice(0, 5).map((e) => e.tokenNumber),
       waitingCount: waiting.length,
@@ -136,7 +141,7 @@ export const queueMockApi = {
   },
 
   async callNext(opdId: string): Promise<QueueEntry | undefined> {
-    const entry = await queueService.callNext(opdId);
+    const entry = await callNextEntry(opdId);
     if (entry) {
       emit({ opdId, tokenNumber: entry.tokenNumber, message: `Token ${entry.tokenNumber} has been called` });
     }
@@ -144,7 +149,7 @@ export const queueMockApi = {
   },
 
   async callToken(tokenNumber: string): Promise<QueueEntry | undefined> {
-    const entry = await queueService.callToken(tokenNumber);
+    const entry = await callTokenEntry(tokenNumber);
     if (entry) {
       emit({ opdId: "opd_001", tokenNumber, message: `Token ${tokenNumber} has been called` });
     }
@@ -152,7 +157,7 @@ export const queueMockApi = {
   },
 
   async startConsultation(tokenNumber: string): Promise<QueueEntry | undefined> {
-    const entry = await queueService.startConsultation(tokenNumber);
+    const entry = await startConsultationEntry(tokenNumber);
     if (entry) {
       const event: Omit<TokenStartedEvent, "at"> = {
         type: "TOKEN_STARTED",
@@ -165,7 +170,7 @@ export const queueMockApi = {
   },
 
   async completeToken(tokenNumber: string): Promise<QueueEntry | undefined> {
-    const entry = await queueService.complete(tokenNumber);
+    const entry = await completeTokenEntry(tokenNumber);
     if (entry) {
       const event: Omit<TokenCompletedEvent, "at"> = {
         type: "TOKEN_COMPLETED",
@@ -178,7 +183,7 @@ export const queueMockApi = {
   },
 
   async skip(tokenNumber: string): Promise<QueueEntry | undefined> {
-    const entry = await queueService.skip(tokenNumber);
+    const entry = await skipTokenEntry(tokenNumber);
     if (entry) {
       const event: Omit<TokenSkippedEvent, "at"> = {
         type: "TOKEN_SKIPPED",

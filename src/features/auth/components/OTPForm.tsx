@@ -40,7 +40,7 @@ export function OTPForm({ description, onVerify, onResend, busy }: OTPFormProps)
       return;
     }
     const ok = await onVerify(code);
-    if (!ok) setError("Invalid or expired code. Use 123456 in this demo.");
+    if (!ok) setError("Invalid or expired code. Please try again.");
   }
 
   return (
@@ -82,7 +82,6 @@ export function OTPForm({ description, onVerify, onResend, busy }: OTPFormProps)
           Resend code
         </button>
       )}
-      <p className="mt-3 text-center text-xs text-ink-400">Demo code: 123456</p>
     </div>
   );
 }

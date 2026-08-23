@@ -85,37 +85,3 @@ export function CapacityOverview() {
     </div>
   );
 }
-                  <EmptyState title="No capacity data" description="Capacity data is unavailable right now." />
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.map((row) => (
-                <TableRow key={row.districtId}>
-                  <TableCell className="font-medium text-ink-900">{row.districtName}</TableCell>
-                  <TableCell className="text-right">{row.opdCapacity.toLocaleString("en-IN")}</TableCell>
-                  <TableCell className="text-right">{row.todaysLoad.toLocaleString("en-IN")}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-100">
-                        <div
-                          className={`h-full rounded-full ${barColor[row.status]}`}
-                          style={{ width: `${Math.min(row.utilizationPercent, 100)}%` }}
-                        />
-                      </div>
-                      <span className="w-10 text-right text-xs font-medium text-ink-700">
-                        {row.utilizationPercent}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant={statusVariant[row.status]}>{statusLabel[row.status]}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
-}

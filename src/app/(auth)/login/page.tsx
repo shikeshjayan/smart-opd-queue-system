@@ -6,7 +6,6 @@ import { AuthLoading } from "@/features/auth/components/AuthLoading";
 import { LoginChooser } from "@/features/auth/components/LoginChooser";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { roleHome } from "@/features/auth/roles";
-import { env } from "@/lib/env";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +27,7 @@ export default function LoginPage() {
         <h1 className="text-xl font-semibold text-ink-900">Welcome</h1>
         <p className="mt-1 text-sm text-ink-500">How would you like to continue?</p>
       </div>
-      {env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "true" ? <LoginChooser /> : null}
+      <LoginChooser />
     </div>
   );
 }

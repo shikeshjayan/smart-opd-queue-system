@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { use } from "react";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { EncounterDetailView } from "@/features/medical-records/components/EncounterDetailView";
 import { RecordAccessNotice } from "@/features/medical-records/components/RecordAccessNotice";
 import { useEncounterDetail } from "@/features/medical-records/hooks/useMedicalRecords";
@@ -13,8 +14,9 @@ export default function PatientEncounterDetailPage({
 }: {
   params: Promise<{ encounterId: string }>;
 }) {
+  const { user } = useAuth();
   const { encounterId } = use(params);
-  const { data, isLoading, error, reload } = useEncounterDetail(encounterId);
+  const { data, isLoading, error, reload } = useEncounterDetail(encounterId, user?.id ?? "");
 
   if (isLoading) {
     return (

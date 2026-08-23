@@ -1,4 +1,6 @@
-import { DEFAULT_HOSPITAL_ID, DEMO_PATIENT_ID, DISTRICT_ADMIN_DISTRICT_ID } from "@/config/app";
+import { DEFAULT_HOSPITAL_ID, DISTRICT_ADMIN_DISTRICT_ID } from "@/config/app";
+
+const DEMO_PATIENT_ID = "P10294";
 import type {
   AdminNotification,
   AdminProfile,

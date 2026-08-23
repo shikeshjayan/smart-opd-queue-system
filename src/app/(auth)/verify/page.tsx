@@ -19,10 +19,10 @@ export default function VerifyPage() {
 
   async function handleVerify(otp: string) {
     if (!phone) return false;
-    const session = await authMockApi.verifyPatientOtp(phone, otp);
-    if (!session) return false;
-    authorize(session.user);
-    router.push(destinationFor(session.user.role, next));
+    const sessionUser = await authMockApi.verifyPatientOtp(phone, otp);
+    if (!sessionUser) return false;
+    authorize(sessionUser);
+    router.push(destinationFor(sessionUser.role, next));
     return true;
   }
 

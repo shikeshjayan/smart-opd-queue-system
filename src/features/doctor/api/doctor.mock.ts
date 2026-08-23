@@ -1,19 +1,39 @@
-import { doctorService } from "@/services/doctor";
-import { queueService } from "@/services/queue";
+import {
+  getDoctorProfile,
+  getOrCreateEncounterForToken,
+  listDoctorEncounters,
+  updateEncounterStatus,
+  getEncounterById,
+  getConsultationContextForEncounter,
+  getCurrentSessionAction,
+} from "@/server/actions/doctor";
+import { getPatient, listEncounters } from "@/server/actions/patients";
+import { getOpdById, getQueueCounts, listQueue, completeTokenEntry } from "@/server/actions/queue";
+import { getDepartment, getHospital } from "@/server/actions/hospitals";
 import type { Encounter } from "@/types";
 import type { ConsultationContext, DoctorDashboard } from "../types/doctor.types";
 
 export const doctorMockApi = {
   async getProfile() {
-    return doctorService.getProfile();
+    const profile = await getDoctorProfile();
+    if (!profile) throw new Error("Doctor profile not found");
+    return profile;
   },
 
   async getDashboard(): Promise<DoctorDashboard> {
-    const [profile, summary] = await Promise.all([
-      doctorService.getProfile(),
-      doctorService.getOpdSummary(),
+    const profile = await getDoctorProfile();
+    if (!profile) throw new Error("Doctor profile not found");
+
+    const [opd, counts, queue] = await Promise.all([
+      getOpdById(profile.opdId),
+      getQueueCounts(profile.opdId),
+      listQueue(profile.opdId),
     ]);
-    const queue = await queueService.list(profile.opdId);
+
+    if (!opd) throw new Error("Today's OPD not found");
+
+    const department = await getDepartment(opd.departmentId);
+    const hospital = await getHospital(department?.hospitalId ?? "");
 
     const currentEntry =
       queue.find((q) => q.status === "in_consultation") ??
@@ -21,10 +41,10 @@ export const doctorMockApi = {
       null;
 
     let current: DoctorDashboard["current"] = null;
-    if (currentEntry && currentEntry.patientId) {
+    if (currentEntry?.patientId) {
       const [patient, encounters] = await Promise.all([
-        doctorService.getPatient(currentEntry.patientId),
-        doctorService.listPatientEncounters(currentEntry.patientId),
+        getPatient(currentEntry.patientId),
+        listEncounters(currentEntry.patientId),
       ]);
       const activeEncounter =
         encounters.find((e) => e.tokenNumber === currentEntry.tokenNumber) ?? encounters[0];
@@ -37,54 +57,74 @@ export const doctorMockApi = {
 
     return {
       doctor: profile,
-      opd: summary.opd,
-      counts: summary.counts,
+      opd,
+      counts,
       current,
       waitingPreview: queue.filter((q) => q.status === "waiting").slice(0, 5),
     };
   },
 
   async getOpdSummary() {
-    return doctorService.getOpdSummary();
+    const profile = await getDoctorProfile();
+    if (!profile) throw new Error("Doctor profile not found");
+    const [opd, counts] = await Promise.all([
+      getOpdById(profile.opdId),
+      getQueueCounts(profile.opdId),
+    ]);
+    const department = opd ? await getDepartment(opd.departmentId) : null;
+    const hospital = department ? await getHospital(department.hospitalId) : null;
+    return {
+      opd: opd!,
+      counts,
+      doctorName: profile.name,
+      hospitalName: hospital?.name ?? "",
+      departmentName: department?.name ?? "",
+    };
   },
 
   async getPatient(patientId: string) {
-    const patient = await doctorService.getPatient(patientId);
-    const encounters = await doctorService.listPatientEncounters(patientId);
+    const patient = await getPatient(patientId);
+    const encounters = await listEncounters(patientId);
     return { patient, encounters };
   },
 
   async getEncounter(id: string): Promise<Encounter | undefined> {
-    return doctorService.getEncounter(id);
+    const encounter = await getEncounterById(id);
+    return encounter ?? undefined;
   },
 
   async getOrCreateEncounter(tokenNumber: string): Promise<Encounter | undefined> {
-    return doctorService.getOrCreateEncounter(tokenNumber);
+    const session = await getCurrentSessionAction();
+    if (!session) return undefined;
+    const encounter = await getOrCreateEncounterForToken(tokenNumber, session.id);
+    return encounter ?? undefined;
   },
 
   async getConsultationContext(encounterId: string): Promise<ConsultationContext | null> {
-    const [encounter, doctor] = await Promise.all([
-      doctorService.getEncounter(encounterId),
-      doctorService.getProfile(),
-    ]);
-    if (!encounter) return null;
-    const patient = await doctorService.getPatient(encounter.patientId);
-    return { encounter, patient: patient ?? null, doctor };
+    const result = await getConsultationContextForEncounter(encounterId);
+    if (!result) return null;
+    return {
+      encounter: result.encounter,
+      patient: result.patient as ConsultationContext["patient"],
+      doctor: result.doctor,
+    };
   },
 
   async saveDraft(encounterId: string, patch: Partial<Encounter>) {
-    return doctorService.saveEncounter(encounterId, patch);
+    await updateEncounterStatus(encounterId, { ...patch, status: "in_progress" });
+    return getEncounterById(encounterId);
   },
 
   async completeEncounter(encounterId: string, patch: Partial<Encounter>) {
-    return doctorService.completeEncounter(encounterId, patch);
+    await updateEncounterStatus(encounterId, { ...patch, status: "completed", completedAt: new Date().toISOString() });
+    return getEncounterById(encounterId);
   },
 
   async completeConsultation(tokenNumber: string) {
-    return queueService.complete(tokenNumber);
+    return completeTokenEntry(tokenNumber);
   },
 
   async getHistory() {
-    return doctorService.listRecentEncounters();
+    return listDoctorEncounters("doc_001", 50);
   },
 };

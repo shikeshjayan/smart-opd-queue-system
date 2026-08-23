@@ -639,6 +639,9 @@ export const diagnosticsService = {
     }
     integrationService.enqueueEvent("lab.result.sync", resultId, "laboratory");
     return list[index];
+  },
+
+  async amendResult(orderId: string, testId: string): Promise<DiagnosticResult | undefined> {
     await delay();
     ensureLoaded();
     const current = (results ?? []).find(

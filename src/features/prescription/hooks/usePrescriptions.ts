@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAsync } from "@/lib/use-async";
-import { DEMO_PATIENT_ID } from "@/config/app";
 import { prescriptionMockApi } from "../api/prescription.mock";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 export function usePrescriptionHistory(patientId: string) {
   return useAsync(() => prescriptionMockApi.listForPatient(patientId), [patientId]);
@@ -12,8 +12,10 @@ export function useActiveMedications(patientId: string) {
 }
 
 export function usePatientPrescriptions(page: number, pageSize: number) {
+  const { user } = useAuth();
   return useAsync(async () => {
-    const all = await prescriptionMockApi.listForPatient(DEMO_PATIENT_ID);
+    if (!user?.id) return { items: [], total: 0, page, pageSize };
+    const all = await prescriptionMockApi.listForPatient(user.id);
     const start = (page - 1) * pageSize;
     return {
       items: all.slice(start, start + pageSize),
@@ -21,7 +23,7 @@ export function usePatientPrescriptions(page: number, pageSize: number) {
       page,
       pageSize,
     };
-  }, [page, pageSize]);
+  }, [page, pageSize, user?.id]);
 }
 
 export function usePatientPrescription(prescriptionId: string) {

@@ -18,12 +18,11 @@ import { CompletedView } from "@/features/queue/components/CompletedView";
 import { TokenEndedView } from "@/features/queue/components/TokenEndedView";
 import { QueueStatusBanner } from "@/features/queue/components/QueueStatusBanner";
 import { queueOperationalState } from "@/features/queue/utils/queue-status";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import type { QueueSnapshot, PatientQueuePhase } from "@/features/queue/types/queue.types";
 import type { ConnectionStatus } from "@/features/realtime/types/realtime.types";
-import { DEMO_PATIENT_ID } from "@/config/app";
-import { useAuth } from "@/features/auth/hooks/useAuth";
 
 function QueueContent() {
   const searchParams = useSearchParams();
@@ -31,7 +30,7 @@ function QueueContent() {
   const tokenId = searchParams.get("token") ?? "tok_001";
 
   const { user } = useAuth();
-  const patientId = user?.id ?? DEMO_PATIENT_ID;
+  const patientId = user?.id ?? "";
   const patientName = user?.name ?? "Patient";
 
   const { data: snapshot, isLoading, error, reload, connection, phase } =

@@ -28,13 +28,13 @@ export function StaffLoginForm() {
     setError(null);
     setBusy(true);
     try {
-      const session = await authMockApi.staffLogin(staffId, password);
-      if (!session) {
+      const sessionUser = await authMockApi.staffLogin(staffId, password);
+      if (!sessionUser) {
         setError("Invalid staff ID or password. Try doc_001 / doctor123.");
         return;
       }
-      authorize(session.user);
-      router.push(destinationFor(session.user.role, next));
+      authorize(sessionUser);
+      router.push(destinationFor(sessionUser.role, next));
     } catch {
       setError("Unable to sign in. Please try again.");
     } finally {
@@ -84,10 +84,6 @@ export function StaffLoginForm() {
           <Link href="/login" className="text-brand-700 hover:underline">
             Back to sign-in options
           </Link>
-        </p>
-        <p className="text-center text-xs text-ink-400">
-          Demo staff: doc_001 / doctor123 &middot; adm_001 / admin123 &middot; dadm_001 / district123
-          &middot; sadm_001 / state123
         </p>
       </form>
     </div>
