@@ -459,9 +459,148 @@ async function main() {
     });
   }
 
+  // Seed Schedule Configs
+  const scheduleConfigs = [
+    {
+      _id: "sch_001",
+      hospitalId: "hos_001",
+      departmentId: "dep_001",
+      doctorId: "doc_001",
+      workdays: [1, 2, 3, 4, 5, 6],
+      openTime: "09:00",
+      closeTime: "13:00",
+      slotDurationMinutes: 15,
+      maxBookingsPerSlot: 5,
+      holidays: [],
+      supportedTypes: ["appointment", "follow_up", "referral"],
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: "sch_002",
+      hospitalId: "hos_001",
+      departmentId: "dep_002",
+      doctorId: "doc_002",
+      workdays: [1, 2, 3, 4, 5, 6],
+      openTime: "09:00",
+      closeTime: "13:00",
+      slotDurationMinutes: 15,
+      maxBookingsPerSlot: 5,
+      holidays: [],
+      supportedTypes: ["appointment", "follow_up", "referral"],
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: "sch_003",
+      hospitalId: "hos_001",
+      departmentId: "dep_003",
+      doctorId: "doc_003",
+      workdays: [1, 2, 3, 4, 5, 6],
+      openTime: "09:00",
+      closeTime: "13:00",
+      slotDurationMinutes: 15,
+      maxBookingsPerSlot: 5,
+      holidays: [],
+      supportedTypes: ["appointment", "follow_up", "referral"],
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: "sch_004",
+      hospitalId: "hos_001",
+      departmentId: "dep_004",
+      doctorId: "doc_004",
+      workdays: [1, 2, 3, 4, 5, 6],
+      openTime: "09:00",
+      closeTime: "12:00",
+      slotDurationMinutes: 15,
+      maxBookingsPerSlot: 5,
+      holidays: [],
+      supportedTypes: ["appointment", "follow_up", "referral"],
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: "sch_005",
+      hospitalId: "hos_001",
+      departmentId: "dep_005",
+      doctorId: "doc_005",
+      workdays: [1, 2, 3, 4, 5, 6],
+      openTime: "09:00",
+      closeTime: "13:00",
+      slotDurationMinutes: 15,
+      maxBookingsPerSlot: 5,
+      holidays: [],
+      supportedTypes: ["appointment", "follow_up", "referral"],
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+
+  if (scheduleConfigs.length) await coll("scheduleconfigs").insertMany(scheduleConfigs);
+
+  // Seed Slots for today and tomorrow
+  const today = new Date().toISOString().split("T")[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
+  const slots: Record<string, unknown>[] = [];
+  
+  for (const deptId of ["dep_001", "dep_002", "dep_003"]) {
+    for (let hour = 9; hour < 13; hour++) {
+      for (let min = 0; min < 60; min += 15) {
+        const time = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+        const endTime = min === 45 ? `${String(hour + 1).padStart(2, "0")}:00` : `${String(hour).padStart(2, "0")}:${String(min + 15).padStart(2, "0")}`;
+        
+        slots.push({
+          _id: `slot_${deptId}_${today}_${time}`,
+          opdId: deptId,
+          hospitalId: "hos_001",
+          departmentId: deptId,
+          doctorId: deptId.replace("dep_", "doc_"),
+          date: today,
+          startTime: time,
+          endTime: endTime,
+          capacity: 5,
+          bookedCount: Math.floor(Math.random() * 4),
+          status: "available",
+        });
+        
+        slots.push({
+          _id: `slot_${deptId}_${tomorrow}_${time}`,
+          opdId: deptId,
+          hospitalId: "hos_001",
+          departmentId: deptId,
+          doctorId: deptId.replace("dep_", "doc_"),
+          date: tomorrow,
+          startTime: time,
+          endTime: endTime,
+          capacity: 5,
+          bookedCount: 0,
+          status: "available",
+        });
+      }
+    }
+  }
+  
+  if (slots.length) await coll("slots").insertMany(slots);
+
+  // Seed Queue Audit entries
+  const auditEntries: Record<string, unknown>[] = [];
+  for (let i = 1; i <= 25; i++) {
+    const patientIdx = i % patients.length;
+    auditEntries.push({
+      opdId: "dep_001",
+      tokenNumber: `C-${String(i).padStart(3, "0")}`,
+      patientId: patients[patientIdx].id,
+      patientName: patients[patientIdx].name,
+      fromStatus: "waiting",
+      toStatus: "completed",
+      actorId: "doc_001",
+      timestamp: new Date(Date.now() - (25 - i) * 1800000).toISOString(),
+      durationMs: Math.floor(Math.random() * 900000) + 300000,
+    });
+  }
+  
+  if (auditEntries.length) await coll("queueaudits").insertMany(auditEntries);
+
   console.log("Seed complete.");
   console.log("Demo logins:");
-  console.log("  Patient   : phone", patients[0].phone, "(OTP 123456 in demo mode)");
+  console.log("  Patient   : phone", patients[0].phone);
   console.log("  Doctor    : doc_001 / doctor123");
   console.log("  Reception : stf_001 / recept123");
   console.log("  Nurse     : stf_002 / nurse123");

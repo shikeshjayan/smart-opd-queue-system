@@ -8,7 +8,12 @@ import {
   getCurrentSessionAction,
 } from "@/server/actions/doctor";
 import { getPatient, listEncounters } from "@/server/actions/patients";
-import { getOpdById, getQueueCounts, listQueue, completeTokenEntry } from "@/server/actions/queue";
+import {
+  getOpdById,
+  getQueueCounts,
+  listQueue,
+  completeTokenEntry,
+} from "@/server/actions/queue";
 import { getDepartment, getHospital } from "@/server/actions/hospitals";
 import type { Encounter } from "@/types";
 import type { ConsultationContext, DoctorDashboard } from "../types/doctor.types";
@@ -24,7 +29,7 @@ export const doctorMockApi = {
     const profile = await getDoctorProfile();
     if (!profile) throw new Error("Doctor profile not found");
 
-    const [opd, counts, queue] = await Promise.all([
+    const [opd, counts, queueEntries] = await Promise.all([
       getOpdById(profile.opdId),
       getQueueCounts(profile.opdId),
       listQueue(profile.opdId),
@@ -32,12 +37,13 @@ export const doctorMockApi = {
 
     if (!opd) throw new Error("Today's OPD not found");
 
-    const department = await getDepartment(opd.departmentId);
+    const department = await getDepartment((opd as any).departmentId);
     const hospital = await getHospital(department?.hospitalId ?? "");
 
+    const queue = queueEntries as any[];
     const currentEntry =
-      queue.find((q) => q.status === "in_consultation") ??
-      queue.find((q) => q.status === "called") ??
+      queue.find((q: any) => q.status === "in_consultation") ??
+      queue.find((q: any) => q.status === "called") ??
       null;
 
     let current: DoctorDashboard["current"] = null;
@@ -57,10 +63,10 @@ export const doctorMockApi = {
 
     return {
       doctor: profile,
-      opd,
+      opd: opd as any,
       counts,
       current,
-      waitingPreview: queue.filter((q) => q.status === "waiting").slice(0, 5),
+      waitingPreview: queue.filter((q: any) => q.status === "waiting").slice(0, 5),
     };
   },
 
@@ -71,10 +77,10 @@ export const doctorMockApi = {
       getOpdById(profile.opdId),
       getQueueCounts(profile.opdId),
     ]);
-    const department = opd ? await getDepartment(opd.departmentId) : null;
+    const department = opd ? await getDepartment((opd as any).departmentId) : null;
     const hospital = department ? await getHospital(department.hospitalId) : null;
     return {
-      opd: opd!,
+      opd: opd as any,
       counts,
       doctorName: profile.name,
       hospitalName: hospital?.name ?? "",

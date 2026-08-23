@@ -1,13 +1,13 @@
+"use client";
+
 import {
-  listQueue,
-  getOpdById,
-  getQueueCounts,
-  orderWaitingEntries,
   callNextEntry,
-  callTokenEntry,
   startConsultationEntry,
   completeTokenEntry,
   skipTokenEntry,
+  listQueue,
+  getOpdById,
+  getQueueCounts,
   getHospitalForOpd,
   getDepartmentForOpd,
   getDoctorForOpd,
@@ -29,44 +29,39 @@ function emit(event: Omit<TokenCalledEvent, "type" | "at">) {
 
 export const queueMockApi = {
   async getSnapshot(opdId: string, tokenId: string): Promise<QueueSnapshot> {
-    const [opd, entries, counts] = await Promise.all([
+    const [opd, entries] = await Promise.all([
       getOpdById(opdId),
       listQueue(opdId),
-      getQueueCounts(opdId),
     ]);
 
-    if (!opd) {
-      throw new Error("Queue information not found");
-    }
-
+    const typedEntries = entries as QueueEntry[];
     const nowServing =
-      entries.find((e) => e.status === "in_consultation")?.tokenNumber ??
-      entries.find((e) => e.status === "called")?.tokenNumber ??
-      opd.currentlyServing;
+      typedEntries.find((e) => e.status === "in_consultation")?.tokenNumber ??
+      typedEntries.find((e) => e.status === "called")?.tokenNumber ??
+      (opd as any)?.currentlyServing;
 
-    const orderedWaiting = await orderWaitingEntries(entries.filter((e) => e.status === "waiting"));
-    const myIndex = orderedWaiting.findIndex((e) => e.tokenNumber === tokenId);
-    const patientsAhead = myIndex >= 0 ? myIndex : 0;
+    const waiting = typedEntries.filter((e) => e.status === "waiting");
+    const myIndex = waiting.findIndex((e) => e.tokenNumber === tokenId);
+    const patientsAhead = myIndex >= 0 ? myIndex : waiting.length;
 
-    const department = opd.departmentId ? await getDepartmentForOpd(opdId) : null;
+    const department = await getDepartmentForOpd(opdId);
     const doctor = await getDoctorForOpd(opdId);
 
     return {
       tokenNumber: tokenId,
-      opdName: opd.name,
-      departmentName: department?.name ?? null,
-      doctorName: doctor?.name ?? null,
-      room: doctor ? `Room ${String(doctor.id).slice(-2)}` : null,
+      opdName: (opd as any)?.name ?? "OPD",
+      departmentName: (department as any)?.name ?? null,
+      doctorName: (doctor as any)?.name ?? null,
+      room: doctor ? `Room ${String((doctor as any)?.id ?? "").slice(-2)}` : null,
       nowServing,
       patientsAhead,
-      estimatedWaitMinutes:
-        counts.waiting > 0 ? estimateWaitMinutes(patientsAhead) : null,
-      status: entries.find((e) => e.tokenNumber === tokenId)?.status ?? "waiting",
-      entries: entries.filter((e) => e.tokenNumber >= (nowServing ?? "")),
+      estimatedWaitMinutes: patientsAhead > 0 ? estimateWaitMinutes(patientsAhead) : null,
+      status: typedEntries.find((e) => e.tokenNumber === tokenId)?.status ?? "waiting",
+      entries: typedEntries,
       fetchedAt: new Date().toISOString(),
-      opdStatus: opd.status,
-      statusReason: opd.statusReason,
-      statusUpdatedAt: opd.statusUpdatedAt,
+      opdStatus: (opd as any)?.status ?? "open",
+      statusReason: (opd as any)?.statusReason,
+      statusUpdatedAt: (opd as any)?.statusUpdatedAt,
     };
   },
 
@@ -77,20 +72,17 @@ export const queueMockApi = {
       getQueueCounts(opdId),
     ]);
 
-    if (!opd) {
-      throw new Error("OPD not found");
-    }
-
+    const typedEntries = entries as QueueEntry[];
     const current =
-      entries.find((e) => e.status === "in_consultation") ??
-      entries.find((e) => e.status === "called") ??
+      typedEntries.find((e) => e.status === "in_consultation") ??
+      typedEntries.find((e) => e.status === "called") ??
       null;
-    const waiting = await orderWaitingEntries(entries.filter((e) => e.status === "waiting"));
+    const waiting = typedEntries.filter((e) => e.status === "waiting");
     const next = waiting[0] ?? null;
 
     return {
-      opdId: opd.id ?? opdId,
-      opdName: opd.name,
+      opdId: (opd as any)?.id ?? opdId,
+      opdName: (opd as any)?.name ?? "OPD",
       current,
       next,
       waiting,
@@ -100,9 +92,9 @@ export const queueMockApi = {
         priority: waiting.filter((e) => e.priority === "priority").length,
         normal: waiting.filter((e) => e.priority === "normal").length,
       },
-      opdStatus: opd.status,
-      statusReason: opd.statusReason,
-      statusUpdatedAt: opd.statusUpdatedAt,
+      opdStatus: (opd as any)?.status ?? "open",
+      statusReason: (opd as any)?.statusReason,
+      statusUpdatedAt: (opd as any)?.statusUpdatedAt,
     };
   },
 
@@ -112,48 +104,51 @@ export const queueMockApi = {
       listQueue(opdId),
     ]);
 
-    if (!opd) {
-      throw new Error("OPD not found");
-    }
-
+    const typedEntries = entries as QueueEntry[];
     const hospital = await getHospitalForOpd(opdId);
     const department = await getDepartmentForOpd(opdId);
     const doctor = await getDoctorForOpd(opdId);
-    const waiting = entries.filter((e) => e.status === "waiting");
+    const waiting = typedEntries.filter((e) => e.status === "waiting");
     const nowServing =
-      entries.find((e) => e.status === "in_consultation")?.tokenNumber ??
-      entries.find((e) => e.status === "called")?.tokenNumber ??
-      opd.currentlyServing;
+      typedEntries.find((e) => e.status === "in_consultation")?.tokenNumber ??
+      typedEntries.find((e) => e.status === "called")?.tokenNumber ??
+      (opd as any)?.currentlyServing;
 
     return {
-      hospitalName: hospital?.name ?? "Government Hospital",
-      departmentName: department?.name ?? null,
-      opdName: opd.name,
-      doctorName: doctor?.name ?? null,
-      room: doctor ? `Room ${String(doctor.id).slice(-2)}` : null,
+      hospitalName: (hospital as any)?.name ?? "Government Hospital",
+      departmentName: (department as any)?.name ?? null,
+      opdName: (opd as any)?.name ?? "OPD",
+      doctorName: (doctor as any)?.name ?? null,
+      room: doctor ? `Room ${String((doctor as any)?.id ?? "").slice(-2)}` : null,
       nowServing,
       nextTokens: waiting.slice(0, 5).map((e) => e.tokenNumber),
       waitingCount: waiting.length,
-      opdStatus: opd.status,
-      statusReason: opd.statusReason,
-      statusUpdatedAt: opd.statusUpdatedAt,
+      opdStatus: (opd as any)?.status ?? "open",
+      statusReason: (opd as any)?.statusReason,
+      statusUpdatedAt: (opd as any)?.statusUpdatedAt,
     };
   },
 
   async callNext(opdId: string): Promise<QueueEntry | undefined> {
     const entry = await callNextEntry(opdId);
     if (entry) {
-      emit({ opdId, tokenNumber: entry.tokenNumber, message: `Token ${entry.tokenNumber} has been called` });
+      emit({ opdId, tokenNumber: (entry as any).tokenNumber, message: `Token ${(entry as any).tokenNumber} has been called` });
     }
-    return entry;
+    return entry as QueueEntry | undefined;
   },
 
   async callToken(tokenNumber: string): Promise<QueueEntry | undefined> {
-    const entry = await callTokenEntry(tokenNumber);
+    const { default: mongoose } = await import("mongoose");
+    const { QueueEntryModel } = await import("@/lib/models");
+    await (QueueEntryModel as any).findOneAndUpdate(
+      { tokenNumber, status: "waiting" },
+      { $set: { status: "called", updatedAt: new Date().toISOString() } }
+    );
+    const entry = await QueueEntryModel.findOne({ tokenNumber }).lean();
     if (entry) {
-      emit({ opdId: "opd_001", tokenNumber, message: `Token ${tokenNumber} has been called` });
+      emit({ opdId: (entry as any).opdId ?? "opd_001", tokenNumber, message: `Token ${tokenNumber} has been called` });
     }
-    return entry;
+    return entry as QueueEntry | undefined;
   },
 
   async startConsultation(tokenNumber: string): Promise<QueueEntry | undefined> {
@@ -166,7 +161,7 @@ export const queueMockApi = {
       };
       realtimeClient.emit({ ...event, at: new Date().toISOString() });
     }
-    return entry;
+    return entry as QueueEntry | undefined;
   },
 
   async completeToken(tokenNumber: string): Promise<QueueEntry | undefined> {
@@ -179,7 +174,7 @@ export const queueMockApi = {
       };
       realtimeClient.emit({ ...event, at: new Date().toISOString() });
     }
-    return entry;
+    return entry as QueueEntry | undefined;
   },
 
   async skip(tokenNumber: string): Promise<QueueEntry | undefined> {
@@ -192,6 +187,6 @@ export const queueMockApi = {
       };
       realtimeClient.emit({ ...event, at: new Date().toISOString() });
     }
-    return entry;
+    return entry as QueueEntry | undefined;
   },
 };

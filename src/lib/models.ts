@@ -601,6 +601,79 @@ const consentSchema = new Schema(
 
 export const ConsentModel = mongoose.models.Consent ?? mongoose.model("Consent", consentSchema);
 
+/* ---------- OPD Slots (capacity management) ---------- */
+
+const slotSchema = new Schema(
+  {
+    opdId: { type: String, required: true },
+    hospitalId: { type: String, required: true },
+    departmentId: { type: String, required: true },
+    doctorId: { type: String, default: "" },
+    date: { type: String, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+    capacity: { type: Number, required: true, default: 5 },
+    bookedCount: { type: Number, required: true, default: 0 },
+    status: { type: String, enum: ["available", "full", "closed"], default: "available" },
+  },
+  { versionKey: false }
+);
+
+slotSchema.index({ opdId: 1, date: 1, startTime: 1 }, { unique: true });
+slotSchema.index({ opdId: 1, date: 1, status: 1 });
+
+export const SlotModel =
+  mongoose.models.Slot ?? mongoose.model("Slot", slotSchema);
+
+/* ---------- Queue Audit Trail ---------- */
+
+const queueAuditSchema = new Schema(
+  {
+    opdId: { type: String, required: true },
+    tokenNumber: { type: String, required: true },
+    patientId: { type: String, default: "" },
+    patientName: { type: String, default: "" },
+    fromStatus: { type: String, default: "" },
+    toStatus: { type: String, required: true },
+    actorId: { type: String, default: "" },
+    actorRole: { type: String, default: "" },
+    timestamp: { type: Date, default: Date.now },
+    durationMs: { type: Number, default: 0 },
+    metadata: Schema.Types.Mixed,
+  },
+  { versionKey: false }
+);
+
+queueAuditSchema.index({ opdId: 1, timestamp: -1 });
+queueAuditSchema.index({ tokenNumber: 1, timestamp: -1 });
+
+export const QueueAuditModel =
+  mongoose.models.QueueAudit ?? mongoose.model("QueueAudit", queueAuditSchema);
+
+/* ---------- Schedule Configuration ---------- */
+
+const scheduleConfigSchema = new Schema(
+  {
+    hospitalId: { type: String, required: true },
+    departmentId: { type: String, required: true },
+    doctorId: { type: String, default: "" },
+    workdays: { type: [Number], default: [1, 2, 3, 4, 5, 6] },
+    openTime: { type: String, default: "09:00" },
+    closeTime: { type: String, default: "13:00" },
+    slotDurationMinutes: { type: Number, default: 15 },
+    maxBookingsPerSlot: { type: Number, default: 5 },
+    holidays: { type: [String], default: [] },
+    supportedTypes: { type: [String], default: ["appointment", "follow_up", "referral"] },
+    updatedAt: String,
+  },
+  { versionKey: false }
+);
+
+scheduleConfigSchema.index({ departmentId: 1, doctorId: 1 });
+
+export const ScheduleConfigModel =
+  mongoose.models.ScheduleConfig ?? mongoose.model("ScheduleConfig", scheduleConfigSchema);
+
 /* ---------- Medicine catalogue & diagnostics catalogue (reference data) ---------- */
 
 export const MedicineModel =
