@@ -37,6 +37,7 @@ const navGroups: Array<{ label: string; items: Array<{ href: string; label: stri
       { href: "/hospital-admin/patients", label: "Patients" },
       { href: "/hospital-admin/queue-overrides", label: "Queue Overrides" },
       { href: "/hospital-admin/notifications", label: "Notifications" },
+      { href: "/hospital-admin/integrations", label: "Integrations" },
       { href: "/hospital-admin/settings", label: "Settings" },
     ],
   },

@@ -2,6 +2,7 @@ import type { Encounter } from "@/types";
 import { getPatient } from "../data";
 import { auditService } from "@/services/security";
 import { getCurrentActor } from "@/features/security/utils/current-actor";
+import { integrationService } from "@/integrations/service";
 import type {
   CatalogParameter,
   DiagnosticCategory,
@@ -636,10 +637,8 @@ export const diagnosticsService = {
         result: "success",
       });
     }
+    integrationService.enqueueEvent("lab.result.sync", resultId, "laboratory");
     return list[index];
-  },
-
-  async amendResult(orderId: string, testId: string): Promise<DiagnosticResult | undefined> {
     await delay();
     ensureLoaded();
     const current = (results ?? []).find(
