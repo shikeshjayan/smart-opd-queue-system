@@ -7,6 +7,13 @@ export type Duration = {
 
 export type PrescribedMedicineStatus = "prescribed" | "dispensed" | "discontinued" | "cancelled";
 
+export type DispensedBatchRef = {
+  stockId: string;
+  batchNumber: string;
+  expiryDate?: string;
+  qty: number;
+};
+
 export type PrescribedMedicine = {
   id: string;
   medicineId: string;
@@ -21,8 +28,32 @@ export type PrescribedMedicine = {
   instructions?: string;
   status: PrescribedMedicineStatus;
   discontinuedReason?: string;
+  /** Total units prescribed (e.g. 10 tablets). Falls back to prescribedQuantity() estimate when absent. */
+  quantity?: number;
+  dispensedQty?: number;
+  dispensedBatches?: DispensedBatchRef[];
   dispensedAt?: string;
 };
+
+/** Doses per day estimated from the free-text frequency ("2 × daily" -> 2). */
+function dosesPerDay(frequency: string): number {
+  const f = frequency.toLowerCase();
+  if (f.includes("sos") || f.includes("as needed")) return 1;
+  if (f.includes("weekly")) return 1 / 7;
+  if (f.includes("od") || f.includes("once") || f.includes("1 ×") || f.includes("1x")) return 1;
+  if (f.includes("tds") || f.includes("thrice") || f.includes("3 ×") || f.includes("3x")) return 3;
+  if (f.includes("qds") || f.includes("four") || f.includes("4 ×") || f.includes("4x")) return 4;
+  if (f.includes("bd") || f.includes("twice") || f.includes("2 ×") || f.includes("2x")) return 2;
+  const m = f.match(/(\d+)\s*(?:×|x|times)/);
+  if (m) return Number(m[1]) || 1;
+  return 1;
+}
+
+/** Units to dispense for a prescription item; explicit quantity wins over the estimate. */
+export function prescribedQuantity(med: Pick<PrescribedMedicine, "quantity" | "frequency" | "durationDays">): number {
+  if (typeof med.quantity === "number" && med.quantity > 0) return med.quantity;
+  return Math.max(1, Math.round(dosesPerDay(med.frequency) * Math.max(1, med.durationDays)));
+}
 
 export type PrescriptionWorkflowStatus = "draft" | "finalized" | "cancelled";
 

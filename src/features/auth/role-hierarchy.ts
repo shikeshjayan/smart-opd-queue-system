@@ -8,6 +8,8 @@ export const ROLE_ORDER: Record<UserRole, number> = {
   clinical_staff: 30,
   doctor: 20,
   lab_staff: 20,
+  lab_reviewer: 20,
+  pharmacist: 20,
   patient: 10,
 };
 

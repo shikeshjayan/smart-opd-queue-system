@@ -7,9 +7,9 @@ export const testCatalogue: TestCatalogItem[] = [
     category: "laboratory",
     specimenType: "Blood",
     parameters: [
-      { key: "hb", name: "Hemoglobin", unit: "g/dL", refLow: 13, refHigh: 17, numeric: true },
+      { key: "hb", name: "Hemoglobin", unit: "g/dL", refLow: 13, refHigh: 17, criticalLow: 7, criticalHigh: 20, numeric: true },
       { key: "wbc", name: "WBC", unit: "/µL", refLow: 4000, refHigh: 11000, numeric: true },
-      { key: "plt", name: "Platelets", unit: "lakh/µL", refLow: 1.5, refHigh: 4.5, numeric: true },
+      { key: "plt", name: "Platelets", unit: "lakh/µL", refLow: 1.5, refHigh: 4.5, criticalLow: 0.5, numeric: true },
     ],
   },
   {
@@ -18,7 +18,7 @@ export const testCatalogue: TestCatalogItem[] = [
     category: "laboratory",
     specimenType: "Blood",
     parameters: [
-      { key: "glu", name: "Glucose (Fasting)", unit: "mg/dL", refLow: 70, refHigh: 110, numeric: true },
+      { key: "glu", name: "Glucose (Fasting)", unit: "mg/dL", refLow: 70, refHigh: 110, criticalLow: 50, criticalHigh: 400, numeric: true },
     ],
   },
   {
@@ -46,7 +46,7 @@ export const testCatalogue: TestCatalogItem[] = [
     category: "laboratory",
     specimenType: "Blood",
     parameters: [
-      { key: "cr", name: "Creatinine", unit: "mg/dL", refLow: 0.6, refHigh: 1.3, numeric: true },
+      { key: "cr", name: "Creatinine", unit: "mg/dL", refLow: 0.6, refHigh: 1.3, criticalHigh: 5, numeric: true },
       { key: "urea", name: "Urea", unit: "mg/dL", refLow: 15, refHigh: 45, numeric: true },
     ],
   },
@@ -83,6 +83,7 @@ export const testCatalogue: TestCatalogItem[] = [
     name: "Chest X-Ray",
     category: "imaging",
     specimenType: "Image",
+    schedulingMode: "walk_in",
     parameters: [{ key: "impression", name: "Impression", numeric: false }],
   },
   {
@@ -90,6 +91,37 @@ export const testCatalogue: TestCatalogItem[] = [
     name: "Ultrasound Abdomen",
     category: "imaging",
     specimenType: "Image",
+    schedulingMode: "walk_in",
+    parameters: [{ key: "impression", name: "Impression", numeric: false }],
+  },
+  {
+    id: "t_ct",
+    name: "CT Scan",
+    category: "imaging",
+    specimenType: "Image",
+    schedulingMode: "slot",
+    slotMinutes: 20,
+    dailyCapacity: 16,
+    note: "Scheduled study — book a scanner slot (§9).",
+    parameters: [{ key: "impression", name: "Impression", numeric: false }],
+  },
+  {
+    id: "t_mri",
+    name: "MRI Scan",
+    category: "imaging",
+    specimenType: "Image",
+    schedulingMode: "slot",
+    slotMinutes: 30,
+    dailyCapacity: 10,
+    note: "Scheduled study — book a scanner slot (§9).",
+    parameters: [{ key: "impression", name: "Impression", numeric: false }],
+  },
+  {
+    id: "t_echo",
+    name: "Echocardiography",
+    category: "other",
+    specimenType: "Tracing",
+    schedulingMode: "walk_in",
     parameters: [{ key: "impression", name: "Impression", numeric: false }],
   },
   {
@@ -97,10 +129,15 @@ export const testCatalogue: TestCatalogItem[] = [
     name: "ECG (12-lead)",
     category: "other",
     specimenType: "Tracing",
+    schedulingMode: "walk_in",
     parameters: [{ key: "impression", name: "Impression", numeric: false }],
   },
 ];
 
 export function testById(id: string): TestCatalogItem | undefined {
   return testCatalogue.find((test) => test.id === id);
+}
+
+export function isLabTest(item: TestCatalogItem): boolean {
+  return item.category === "laboratory";
 }

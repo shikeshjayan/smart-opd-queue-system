@@ -132,6 +132,7 @@ function seedOrders(): DiagnosticOrder[] {
   return [
     {
       id: "LAB-10021",
+      priority: "routine",
       patientId: "P10294",
       encounterId: "E20260815002",
       doctorId: "doc_001",
@@ -148,6 +149,7 @@ function seedOrders(): DiagnosticOrder[] {
     },
     {
       id: "LAB-10022",
+      priority: "routine",
       patientId: "P10294",
       encounterId: "E20260815002",
       doctorId: "doc_001",
@@ -163,6 +165,7 @@ function seedOrders(): DiagnosticOrder[] {
     },
     {
       id: "LAB-10023",
+      priority: "routine",
       patientId: "P10294",
       encounterId: "E20260815002",
       doctorId: "doc_001",
@@ -179,6 +182,7 @@ function seedOrders(): DiagnosticOrder[] {
     },
     {
       id: "LAB-10024",
+      priority: "routine",
       patientId: "P10294",
       encounterId: "E20260815002",
       doctorId: "doc_001",
@@ -195,6 +199,7 @@ function seedOrders(): DiagnosticOrder[] {
     },
     {
       id: "LAB-10027",
+      priority: "routine",
       patientId: "P10294",
       encounterId: "E20260810001",
       doctorId: "doc_002",
@@ -211,6 +216,7 @@ function seedOrders(): DiagnosticOrder[] {
     },
     {
       id: "LAB-10025",
+      priority: "routine",
       patientId: "P10421",
       encounterId: "E20260819003",
       doctorId: "doc_001",
@@ -226,6 +232,7 @@ function seedOrders(): DiagnosticOrder[] {
     },
     {
       id: "LAB-10026",
+      priority: "routine",
       patientId: "P10421",
       encounterId: "E20260819003",
       doctorId: "doc_001",
@@ -451,6 +458,7 @@ export const diagnosticsService = {
       createdAt: nowIso(),
       items,
       clinicalNotes,
+      priority: "routine",
       status: "draft",
     };
     orders = [order, ...(orders ?? [])];
