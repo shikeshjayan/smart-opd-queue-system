@@ -331,6 +331,25 @@ const consultationSchema = new Schema(
 export const ConsultationModel =
   mongoose.models.Consultation ?? mongoose.model("Consultation", consultationSchema);
 
+/* ---------- Consultation audit trail ---------- */
+
+const consultationAuditSchema = new Schema(
+  {
+    encounterId: { type: String, required: true, index: true },
+    actorId: String,
+    actorName: String,
+    action: String,
+    timestamp: { type: Date, default: Date.now },
+    detail: Schema.Types.Mixed,
+  },
+  { versionKey: false }
+);
+
+consultationAuditSchema.index({ encounterId: 1, timestamp: 1 });
+
+export const ConsultationAuditModel =
+  mongoose.models.ConsultationAudit ?? mongoose.model("ConsultationAudit", consultationAuditSchema);
+
 /* ---------- Prescriptions ---------- */
 
 const prescriptionItemSchema = new Schema(
@@ -369,6 +388,22 @@ const prescriptionSchema = new Schema(
 export const PrescriptionModel =
   mongoose.models.Prescription ?? mongoose.model("Prescription", prescriptionSchema);
 
+/* ---------- Prescription audit trail ---------- */
+
+const prescriptionAuditSchema = new Schema(
+  {
+    prescriptionId: { type: String, required: true, index: true },
+    action: String,
+    actorId: String,
+    detail: Schema.Types.Mixed,
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+export const PrescriptionAuditModel =
+  mongoose.models.PrescriptionAudit ?? mongoose.model("PrescriptionAudit", prescriptionAuditSchema);
+
 /* ---------- Appointments ---------- */
 
 const appointmentSchema = new Schema(
@@ -401,6 +436,42 @@ export const AppointmentModel =
   mongoose.models.Appointment ?? mongoose.model("Appointment", appointmentSchema);
 
 /* ---------- Diagnostics ---------- */
+
+const diagnosticResultSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    orderId: { type: String, required: true, index: true },
+    testId: String,
+    testName: String,
+    category: String,
+    patientId: String,
+    status: { type: String, enum: ["draft", "final", "amended", "cancelled"], default: "draft" },
+    values: [Schema.Types.Mixed],
+    notes: String,
+    finalizedAt: String,
+    amendedFrom: String,
+    createdAt: String,
+    updatedAt: String,
+  },
+  { versionKey: false, strict: false }
+);
+
+export const DiagnosticResultModel =
+  mongoose.models.DiagnosticResult ?? mongoose.model("DiagnosticResult", diagnosticResultSchema);
+
+const diagnosticAuditSchema = new Schema(
+  {
+    resultId: String,
+    orderId: String,
+    action: String,
+    actorId: String,
+    createdAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+export const DiagnosticAuditModel =
+  mongoose.models.DiagnosticAudit ?? mongoose.model("DiagnosticAudit", diagnosticAuditSchema);
 
 const diagnosticOrderSchema = new Schema(
   {

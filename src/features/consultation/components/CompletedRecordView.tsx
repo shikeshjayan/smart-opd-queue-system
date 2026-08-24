@@ -12,6 +12,7 @@ import { usePharmacyActions } from "@/features/pharmacy/hooks/usePharmacyQueue";
 import { printPrescription } from "@/features/prescription/utils/print";
 import { patientNameFor } from "@/services/prescription";
 import { formatDate } from "@/features/medical-records/utils/format";
+import type { Diagnosis } from "@/services/consultation/types";
 
 type CompletedRecordViewProps = {
   encounterId: string;
@@ -57,7 +58,7 @@ export function CompletedRecordView({ encounterId, patientId }: CompletedRecordV
         <section className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Diagnosis</h3>
           <ul className="mt-2 flex flex-wrap gap-2">
-            {data.record.diagnoses.map((diagnosis, index) => (
+            {data.record.diagnoses.map((diagnosis: Diagnosis, index: number) => (
               <li key={`${diagnosis.code ?? diagnosis.name}-${index}`}>
                 <Badge variant={diagnosis.type === "primary" ? "info" : "default"}>
                   {diagnosis.name}

@@ -1,42 +1,42 @@
-import { consultationService } from "@/services/consultation";
+import {
+  getConsultationContext,
+  getActiveEncounterForPatient,
+  saveConsultationDraft,
+  completeConsultation,
+  requestCorrection,
+  acquireLock,
+  releaseLock,
+  listConsultationAudit,
+} from "@/server/actions/consultations";
 import type { ConsultationSections } from "@/services/consultation/types";
-import { prescriptionService } from "@/services/prescription";
 import type { PrescriptionDraftItem } from "@/services/prescription/types";
-import { doctorMockApi } from "@/features/doctor/api/doctor.mock";
-import type { Encounter } from "@/types";
 
 export const consultationMockApi = {
-  getContext: (encounterId: string) => consultationService.getContext(encounterId),
-  getOrCreateForPatient: (patientId: string) => consultationService.getOrCreateForPatient(patientId),
+  getContext: (encounterId: string) => getConsultationContext(encounterId),
+
+  getOrCreateForPatient: (patientId: string) => getActiveEncounterForPatient(patientId),
 
   saveDraft: (encounterId: string, sections: ConsultationSections) =>
-    consultationService.saveDraft(encounterId, sections),
+    saveConsultationDraft(encounterId, sections),
 
-  async complete(
+  complete: async (
     encounterId: string,
     sections: ConsultationSections,
-    prescriptionItems: PrescriptionDraftItem[],
-    instructions?: string
-  ): Promise<{ encounter: Encounter | undefined; context: Awaited<ReturnType<typeof consultationService.getContext>> }> {
-    const context = await consultationService.getContext(encounterId);
-    if (!context) return { encounter: undefined, context: null };
-
-    await consultationService.saveDraft(encounterId, sections);
-
-    if (prescriptionItems.length > 0) {
-      await prescriptionService.create(encounterId, {
-        patientId: context.encounter.patientId,
-        doctorId: context.encounter.doctorId,
-        hospitalId: context.encounter.hospitalId,
-        doctorName: context.encounter.doctorName,
-        hospitalName: context.encounter.hospitalName,
-        departmentName: context.encounter.departmentName,
-      }, prescriptionItems, instructions);
+    _prescriptionItems?: PrescriptionDraftItem[],
+    _instructions?: string
+  ) => {
+    const result = await completeConsultation(encounterId, sections);
+    if (!result.ok) {
+      throw new Error(result.error ?? "Unable to complete consultation");
     }
-
-    const encounter = await consultationService.complete(encounterId);
-    await doctorMockApi.completeConsultation(context.encounter.tokenNumber);
-    const fresh = await consultationService.getContext(encounterId);
-    return { encounter, context: fresh };
+    const context = await getConsultationContext(encounterId);
+    return { encounter: context?.encounter, context };
   },
+
+  requestCorrection: (encounterId: string, reason: string) =>
+    requestCorrection(encounterId, reason),
+
+  acquireLock: (encounterId: string) => acquireLock(encounterId),
+  releaseLock: (encounterId: string) => releaseLock(encounterId),
+  listAudit: (encounterId: string) => listConsultationAudit(encounterId),
 };
