@@ -49,6 +49,13 @@ export type ConsultationRecord = {
   treatmentPlan: string;
   followUp: FollowUp;
   updatedAt?: string;
+  version?: number;
+  status?: "draft" | "completed" | "amended";
+  editedBy?: string;
+  editedByName?: string;
+  lockedBy?: string | null;
+  lockedAt?: string | null;
+  amendedFrom?: string;
 };
 
 export type ConsultationSections = {
@@ -77,5 +84,7 @@ export function emptyRecord(encounterId: string): ConsultationRecord {
     diagnoses: [],
     treatmentPlan: "",
     followUp: { decision: "none" },
+    version: 1,
+    status: "draft",
   };
 }

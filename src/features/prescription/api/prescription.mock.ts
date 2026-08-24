@@ -1,33 +1,68 @@
-import { prescriptionService } from "@/services/prescription";
+import {
+  listForEncounter,
+  listForPatient,
+  getById,
+  getDraftForEncounter,
+  listRegimen,
+  createDraft,
+  updateDraft,
+  finalizePrescription,
+  cancelPrescription,
+  updateDispenseStatus,
+  discontinueRegimen,
+} from "@/server/actions/prescriptions";
 import type {
+  MedicationRegimenEntry,
+  Prescription,
   PrescriptionContextRef,
   PrescriptionDraftItem,
 } from "@/services/prescription/types";
 
 export const prescriptionMockApi = {
-  listForEncounter: (encounterId: string) =>
-    prescriptionService.listForEncounter(encounterId),
-  listForPatient: (patientId: string) => prescriptionService.listForPatient(patientId),
-  listRegimen: (patientId: string) => prescriptionService.listRegimen(patientId),
-  getById: (prescriptionId: string) => prescriptionService.getById(prescriptionId),
-  getDraftForEncounter: (encounterId: string) =>
-    prescriptionService.getDraftForEncounter(encounterId),
+  listForEncounter: (encounterId: string): Promise<Prescription[]> =>
+    listForEncounter(encounterId),
+
+  listForPatient: (patientId: string): Promise<Prescription[]> => listForPatient(patientId),
+
+  listRegimen: (patientId: string): Promise<MedicationRegimenEntry[]> => listRegimen(patientId),
+
+  getById: async (prescriptionId: string): Promise<Prescription | undefined> =>
+    (await getById(prescriptionId)) ?? undefined,
+
+  getDraftForEncounter: async (encounterId: string): Promise<Prescription | undefined> =>
+    (await getDraftForEncounter(encounterId)) ?? undefined,
+
   createDraft: (
     encounterId: string,
     ref: PrescriptionContextRef,
     items: PrescriptionDraftItem[],
     instructions?: string
-  ) => prescriptionService.createDraft(encounterId, ref, items, instructions),
-  updateDraft: (
+  ): Promise<Prescription> => createDraft(encounterId, ref, items, instructions),
+
+  updateDraft: async (
     prescriptionId: string,
     items: PrescriptionDraftItem[],
     instructions?: string
-  ) => prescriptionService.updateDraft(prescriptionId, items, instructions),
-  finalize: (prescriptionId: string) => prescriptionService.finalize(prescriptionId),
-  cancel: (prescriptionId: string, reason?: string) =>
-    prescriptionService.cancel(prescriptionId, reason),
-  updateStatus: (prescriptionId: string, status: "sent_to_pharmacy" | "dispensed") =>
-    prescriptionService.updateStatus(prescriptionId, status),
-  discontinueRegimen: (regimenId: string, reason: string) =>
-    prescriptionService.discontinueRegimen(regimenId, reason),
+  ): Promise<Prescription | undefined> =>
+    (await updateDraft(prescriptionId, items, instructions)) ?? undefined,
+
+  finalize: async (prescriptionId: string): Promise<Prescription | undefined> =>
+    (await finalizePrescription(prescriptionId)) ?? undefined,
+
+  cancel: async (prescriptionId: string, reason?: string): Promise<Prescription | undefined> =>
+    (await cancelPrescription(prescriptionId, reason)) ?? undefined,
+
+  updateStatus: async (
+    prescriptionId: string,
+    status: "sent_to_pharmacy" | "dispensed"
+  ): Promise<Prescription | undefined> =>
+    (await updateDispenseStatus(prescriptionId, status)) ?? undefined,
+
+  discontinueRegimen: async (
+    regimenId: string,
+    reason: string
+  ): Promise<MedicationRegimenEntry[]> => {
+    await discontinueRegimen(regimenId, reason);
+    return [];
+  },
 };
