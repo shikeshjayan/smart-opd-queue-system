@@ -36,6 +36,12 @@ import {
 } from "@/server/actions/closures";
 import { opsListConfigVersions } from "@/server/actions/hospital-ops";
 import {
+  opsHospitalDashboard,
+  opsOperationalAlerts,
+  type HospitalDashboard,
+  type OperationalAlert,
+} from "@/server/actions/hospital-dashboard";
+import {
   opsListStaff,
   opsListAssignments,
   opsCreateAssignment,
@@ -251,6 +257,23 @@ export const hospitalOpsServerApi = {
 
   listConfigVersions: (hospitalId: string, entity: ConfigVersion["entity"], entityId?: string) =>
     opsListConfigVersions(hospitalId, entity, entityId).catch(() => [] as ConfigVersion[]),
+
+  /* ── Live ops dashboard (WS7) ── */
+
+  todayOverview: (hospitalId: string): Promise<HospitalDashboard> =>
+    opsHospitalDashboard(hospitalId).catch(() => ({
+      opdPatients: 0,
+      appointments: 0,
+      walkIns: 0,
+      waiting: 0,
+      inConsultation: 0,
+      completed: 0,
+      avgWaitMinutes: 0,
+      doctorsActive: 0,
+      departmentsActive: 0,
+    })),
+
+  alerts: (hospitalId: string) => opsOperationalAlerts(hospitalId).catch(() => [] as OperationalAlert[]),
 };
 
 export type { OpsDepartmentConfig, OpsDepartmentConfigInput };
