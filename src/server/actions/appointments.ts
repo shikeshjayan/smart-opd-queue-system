@@ -11,6 +11,7 @@ import {
 } from "@/lib/models";
 import { plainList, plain } from "@/lib/models";
 import { reserveSlot, releaseSlot, generateSlotsForDate } from "./slots";
+import { isOperatingDay, isDoctorOnLeave } from "@/server/lib/availability";
 import { generateToken } from "./tokens";
 import { notify } from "@/server/notifications/service";
 
@@ -67,6 +68,14 @@ export async function getAvailableSlots(date: string, departmentId: string, doct
   const workday = new Date(date).getDay();
   if (!(config.workdays as number[]).includes(workday)) return [];
   if ((config.holidays as string[]).includes(date)) return [];
+  const resolvedHospitalId = hospitalId ?? config.hospitalId;
+  if (
+    resolvedHospitalId &&
+    !(await isOperatingDay(date, String(resolvedHospitalId), departmentId, config))
+  ) {
+    return [];
+  }
+  if (doctorId && (await isDoctorOnLeave(doctorId, date))) return [];
 
   const openMinutes = timeToMinutes(config.openTime);
   const closeMinutes = timeToMinutes(config.closeTime);

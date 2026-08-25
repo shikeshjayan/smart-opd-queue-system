@@ -87,6 +87,20 @@ export function useOpsLeaves(hospitalId: string, status?: "pending" | "approved"
   return useAsync(() => hospitalOpsServerApi.listLeaves(hospitalId, status), [hospitalId, status]);
 }
 
+export function useShifts(hospitalId: string) {
+  return useAsync(() => hospitalOpsServerApi.listShifts(hospitalId), [hospitalId]);
+}
+
+export function useDoctorAvailability(doctorId: string, hospitalId: string, fromDate: string) {
+  return useAsync(
+    () =>
+      doctorId
+        ? hospitalOpsServerApi.doctorAvailability(doctorId, hospitalId, fromDate, 14)
+        : Promise.resolve([]),
+    [doctorId, hospitalId, fromDate]
+  );
+}
+
 export function useStaffOpsMutations() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +129,11 @@ export function useStaffOpsMutations() {
     reviewLeave: (leaveId: string, approve: boolean) =>
       run(() => hospitalOpsServerApi.reviewLeave(leaveId, approve)),
     cancelLeave: (leaveId: string) => run(() => hospitalOpsServerApi.cancelLeave(leaveId)),
+    saveShift: (
+      input: Parameters<typeof hospitalOpsServerApi.saveShift>[0]
+    ) => run(() => hospitalOpsServerApi.saveShift(input)),
+    setShiftStatus: (id: string, status: "active" | "inactive") =>
+      run(() => hospitalOpsServerApi.setShiftStatus(id, status)),
   };
 }
 

@@ -9,8 +9,13 @@ import {
   opsListRooms,
   opsSaveRoom,
   opsSetRoomStatus,
+  opsListShifts,
+  opsSaveShift,
+  opsSetShiftStatus,
+  opsDoctorAvailability,
   type OpsDepartmentConfig,
   type OpsDepartmentConfigInput,
+  type DayAvailability,
 } from "@/server/actions/hospital-ops";
 import {
   opsListStaff,
@@ -25,7 +30,7 @@ import {
   type OpsStaffRow,
 } from "@/server/actions/staff-ops";
 import type { HospitalServiceEntry } from "@/services/hospital-ops/types";
-import type { Room, StaffAssignment, StaffLeave } from "@/types";
+import type { Room, ShiftTemplate, StaffAssignment, StaffLeave } from "@/types";
 
 function serviceToEntry(s: Awaited<ReturnType<typeof opsListServices>>[number]): HospitalServiceEntry {
   return {
@@ -153,6 +158,39 @@ export const hospitalOpsServerApi = {
   cancelLeave: (leaveId: string): Promise<void> => opsCancelLeave(leaveId),
 
   leaveImpact: (leaveId: string) => opsLeaveImpact(leaveId),
+
+  /* ── Shifts & availability (WS4) ── */
+
+  async listShifts(hospitalId: string): Promise<ShiftTemplate[]> {
+    try {
+      return await opsListShifts(hospitalId);
+    } catch {
+      return [];
+    }
+  },
+
+  saveShift: (
+    input: {
+      id?: string;
+      hospitalId: string;
+      name: string;
+      startTime: string;
+      endTime: string;
+      departmentId?: string | null;
+      breakMinutes?: number;
+    }
+  ): Promise<ShiftTemplate> => opsSaveShift(input),
+
+  setShiftStatus: (id: string, status: "active" | "inactive"): Promise<void> =>
+    opsSetShiftStatus(id, status),
+
+  doctorAvailability: (
+    doctorId: string,
+    hospitalId: string,
+    fromDate: string,
+    days?: number
+  ): Promise<DayAvailability[]> =>
+    opsDoctorAvailability(doctorId, hospitalId, fromDate, days).catch(() => []),
 };
 
 export type { OpsDepartmentConfig, OpsDepartmentConfigInput };

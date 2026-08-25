@@ -8,11 +8,15 @@ import {
   RoomModel,
   ScheduleConfigModel,
   ConfigVersionModel,
+  ShiftTemplateModel,
+  StaffLeaveModel,
+  HospitalClosureModel,
   nextSequence,
   plain,
   plainList,
 } from "@/lib/models";
-import { requireHospitalAccess, requirePermission } from "@/server/lib/access";
+import { requireHospitalAccess } from "@/server/lib/access";
+import { weekdayOf } from "@/server/lib/availability";
 import { auditOps } from "@/server/lib/audit";
 import type { SessionUser } from "@/features/auth/types/auth.types";
 import type {
@@ -20,6 +24,7 @@ import type {
   Department,
   HospitalService,
   Room,
+  ShiftTemplate,
 } from "@/types";
 
 const WORKDAY_TO_NUM: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
@@ -391,4 +396,140 @@ export async function opsSetRoomStatus(id: string, status: Room["status"]): Prom
     detail: { status },
   });
   return doc ? plain<Room>(doc) : null;
+}
+
+/* ───────── Shift templates ───────── */
+
+export async function opsListShifts(hospitalId: string): Promise<ShiftTemplate[]> {
+  await dbConnect();
+  await requireHospitalAccess("VIEW_QUEUE", hospitalId);
+  const docs = await ShiftTemplateModel.find({ hospitalId }).sort({ startTime: 1 }).lean();
+  return plainList<ShiftTemplate>(docs);
+}
+
+export async function opsSaveShift(input: {
+  id?: string;
+  hospitalId: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  departmentId?: string | null;
+  breakMinutes?: number;
+}): Promise<ShiftTemplate> {
+  await dbConnect();
+  const user = await requireHospitalAccess("MANAGE_SHIFTS", input.hospitalId);
+  if (input.endTime <= input.startTime) {
+    throw new Error("Shift end time must be after start time.");
+  }
+  const base = {
+    hospitalId: input.hospitalId,
+    name: input.name.trim(),
+    startTime: input.startTime,
+    endTime: input.endTime,
+    departmentId: input.departmentId ?? null,
+    breakMinutes: input.breakMinutes ?? 0,
+    status: "active" as const,
+  };
+  let doc;
+  if (input.id) {
+    doc = await ShiftTemplateModel.findOneAndUpdate({ _id: input.id }, { $set: base }, { new: true });
+  } else {
+    const n = await nextSequence("shifttemplate");
+    doc = await ShiftTemplateModel.create({ _id: `shift_${String(n).padStart(3, "0")}`, ...base });
+  }
+  if (!doc) throw new Error("Shift not found.");
+  auditOps(user, {
+    action: "shift_updated",
+    resourceType: "shift_template",
+    resourceId: String(doc._id),
+    hospitalId: input.hospitalId,
+    detail: { name: base.name, startTime: base.startTime, endTime: base.endTime },
+  });
+  return plain<ShiftTemplate>(doc);
+}
+
+export async function opsSetShiftStatus(id: string, status: "active" | "inactive"): Promise<void> {
+  await dbConnect();
+  const shift = await ShiftTemplateModel.findById(id).lean<{ hospitalId: string }>();
+  if (!shift) throw new Error("Shift not found.");
+  const user = await requireHospitalAccess("MANAGE_SHIFTS", (shift as unknown as { hospitalId: string }).hospitalId);
+  await ShiftTemplateModel.updateOne({ _id: id }, { $set: { status } });
+  auditOps(user, {
+    action: "shift_status_changed",
+    resourceType: "shift_template",
+    resourceId: id,
+    hospitalId: (shift as unknown as { hospitalId: string }).hospitalId,
+    detail: { status },
+  });
+}
+
+/* ───────── Doctor availability ───────── */
+
+export type DayAvailability = {
+  date: string;
+  weekday: number;
+  scheduled: boolean;
+  onLeave: boolean;
+  closure: boolean;
+};
+
+/** Availability grid for a doctor over a date window (schedule − leave − closures). */
+export async function opsDoctorAvailability(
+  doctorId: string,
+  hospitalId: string,
+  fromDate: string,
+  days = 14
+): Promise<DayAvailability[]> {
+  await dbConnect();
+  await requireHospitalAccess("VIEW_APPOINTMENT_SCHEDULE", hospitalId);
+
+  const config = await ScheduleConfigModel.findOne({ hospitalId, doctorId }).lean<{
+    workdays: number[];
+    holidays: string[];
+    departmentId: string;
+    openTime?: string;
+    closeTime?: string;
+  }>();
+  if (!config) return [];
+
+  const leaves = await StaffLeaveModel.find({
+    staffId: doctorId,
+    status: "approved",
+    toDate: { $gte: fromDate },
+    fromDate: { $lte: new Date(new Date(`${fromDate}T00:00:00`).getTime() + days * 86400000).toISOString().slice(0, 10) },
+  })
+    .select("fromDate toDate")
+    .lean<{ fromDate: string; toDate: string }[]>();
+
+  const closures = await HospitalClosureModel.find({
+    hospitalId,
+    status: { $in: ["planned", "active"] },
+    toDate: { $gte: fromDate },
+  })
+    .select("scope departmentId fromDate toDate")
+    .lean<{ scope: string; departmentId: string | null; fromDate: string; toDate: string }[]>();
+
+  const result: DayAvailability[] = [];
+  for (let i = 0; i < days; i += 1) {
+    const date = new Date(new Date(`${fromDate}T00:00:00`).getTime() + i * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const onLeave = leaves.some((l) => l.fromDate <= date && l.toDate >= date);
+    const closure =
+      !onLeave &&
+      closures.some(
+        (c) =>
+          c.fromDate <= date &&
+          c.toDate >= date &&
+          (c.scope === "hospital" || c.departmentId === config.departmentId)
+      );
+    result.push({
+      date,
+      weekday: weekdayOf(date),
+      scheduled: config.workdays.includes(weekdayOf(date)),
+      onLeave,
+      closure,
+    });
+  }
+  return result;
 }
