@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAsync } from "@/lib/use-async";
 import { adminMockApi } from "../api/admin.mock";
+import { hospitalOpsServerApi } from "../api/hospital-ops.server";
 import type { AdminSettingsInput } from "@/services/admin/types";
 import type { OPDStatus } from "@/types";
 
@@ -93,9 +94,9 @@ export function useAdminMutations() {
     busy,
     error,
     addDepartment: (hospitalId: string, name: string) =>
-      run(() => adminMockApi.addDepartment(hospitalId, name)),
+      run(() => hospitalOpsServerApi.createDepartment(hospitalId, name)),
     setDepartmentStatus: (id: string, status: "active" | "inactive") =>
-      run(() => adminMockApi.setDepartmentStatus(id, status)),
+      run(() => hospitalOpsServerApi.setDepartmentStatus(id, status)),
     addDoctor: (input: {
       hospitalId: string;
       departmentId: string;

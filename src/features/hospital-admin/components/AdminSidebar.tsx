@@ -14,6 +14,7 @@ const navGroups: Array<{ label: string; items: Array<{ href: string; label: stri
       { href: "/hospital-admin/schedules", label: "Schedules" },
       { href: "/hospital-admin/queues", label: "Queues" },
       { href: "/hospital-admin/services", label: "Services" },
+      { href: "/hospital-admin/rooms", label: "Rooms" },
       { href: "/hospital-admin/appointments", label: "Appointments" },
     ],
   },
@@ -22,6 +23,7 @@ const navGroups: Array<{ label: string; items: Array<{ href: string; label: stri
     items: [
       { href: "/hospital-admin/doctors", label: "Doctors" },
       { href: "/hospital-admin/staff", label: "Staff" },
+      { href: "/hospital-admin/staff/leave", label: "Leave" },
     ],
   },
   {

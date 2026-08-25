@@ -5,6 +5,8 @@ import { useAsync } from "@/lib/use-async";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { roleLabel } from "@/features/auth/roles";
 import { hospitalOpsService } from "@/services/hospital-ops";
+import { hospitalOpsServerApi } from "../api/hospital-ops.server";
+import type { OpsDepartmentConfigInput } from "@/server/actions/hospital-ops";
 import type {
   AuditActor,
   DashboardFilters,
@@ -47,7 +49,7 @@ export function useExceptions(hospitalId: string) {
 }
 
 export function useDepartmentConfigs(hospitalId: string) {
-  return useAsync(() => hospitalOpsService.listDepartmentConfigs(hospitalId), [hospitalId]);
+  return useAsync(() => hospitalOpsServerApi.listDepartmentConfigs(hospitalId), [hospitalId]);
 }
 
 export function useQueueConfigs(hospitalId: string) {
@@ -59,7 +61,7 @@ export function useTokenConfig(hospitalId: string) {
 }
 
 export function useServices(hospitalId: string) {
-  return useAsync(() => hospitalOpsService.listServices(hospitalId), [hospitalId]);
+  return useAsync(() => hospitalOpsServerApi.listServices(hospitalId), [hospitalId]);
 }
 
 export function useStaffProfiles(hospitalId: string) {
@@ -119,8 +121,8 @@ export function useOpsMutations() {
   return {
     busy,
     error,
-    saveDepartmentConfig: (config: DepartmentConfig) =>
-      run(() => hospitalOpsService.saveDepartmentConfig(config, actor)),
+    saveDepartmentConfig: (config: OpsDepartmentConfigInput) =>
+      run(() => hospitalOpsServerApi.saveDepartmentConfig(config)),
     saveStaffProfile: (profile: StaffProfile) =>
       run(() => hospitalOpsService.saveStaffProfile(profile, actor)),
     nextEmployeeId: (hospitalId: string, role: StaffProfile["role"]) =>
@@ -147,7 +149,9 @@ export function useOpsMutations() {
     saveQueueConfig: (config: DepartmentQueueConfig) =>
       run(() => hospitalOpsService.saveQueueConfig(config, actor)),
     saveTokenConfig: (config: TokenConfig) => run(() => hospitalOpsService.saveTokenConfig(config, actor)),
-    saveService: (entry: HospitalServiceEntry) => run(() => hospitalOpsService.saveService(entry, actor)),
-    toggleServiceStatus: (id: string) => run(() => hospitalOpsService.toggleServiceStatus(id, actor)),
+    saveService: (entry: HospitalServiceEntry) =>
+      run(() => hospitalOpsServerApi.saveService(entry) as Promise<HospitalServiceEntry | null>),
+    toggleServiceStatus: (id: string) =>
+      run(() => hospitalOpsServerApi.toggleServiceStatus(id)),
   };
 }
