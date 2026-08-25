@@ -44,13 +44,23 @@ function tokenNum(prefix: string, n: number) {
 /* ---------------- static reference data ---------------- */
 
 const HOSPITALS = [
-  { id: "hos_001", name: "General Hospital Ernakulam", district: "ernakulam", address: "Hospital Road, Kaloor, Ernakulam", phone: "+91 484 238 1000" },
-  { id: "hos_002", name: "General Hospital Aluva", district: "ernakulam", address: "Bank Junction, Aluva, Ernakulam", phone: "+91 484 262 4000" },
-  { id: "hos_003", name: "Taluk Hospital Perumbavoor", district: "ernakulam", address: "MC Road, Perumbavoor, Ernakulam", phone: "+91 484 252 3000" },
-  { id: "hos_004", name: "District Hospital Kottayam", district: "kottayam", address: "KK Road, Kottayam", phone: "+91 481 256 2000" },
-  { id: "hos_005", name: "General Hospital Thrissur", district: "thrissur", address: "Round East, Thrissur", phone: "+91 487 233 5000" },
-  { id: "hos_006", name: "District Hospital Kozhikode", district: "kozhikode", address: "Beach Road, Kozhikode", phone: "+91 495 236 6000" },
+  { id: "hos_001", code: "GH-ERN-001", type: "general", name: "General Hospital Ernakulam", district: "ernakulam", address: "Hospital Road, Kaloor, Ernakulam", phone: "+91 484 238 1000", emergencyContact: "+91 484 238 1099" },
+  { id: "hos_002", code: "GH-ALV-001", type: "general", name: "General Hospital Aluva", district: "ernakulam", address: "Bank Junction, Aluva, Ernakulam", phone: "+91 484 262 4000", emergencyContact: "+91 484 262 4099" },
+  { id: "hos_003", code: "TH-PBV-001", type: "taluk", name: "Taluk Hospital Perumbavoor", district: "ernakulam", address: "MC Road, Perumbavoor, Ernakulam", phone: "+91 484 252 3000", emergencyContact: "+91 484 252 3099" },
+  { id: "hos_004", code: "DH-KTM-001", type: "district", name: "District Hospital Kottayam", district: "kottayam", address: "KK Road, Kottayam", phone: "+91 481 256 2000", emergencyContact: "+91 481 256 2099" },
+  { id: "hos_005", code: "GH-TCR-001", type: "general", name: "General Hospital Thrissur", district: "thrissur", address: "Round East, Thrissur", phone: "+91 487 233 5000", emergencyContact: "+91 487 233 5099" },
+  { id: "hos_006", code: "DH-KZK-001", type: "district", name: "District Hospital Kozhikode", district: "kozhikode", address: "Beach Road, Kozhikode", phone: "+91 495 236 6000", emergencyContact: "+91 495 236 6099" },
 ];
+
+const DEPARTMENT_CODES: Record<string, string> = {
+  "General Medicine": "GENMED",
+  Cardiology: "CARD",
+  Orthopaedics: "ORTHO",
+  Paediatrics: "PED",
+  Dermatology: "DERM",
+  "Obstetrics & Gynaecology": "OBSGYN",
+  ENT: "ENT",
+};
 
 const DEPARTMENTS_BY_HOSPITAL: Record<string, string[]> = {
   hos_001: ["General Medicine", "Cardiology", "Orthopaedics", "Paediatrics", "Dermatology"],
@@ -63,7 +73,21 @@ const DEPARTMENTS_BY_HOSPITAL: Record<string, string[]> = {
 
 let depSeq = 0;
 const departments = Object.entries(DEPARTMENTS_BY_HOSPITAL).flatMap(([hospitalId, names]) =>
-  names.map((name) => ({ id: `dep_${String(++depSeq).padStart(3, "0")}`, hospitalId, name }))
+  names.map((name) => {
+    depSeq += 1;
+    const isDemo = hospitalId === "hos_001";
+    return {
+      id: `dep_${String(depSeq).padStart(3, "0")}`,
+      hospitalId,
+      code: DEPARTMENT_CODES[name] ?? name.replace(/[^a-zA-Z]/g, "").slice(0, 6).toUpperCase(),
+      name,
+      // Capacity governance demo values (spec §19/§20)
+      dailyCapacity: isDemo ? [120, 80, 60, 70, 40][depSeq % 5] : null,
+      avgConsultationMinutes: isDemo ? 8 : null,
+      appointmentAllocationPct: isDemo ? 70 : null,
+      walkInAllocationPct: isDemo ? 30 : null,
+    };
+  })
 );
 
 let opdSeq = 0;
@@ -899,6 +923,176 @@ async function main() {
   ];
   await coll("notificationjobs").insertMany(jobs);
 
+  // --- Phase 26: Hospital operations seed data ---
+  console.log("Seeding Phase 26 hospital operations...");
+  const todayStr = now.toISOString().slice(0, 10);
+  const dateOffset = (d: number) => new Date(now.getTime() + d * 86400000).toISOString().slice(0, 10);
+
+  // Staff assignments — every doctor and staff member (spec §5/§6)
+  const roleForStaff: Record<string, string> = {
+    receptionist: "receptionist",
+    clinical_staff: "nurse",
+    pharmacy: "pharmacist",
+    lab_staff: "lab_technician",
+    accounts: "data_entry_operator",
+  };
+  const staffAssignments = [
+    ...doctors.map((d, i) => ({
+      _id: `asg_${String(i + 1).padStart(4, "0")}`,
+      staffId: d.id,
+      hospitalId: d.hospitalId,
+      departmentId: d.departmentId,
+      role: "doctor",
+      startDate: d.joinedAt ?? todayStr,
+      endDate: null,
+      status: "active",
+      createdAt: iso(daysAgo(400)),
+      updatedAt: iso(daysAgo(30)),
+    })),
+    ...staffMembers.map((s, i) => ({
+      _id: `asg_${String(doctors.length + i + 1).padStart(4, "0")}`,
+      staffId: s.id,
+      hospitalId: s.hospitalId,
+      departmentId: null,
+      role: roleForStaff[s.role] ?? s.role,
+      startDate: s.joinedAt ?? todayStr,
+      endDate: null,
+      status: "active",
+      createdAt: iso(daysAgo(300)),
+      updatedAt: iso(daysAgo(30)),
+    })),
+  ];
+  await coll("staffassignments").insertMany(staffAssignments);
+
+  // Leave — approved leave covering today + a pending request
+  await coll("staffleaves").insertMany([
+    { _id: "lv_0001", staffId: "doc_002", hospitalId: "hos_001", departmentId: "dep_002", fromDate: todayStr, toDate: dateOffset(2), reason: "Approved medical leave", status: "approved", reviewedBy: "adm_001", reviewedAt: iso(daysAgo(1)), createdAt: iso(daysAgo(3)) },
+    { _id: "lv_0002", staffId: "doc_003", hospitalId: "hos_001", departmentId: "dep_003", fromDate: dateOffset(7), toDate: dateOffset(9), reason: "Family function — requested", status: "pending", reviewedBy: null, reviewedAt: null, createdAt: iso(hoursAgo(5)) },
+    { _id: "lv_0003", staffId: "doc_004", hospitalId: "hos_001", departmentId: "dep_004", fromDate: dateOffset(-6), toDate: dateOffset(-4), reason: "Conference attendance", status: "approved", reviewedBy: "adm_001", reviewedAt: iso(daysAgo(8)), createdAt: iso(daysAgo(10)) },
+  ]);
+
+  // Rooms (spec §14)
+  await coll("rooms").insertMany([
+    { _id: "room_001", hospitalId: "hos_001", code: "OPD-01", name: "Consultation 1", type: "opd", departmentId: "dep_001", floor: "Ground floor", status: "active" },
+    { _id: "room_002", hospitalId: "hos_001", code: "OPD-02", name: "Consultation 2", type: "opd", departmentId: "dep_002", floor: "Ground floor", status: "active" },
+    { _id: "room_003", hospitalId: "hos_001", code: "OPD-03", name: "Consultation 3", type: "opd", departmentId: "dep_003", floor: "First floor", status: "active" },
+    { _id: "room_004", hospitalId: "hos_001", code: "OPD-04", name: "Consultation 4", type: "opd", departmentId: "dep_004", floor: "First floor", status: "maintenance" },
+    { _id: "room_005", hospitalId: "hos_001", code: "LAB-01", name: "Main lab", type: "lab", departmentId: null, floor: "Basement", status: "active" },
+    { _id: "room_006", hospitalId: "hos_001", code: "XRAY-01", name: "X-Ray room", type: "radiology", departmentId: null, floor: "Ground floor", status: "active" },
+    { _id: "room_007", hospitalId: "hos_001", code: "PH-01", name: "Hospital pharmacy", type: "pharmacy", departmentId: null, floor: "Ground floor", status: "active" },
+    { _id: "room_008", hospitalId: "hos_002", code: "OPD-01", name: "Consultation 1", type: "opd", departmentId: "dep_006", floor: "Ground floor", status: "active" },
+  ]);
+
+  // Shift templates (spec §12)
+  await coll("shifttemplates").insertMany([
+    { _id: "shift_001", hospitalId: "hos_001", name: "Morning", startTime: "08:00", endTime: "14:00", departmentId: null, breakMinutes: 30, status: "active" },
+    { _id: "shift_002", hospitalId: "hos_001", name: "Evening", startTime: "14:00", endTime: "20:00", departmentId: null, breakMinutes: 30, status: "active" },
+    { _id: "shift_003", hospitalId: "hos_001", name: "Night", startTime: "20:00", endTime: "08:00", departmentId: null, breakMinutes: 45, status: "active" },
+  ]);
+
+  // Hospital services catalogue (spec §13)
+  await coll("hospitalservices").insertMany([
+    { _id: "svc_001", hospitalId: "hos_001", name: "General OPD Consultation", code: "GENOPD", category: "opd", departmentId: "dep_001", description: "Mon–Sat · 09:00–13:00", status: "active" },
+    { _id: "svc_002", hospitalId: "hos_001", name: "Cardiology OPD", code: "CARDOPD", category: "opd", departmentId: "dep_002", description: "Mon–Sat · 08:30–12:30", status: "active" },
+    { _id: "svc_003", hospitalId: "hos_001", name: "Clinical Laboratory", code: "LAB", category: "laboratory", departmentId: null, description: "Mon–Sat · 08:00–16:00", status: "active" },
+    { _id: "svc_004", hospitalId: "hos_001", name: "X-Ray", code: "XRAY", category: "radiology", departmentId: null, description: "Mon–Sat · 09:00–17:00", status: "active" },
+    { _id: "svc_005", hospitalId: "hos_001", name: "ECG", code: "ECG", category: "radiology", departmentId: null, description: "Mon–Sat · 09:00–17:00", status: "inactive" },
+    { _id: "svc_006", hospitalId: "hos_001", name: "Pharmacy", code: "PHARM", category: "pharmacy", departmentId: null, description: "Daily · 08:00–20:00", status: "active" },
+    { _id: "svc_007", hospitalId: "hos_001", name: "Emergency", code: "EMRG", category: "emergency", departmentId: null, description: "24 × 7", status: "active" },
+  ]);
+
+  // OPD sessions for today across the lifecycle states (spec §15/§16)
+  const sessionDept = departments.filter((d) => d.hospitalId === "hos_001");
+  const opdSessionStates = [
+    { dep: sessionDept[0], state: "active", issued: 34, completed: 21 },
+    { dep: sessionDept[1], state: "paused", issued: 18, completed: 11 },
+    { dep: sessionDept[2], state: "open", issued: 0, completed: 0 },
+    { dep: sessionDept[3], state: "scheduled", issued: 0, completed: 0 },
+    { dep: sessionDept[4], state: "cancelled", issued: 0, completed: 0 },
+  ];
+  await coll("opdsessions").insertMany(
+    opdSessionStates
+      .filter((s) => s.dep)
+      .map((s, i) => ({
+        _id: `ses_${s.dep.id}_${todayStr}`,
+        hospitalId: "hos_001",
+        departmentId: s.dep.id,
+        opdId: s.dep.id.replace("dep_", "opd_dep_"),
+        doctorId: `doc_${String(i + 1).padStart(3, "0")}`,
+        roomId: `room_00${Math.min(i + 1, 4)}`,
+        shiftId: "shift_001",
+        date: todayStr,
+        startTime: s.dep.name === "Cardiology" ? "08:30" : "09:00",
+        endTime: s.dep.name === "Cardiology" ? "12:30" : "13:00",
+        state: s.state,
+        plannedCapacity: s.dep.dailyCapacity ?? 100,
+        tokensIssued: s.issued,
+        tokensCompleted: s.completed,
+        pauseReason: s.state === "paused" ? "Doctor emergency — expected back soon" : null,
+        expectedResumeAt: s.state === "paused" ? new Date(now.getTime() + 40 * 60000).toISOString() : null,
+        pausedAt: s.state === "paused" ? iso(hoursAgo(1)) : null,
+        resumedAt: null,
+        openedAt: ["open", "active", "paused"].includes(s.state) ? timeOn(now, 8, 45) : null,
+        completedAt: null,
+        cancelledAt: s.state === "cancelled" ? timeOn(now, 7, 55) : null,
+        cancelReason: s.state === "cancelled" ? "Room maintenance" : null,
+        createdAt: iso(daysAgo(0)),
+      }))
+  );
+
+  // Upcoming holiday closure with impact preview (spec §18)
+  await coll("hospitalclosures").insertMany([
+    {
+      _id: "closure_001",
+      hospitalId: "hos_001",
+      scope: "department",
+      departmentId: "dep_002",
+      type: "maintenance",
+      fromDate: dateOffset(5),
+      toDate: dateOffset(5),
+      reason: "Electrical panel upgrade in Cardiology block",
+      status: "planned",
+      affectedTotal: 14,
+      affectedRescheduled: 0,
+      affectedCancelled: 0,
+      createdBy: "adm_001",
+      createdByName: "Dr. Sreeja Nambiar",
+      createdAt: iso(daysAgo(1)),
+    },
+  ]);
+
+  // Configuration version history (spec §27)
+  await coll("configversions").insertMany([
+    {
+      _id: "cfv_0001",
+      hospitalId: "hos_001",
+      entity: "department_capacity",
+      entityId: "dep_002",
+      changes: [{ field: "dailyCapacity", before: 100, after: 120 }],
+      note: "Cardiology capacity raised after new consulting room opened.",
+      actorId: "adm_001",
+      actorName: "Dr. Sreeja Nambiar",
+      actorRole: "hospital_admin",
+      createdAt: iso(daysAgo(2)),
+    },
+    {
+      _id: "cfv_0002",
+      hospitalId: "hos_001",
+      entity: "department_capacity",
+      entityId: "dep_002",
+      changes: [
+        { field: "appointmentAllocationPct", before: 60, after: 70 },
+        { field: "walkInAllocationPct", before: 40, after: 30 },
+      ],
+      note: "Online allocation increased per district circular.",
+      actorId: "adm_001",
+      actorName: "Dr. Sreeja Nambiar",
+      actorRole: "hospital_admin",
+      createdAt: iso(daysAgo(15)),
+    },
+  ]);
+
+  console.log("Phase 26 seed data inserted.");
   console.log("Phase 25 seed data inserted.");
 
   console.log("Phase 24 seed data inserted.");
