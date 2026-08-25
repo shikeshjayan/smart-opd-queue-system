@@ -532,26 +532,114 @@ const documentMetaSchema = new Schema(
 export const DocumentMetaModel =
   mongoose.models.DocumentMeta ?? mongoose.model("DocumentMeta", documentMetaSchema);
 
-/* ---------- Notifications (admin + patient) ---------- */
+/* ---------- Notifications (Phase 25) ---------- */
 
 const notificationSchema = new Schema(
   {
     hospitalId: { type: String, index: true },
     userId: { type: String, index: true },
-    audience: { type: String, enum: ["hospital", "patient"], default: "hospital" },
-    type: String,
-    category: String,
+    audience: { type: String, enum: ["hospital", "patient", "staff"], default: "patient" },
+    // templateKey e.g. APPOINTMENT_CONFIRMED, QUEUE_TOKEN_CALLED
+    templateKey: { type: String, index: true },
+    category: { type: String, index: true }, // appointment | queue | clinical | followup | announcement | system
     title: { type: String, required: true },
     message: String,
-    priority: String,
+    bodyEn: String,
+    bodyMl: String,
+    locale: { type: String, default: "en" },
+    priority: { type: String, default: "normal" }, // normal | important | critical
+    required: { type: Boolean, default: false },
     read: { type: Boolean, default: false },
-    createdAt: { type: String, required: true },
+    readAt: String,
+    deepLink: String,
+    resourceType: String,
+    resourceId: String,
+    channels: [String],
+    idempotencyKey: { type: String, index: true },
+    dueAt: String,
+    targetScope: Schema.Types.Mixed,
+    sentBy: String,
+    createdAt: { type: String, required: true, index: true },
   },
   { versionKey: false, strict: false }
 );
 
+notificationSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
+
 export const NotificationModel =
   mongoose.models.Notification ?? mongoose.model("Notification", notificationSchema);
+
+const notificationDeliverySchema = new Schema(
+  {
+    notificationId: { type: String, required: true, index: true },
+    channel: { type: String, required: true }, // in_app | sms | push | email
+    state: {
+      type: String,
+      enum: ["pending", "processing", "sent", "delivered", "failed", "read"],
+      default: "pending",
+    },
+    attempts: { type: Number, default: 0 },
+    maxAttempts: { type: Number, default: 3 },
+    lastError: String,
+    providerMessageId: String,
+    sentAt: String,
+    deliveredAt: String,
+    readAt: String,
+    updatedAt: String,
+  },
+  { versionKey: false, strict: false }
+);
+
+export const NotificationDeliveryModel =
+  mongoose.models.NotificationDelivery ??
+  mongoose.model("NotificationDelivery", notificationDeliverySchema);
+
+const notificationJobSchema = new Schema(
+  {
+    payload: Schema.Types.Mixed,
+    state: {
+      type: String,
+      enum: ["queued", "processing", "done", "dead"],
+      default: "queued",
+      index: true,
+    },
+    attempts: { type: Number, default: 0 },
+    maxAttempts: { type: Number, default: 3 },
+    runAfter: { type: Date, index: true },
+    lockedAt: Date,
+    leaseExpiresAt: Date,
+    lastError: String,
+    idempotencyKey: { type: String, index: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false, strict: false }
+);
+
+export const NotificationJobModel =
+  mongoose.models.NotificationJob ?? mongoose.model("NotificationJob", notificationJobSchema);
+
+const notificationPreferenceSchema = new Schema(
+  {
+    patientId: { type: String, required: true, unique: true },
+    sms: { type: Boolean, default: true },
+    email: { type: Boolean, default: false },
+    push: { type: Boolean, default: true },
+    appointmentReminders: { type: Boolean, default: true },
+    queueUpdates: { type: Boolean, default: true },
+    resultNotifications: { type: Boolean, default: true },
+    prescriptionNotifications: { type: Boolean, default: true },
+    followUpReminders: { type: Boolean, default: true },
+    announcements: { type: Boolean, default: true },
+    locale: { type: String, default: "en" },
+    phoneVerified: { type: Boolean, default: false },
+    updatedAt: String,
+  },
+  { versionKey: false, strict: false }
+);
+
+export const NotificationPreferenceModel =
+  mongoose.models.NotificationPreference ??
+  mongoose.model("NotificationPreference", notificationPreferenceSchema);
 
 /* ---------- Admin settings ---------- */
 

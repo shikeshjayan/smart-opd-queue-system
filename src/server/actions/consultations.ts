@@ -5,6 +5,7 @@ import { dbConnect } from "@/lib/db";
 import { ConsultationModel, ConsultationAuditModel, EncounterModel, PatientModel, DoctorModel, QueueEntryModel, QueueAuditModel } from "@/lib/models";
 import { plain } from "@/lib/models";
 import type { ConsultationSections } from "@/services/consultation/types";
+import { notify } from "@/server/notifications/service";
 
 async function getActor(): Promise<{ id: string; name: string }> {
   try {
@@ -201,6 +202,28 @@ export async function completeConsultation(
       { _id: encounterId },
       { $set: { status: "completed", completedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } }
     );
+
+    // §7: follow-up notification
+    if (sections.followUp && sections.followUp.decision !== "none" && "date" in sections.followUp) {
+      const fup = sections.followUp as { decision: string; date?: string; departmentId?: string; notes?: string };
+        if (fup.date) {
+          const encounter = await EncounterModel.findById(encounterId).lean();
+          const patientId = (encounter as any)?.patientId;
+          if (patientId) {
+            const doctor = await DoctorModel?.findById((encounter as any)?.doctorId).select("name").lean().catch(() => null);
+          await notify({
+            userId: patientId,
+            templateKey: "FOLLOW_UP_SCHEDULED",
+            params: { doctor: doctor?.name ?? "your doctor", date: fup.date },
+            idempotencyKey: `followup:${encounterId}:${fup.date}`,
+            hospitalId: (encounter as any)?.hospitalId,
+            audience: "patient",
+            resourceType: "followUp",
+            resourceId: encounterId,
+          });
+        }
+      }
+    }
 
     // Complete any active queue entry for this encounter
     const enc = await EncounterModel.findOne({ _id: encounterId }).lean<{ tokenId: string; opdId: string; doctorId: string; tokenNumber: string; patientId: string }>();

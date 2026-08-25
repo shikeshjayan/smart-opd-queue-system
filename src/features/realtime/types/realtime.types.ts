@@ -111,12 +111,19 @@ export type DiagnosticEvent = ClinicalEventBase & {
 
 export type ClinicalEvent = LabEvent | PharmacyEvent | DiagnosticEvent;
 
+export type NotificationChangeEvent = {
+  type: "NOTIFICATION_EVENT";
+  at: string;
+  userId?: string;
+  hospitalId?: string;
+};
+
 export type ConnectionChangedEvent = {
   type: "CONNECTION_CHANGED";
   status: ConnectionStatus;
   at: string;
 };
 
-export type RealtimeEvent = (QueueEvent & { opdId: string }) | ClinicalEvent | ConnectionChangedEvent;
+export type RealtimeEvent = (QueueEvent & { opdId: string }) | ClinicalEvent | NotificationChangeEvent | ConnectionChangedEvent;
 
 export type RealtimeListener = (event: RealtimeEvent) => void;

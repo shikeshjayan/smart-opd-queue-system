@@ -19,9 +19,9 @@ function asyncReducer<T>(state: AsyncState<T>, action: AsyncAction<T>): AsyncSta
   }
 }
 
-export function useAsync<T>(loader: () => Promise<T>, deps: DependencyList = []) {
-  const [state, dispatch] = useReducer(asyncReducer<T>, null, (): AsyncState<T> => ({
-    data: null,
+export function useAsync<T>(loader: () => Promise<T>, deps: DependencyList = [], initialData?: T) {
+  const [state, dispatch] = useReducer(asyncReducer<T>, initialData, (init): AsyncState<T> => ({
+    data: init as T,
     error: null,
     isLoading: true,
   }));

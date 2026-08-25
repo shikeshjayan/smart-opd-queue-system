@@ -16,6 +16,10 @@ export function isQueueEvent(event: RealtimeEvent): event is QueueEvent & { opdI
   return QUEUE_EVENT_NAMES.has(event.type);
 }
 
+export function isNotificationEvent(event: RealtimeEvent): event is { type: "NOTIFICATION_EVENT"; at: string; userId?: string; hospitalId?: string } {
+  return event.type === "NOTIFICATION_EVENT";
+}
+
 export function isQueueEventType(type: string): type is QueueEventType {
   return QUEUE_EVENT_NAMES.has(type);
 }

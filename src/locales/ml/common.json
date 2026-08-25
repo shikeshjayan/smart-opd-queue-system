@@ -1,0 +1,62 @@
+{
+  "appointment": {
+    "booked_title": "അപ്പോയിൻറ്മെന്റ് ബുക്ക് ചെയ്തു",
+    "booked_body": "{{hospital}}-ൽ ({{department}}) {{date}} {{time}}-ന് നിങ്ങളുടെ ഒപിഡി അപ്പോയിൻറ്മെന്റ് ബുക്ക് ചെയ്തിട്ടുണ്ട്. അപ്പോയിൻറ്മെന്റ്: {{appointmentId}}.",
+    "confirmed_title": "അപ്പോയിൻറ്മെന്റ് സ്ഥിരീകരിച്ചു",
+    "confirmed_body": "{{hospital}}-ലെ നിങ്ങളുടെ ഒപിഡി അപ്പോയിൻറ്മെന്റ് {{date}} {{time}}-ന് സ്ഥിരീകരിച്ചിരിക്കുന്നു.",
+    "cancelled_title": "അപ്പോയിൻറ്മെന്റ് റദ്ദാകരിച്ചു",
+    "cancelled_body": "{{date}} {{time}}-ന് {{hospital}}-ൽ നിങ്ങളുടെ അപ്പോയിൻറ്മെന്റ് റദ്ദാകരിച്ചിരിക്കുന്നു. പുതിയ അപ്പോയിൻറ്മെന്റ് എപ്പോൾ വേണമെങ്കിലും ബുക്ക് ചെയ്യാം.",
+    "rescheduled_title": "അപ്പോയിൻറ്മെന്റ് മാറ്റി",
+    "rescheduled_body": "നിങ്ങളുടെ {{department}} അപ്പോയിൻറ്മെന്റ് {{hospital}}-ൽ {{date}} {{time}}-നേക്ക് മാറ്റിയിരിക്കുന്നു.",
+    "reminder_title": "അപ്പോയിൻറ്മെന്റ് ഓർമ്മപ്പെടുത്തൽ",
+    "reminder_body": "നാളെ നിങ്ങളുടെ ഒപിഡി അപ്പോയിൻറ്മെന്റ് ഉണ്ട്.\n\n{{hospital}}\n{{department}}\n{{time}}\n\nഅപ്പോയിൻറ്മെന്റ്: {{appointmentId}}"
+  },
+  "queue": {
+    "checked_in_title": "ചെക്ക്-ഇൻ ചെയ്തു",
+    "checked_in_body": "{{hospital}}-ലെ {{department}}-ൽ നിങ്ങൾ ചെക്ക്-ഇൻ ചെയ്തിരിക്കുന്നു. നിങ്ങളുടെ ടോക്കൺ {{token}}.",
+    "token_generated_title": "ടോക്കൺ ലഭിച്ചു",
+    "token_generated_body": "{{hospital}}-ലെ {{department}}-ന് ടോക്കൺ {{token}} നൽകി.",
+    "approaching_title": "നിങ്ങളുടെ ടോക്കൺ സമീപിക്കുന്നു",
+    "approaching_body": "നിങ്ങളുടെ ടോക്കൺ {{token}} സമീപിക്കുന്നു. നിങ്ങൾക്ക് മുന്നിൽ {{ahead}} പേർ.\n\nദയവായി {{department}} ഒപിഡിക്ക് സമീപം തുടരുക.",
+    "called_title": "നിങ്ങളുടെ ടോക്കൺ ഇപ്പോൾ വിളിക്കുന്നു",
+    "called_body": "ടോക്കൺ {{token}} ഇപ്പോൾ വിളിക്കുന്നു.\n\nദയവായി {{department}} ഒപിഡിയിലെ റൂം {{room}}-ലേക്ക് വരിക.",
+    "delayed_title": "ഒപിഡി വൈകൽ",
+    "delayed_body": "{{department}} ഒപിഡി നിലവിൽ വൈകുന്നു.\n\nപ്രതീക്ഷിക്കുന്ന കാത്തിരിപ്പ് സമയം: ~{{eta}} മിനിറ്റ്.\n\nവൈകലിന് ഞങ്ങൾ ഖേദിക്കുന്നു."
+  },
+  "results": {
+    "lab_available_title": "ലാബ് ഫലം ലഭ്യമാണ്",
+    "lab_available_body": "നിങ്ങളുടെ മെഡിക്കൽ ടെസ്റ്റ് ഫലം ലഭ്യമാണ്. കാണുന്നതിന് സൈൻ ഇൻ ചെയ്യുക.",
+    "diagnostic_available_title": "ഡയഗ്നോസ്റ്റിക് റിപ്പോർട്ട് ലഭ്യമാണ്",
+    "diagnostic_available_body": "നിങ്ങളുടെ ഡയഗ്നോസ്റ്റിക് റിപ്പോർട്ട് ലഭ്യമാണ്. കാണുന്നതിന് സൈൻ ഇൻ ചെയ്യുക.",
+    "result_ready_for_review_title": "ഫലം അവലോകനം ആവശ്യമാണ്",
+    "result_ready_for_review_body": "{{count}} ലാബ് ഫലം(ങ്ങൾ) സമർപ്പിച്ചു, സ്ഥിരീകരണം കാത്തിരിക്കുന്നു.",
+    "critical_result_title": "നിർണായക ഫല അലേർട്ട്",
+    "critical_result_body": "രോഗി {{patientId}}-ന്റെ ഒരു നിർണായക ഫലം അംഗീകാരം ആവശ്യമാണ്."
+  },
+  "pharmacy": {
+    "prescription_ready_title": "കുറിപ്പടി തയ്യാറാണ്",
+    "prescription_ready_body": "നിങ്ങളുടെ കുറിപ്പടി {{hospital}} ഫാർമസിയിൽ ശേഖരിക്കാൻ തയ്യാറാണ്.",
+    "partially_dispensed_title": "കുറിപ്പടി ഭാഗികമായി നൽകി",
+    "partially_dispensed_body": "നിങ്ങളുടെ കുറിപ്പടിയുടെ ഒരു ഭാഗം നൽകിയിട്ടുണ്ട്. വിശദാംശങ്ങൾക്ക് ഫാർമസി കൗണ്ടറിൽ എത്തുക.",
+    "dispensed_title": "കുറിപ്പടി നൽകി",
+    "dispensed_body": "നിങ്ങളുടെ കുറിപ്പടി {{hospital}} ഫാർമസിയിൽ പൂർണ്ണമായി നൽകിയിട്ടുണ്ട്.",
+    "low_stock_title": "സ്റ്റോക്ക് കുറവ് അലേർട്ട്",
+    "low_stock_body": "{{medicine}} സ്റ്റോക്ക് ഏറ്റവും കുറഞ്ഞ നിലയ്ക്ക് താഴെയാണ് ({{quantity}} ബാക്കി)."
+  },
+  "followup": {
+    "scheduled_title": "ഫോളോ-അപ്പ് ഷെഡ്യൂൾ ചെയ്തു",
+    "scheduled_body": "ഡോ. {{doctor}} {{date}}-ന് ഫോളോ-അപ്പ് ഉപദേശിച്ചിട്ടുണ്ട്. ദയവായി അപ്പോയിൻറ്മെന്റ് ബുക്ക് ചെയ്യുക.",
+    "reminder_title": "ഫോളോ-അപ്പ് ഓർമ്മപ്പെടുത്തൽ",
+    "reminder_body": "ഓർമ്മപ്പെടുത്തൽ: നാളെ ({{department}}, {{hospital}}) {{doctor}} യുമായുള്ള നിങ്ങളുടെ ഫോളോ-അപ്പ് ഉണ്ട്."
+  },
+  "announcement": {
+    "title": "ആശുപത്രി പ്രഖ്യാപനം",
+    "body": "{{message}}"
+  },
+  "common": {
+    "view_details": "വിശദാംശങ്ങൾ കാണുക",
+    "action_required": "നടപടി ആവശ്യമാണ്",
+    "unread": "വായിച്ചിട്ടില്ല",
+    "read": "വായിച്ചു"
+  }
+}
