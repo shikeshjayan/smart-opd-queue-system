@@ -29,6 +29,13 @@ import {
   opsCancelSession,
 } from "@/server/actions/opd-sessions";
 import {
+  opsCreateClosure,
+  opsListClosures,
+  opsRescheduleAffected,
+  opsCancelAffected,
+} from "@/server/actions/closures";
+import { opsListConfigVersions } from "@/server/actions/hospital-ops";
+import {
   opsListStaff,
   opsListAssignments,
   opsCreateAssignment,
@@ -41,7 +48,7 @@ import {
   type OpsStaffRow,
 } from "@/server/actions/staff-ops";
 import type { HospitalServiceEntry } from "@/services/hospital-ops/types";
-import type { Room, ShiftTemplate, StaffAssignment, StaffLeave } from "@/types";
+import type { ConfigVersion, Room, ShiftTemplate, StaffAssignment, StaffLeave } from "@/types";
 
 function serviceToEntry(s: Awaited<ReturnType<typeof opsListServices>>[number]): HospitalServiceEntry {
   return {
@@ -220,6 +227,30 @@ export const hospitalOpsServerApi = {
   resumeSession: (sessionId: string) => opsResumeSession(sessionId),
   completeSession: (sessionId: string) => opsCompleteSession(sessionId),
   cancelSession: (sessionId: string, reason: string) => opsCancelSession(sessionId, reason),
+
+  /* ── Closures & config history (WS6) ── */
+
+  createClosure: (
+    input: {
+      hospitalId: string;
+      scope: "hospital" | "department";
+      departmentId?: string | null;
+      type: "holiday" | "maintenance" | "emergency";
+      fromDate: string;
+      toDate: string;
+      reason: string;
+    }
+  ) => opsCreateClosure(input),
+
+  listClosures: (hospitalId: string) =>
+    opsListClosures(hospitalId).catch(() => [] as Array<Record<string, unknown>>),
+
+  rescheduleAffected: (closureId: string) => opsRescheduleAffected(closureId),
+
+  cancelAffected: (closureId: string) => opsCancelAffected(closureId),
+
+  listConfigVersions: (hospitalId: string, entity: ConfigVersion["entity"], entityId?: string) =>
+    opsListConfigVersions(hospitalId, entity, entityId).catch(() => [] as ConfigVersion[]),
 };
 
 export type { OpsDepartmentConfig, OpsDepartmentConfigInput };

@@ -101,6 +101,21 @@ export function useDoctorAvailability(doctorId: string, hospitalId: string, from
   );
 }
 
+export function useClosures(hospitalId: string) {
+  return useAsync(() => hospitalOpsServerApi.listClosures(hospitalId), [hospitalId]);
+}
+
+export function useConfigVersions(
+  hospitalId: string,
+  entity: "adminsettings" | "scheduleconfig" | "department_capacity" | "hospital_profile",
+  entityId?: string
+) {
+  return useAsync(
+    () => hospitalOpsServerApi.listConfigVersions(hospitalId, entity, entityId),
+    [hospitalId, entity, entityId]
+  );
+}
+
 export function useStaffOpsMutations() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +149,13 @@ export function useStaffOpsMutations() {
     ) => run(() => hospitalOpsServerApi.saveShift(input)),
     setShiftStatus: (id: string, status: "active" | "inactive") =>
       run(() => hospitalOpsServerApi.setShiftStatus(id, status)),
+    createClosure: (
+      input: Parameters<typeof hospitalOpsServerApi.createClosure>[0]
+    ) => run(() => hospitalOpsServerApi.createClosure(input)),
+    rescheduleAffected: (closureId: string) =>
+      run(() => hospitalOpsServerApi.rescheduleAffected(closureId)),
+    cancelAffected: (closureId: string) =>
+      run(() => hospitalOpsServerApi.cancelAffected(closureId)),
   };
 }
 
