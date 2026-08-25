@@ -2,12 +2,17 @@ import type { DistrictId } from "@/config/districts";
 
 export type HospitalStatus = "active" | "inactive";
 
+export type HospitalType = "general" | "district" | "taluk" | "specialty" | "medical_college";
+
 export type Hospital = {
   id: string;
   name: string;
+  code: string;
   district: DistrictId;
   address: string;
   phone: string;
+  emergencyContact?: string;
+  type?: HospitalType;
   opdCount: number;
   status: HospitalStatus;
 };
@@ -18,8 +23,13 @@ export type Department = {
   id: string;
   hospitalId: string;
   name: string;
+  code: string;
   waitingCount: number;
   status: DepartmentStatus;
+  dailyCapacity?: number;
+  avgConsultationMinutes?: number;
+  appointmentAllocationPct?: number;
+  walkInAllocationPct?: number;
 };
 
 export type OPDStatus = "open" | "closed" | "full" | "paused" | "unavailable";
@@ -264,4 +274,165 @@ export type DistrictPerformance = {
     hospitalName: string;
     departmentName: string;
   } | null;
+};
+
+/* ---------- Phase 26 — Hospital Operations & Staff Management ---------- */
+
+export type StaffAssignmentStatus = "active" | "inactive";
+
+export type StaffAssignment = {
+  id: string;
+  staffId: string;
+  hospitalId: string;
+  departmentId?: string | null;
+  role: string;
+  startDate: string;
+  endDate?: string | null;
+  status: StaffAssignmentStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StaffLeaveStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export type StaffLeave = {
+  id: string;
+  staffId: string;
+  hospitalId: string;
+  departmentId?: string | null;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+  status: StaffLeaveStatus;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+};
+
+export type RoomType = "opd" | "lab" | "radiology" | "procedure" | "pharmacy" | "other";
+
+export type RoomStatus = "active" | "inactive" | "maintenance";
+
+export type Room = {
+  id: string;
+  hospitalId: string;
+  code: string;
+  name?: string;
+  type: RoomType;
+  departmentId?: string | null;
+  floor?: string;
+  status: RoomStatus;
+};
+
+export type HospitalServiceCategory =
+  | "opd"
+  | "laboratory"
+  | "radiology"
+  | "pharmacy"
+  | "emergency"
+  | "other";
+
+export type HospitalService = {
+  id: string;
+  hospitalId: string;
+  name: string;
+  code: string;
+  category: HospitalServiceCategory;
+  departmentId?: string | null;
+  description?: string;
+  status: "active" | "inactive";
+};
+
+export type ShiftTemplate = {
+  id: string;
+  hospitalId: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  departmentId?: string | null;
+  breakMinutes?: number;
+  status: "active" | "inactive";
+};
+
+export type OpdSessionState =
+  | "scheduled"
+  | "open"
+  | "active"
+  | "paused"
+  | "completed"
+  | "cancelled";
+
+export type OpdSession = {
+  id: string;
+  hospitalId: string;
+  departmentId: string;
+  opdId: string;
+  doctorId?: string | null;
+  roomId?: string | null;
+  shiftId?: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  state: OpdSessionState;
+  plannedCapacity: number;
+  tokensIssued: number;
+  tokensCompleted: number;
+  pauseReason?: string | null;
+  expectedResumeAt?: string | null;
+  pausedAt?: string | null;
+  resumedAt?: string | null;
+  openedAt?: string | null;
+  completedAt?: string | null;
+  cancelledAt?: string | null;
+  cancelReason?: string | null;
+  createdAt: string;
+};
+
+export type ClosureScope = "hospital" | "department";
+
+export type ClosureType = "holiday" | "maintenance" | "emergency";
+
+export type ClosureStatus = "planned" | "active" | "resolved" | "cancelled";
+
+export type HospitalClosure = {
+  id: string;
+  hospitalId: string;
+  scope: ClosureScope;
+  departmentId?: string | null;
+  type: ClosureType;
+  fromDate: string;
+  toDate: string;
+  reason: string;
+  status: ClosureStatus;
+  affectedTotal: number;
+  affectedRescheduled: number;
+  affectedCancelled: number;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: string;
+};
+
+export type ConfigFieldChange = {
+  field: string;
+  before: unknown;
+  after: unknown;
+};
+
+export type ConfigVersionEntity =
+  | "adminsettings"
+  | "scheduleconfig"
+  | "department_capacity"
+  | "hospital_profile";
+
+export type ConfigVersion = {
+  id: string;
+  hospitalId: string;
+  entity: ConfigVersionEntity;
+  entityId: string;
+  changes: ConfigFieldChange[];
+  note?: string;
+  actorId: string;
+  actorName: string;
+  actorRole: string;
+  createdAt: string;
 };

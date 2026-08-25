@@ -2,13 +2,21 @@ import mongoose, { Schema, type Model } from "mongoose";
 import type {
   AdminNotification,
   AdminSettings,
+  ConfigVersion,
   Department,
   DoctorRecord,
   Encounter,
   GovernmentAlert,
   Hospital,
+  HospitalClosure,
+  HospitalService,
   OPD,
+  OpdSession,
   PatientSummary,
+  Room,
+  ShiftTemplate,
+  StaffAssignment,
+  StaffLeave,
   StaffMember,
 } from "@/types";
 import type { UserRole } from "@/features/auth/types/auth.types";
@@ -112,9 +120,12 @@ const hospitalSchema = new Schema(
   {
     _id: { type: String, required: true },
     name: { type: String, required: true },
+    code: { type: String, required: true, unique: true },
     district: { type: String, required: true, index: true },
     address: String,
     phone: String,
+    emergencyContact: String,
+    type: { type: String, enum: ["general", "district", "taluk", "specialty", "medical_college"], default: "general" },
     opdCount: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
   },
@@ -126,11 +137,17 @@ const departmentSchema = new Schema(
     _id: { type: String, required: true },
     hospitalId: { type: String, required: true, index: true },
     name: { type: String, required: true },
+    code: { type: String, required: true },
     waitingCount: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
+    dailyCapacity: { type: Number, default: null },
+    avgConsultationMinutes: { type: Number, default: null },
+    appointmentAllocationPct: { type: Number, default: null },
+    walkInAllocationPct: { type: Number, default: null },
   },
   { versionKey: false }
 );
+departmentSchema.index({ hospitalId: 1, code: 1 }, { unique: true });
 
 const opdSchema = new Schema(
   {
@@ -201,6 +218,221 @@ export const StaffModel =
   (mongoose.models.StaffMember as Model<StaffMember>) ??
   mongoose.model("StaffMember", staffSchema);
 
+/* ---------- Phase 26 — Hospital Operations & Staff Management ---------- */
+
+const staffAssignmentSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    staffId: { type: String, required: true, index: true },
+    hospitalId: { type: String, required: true, index: true },
+    departmentId: { type: String, default: null },
+    role: { type: String, required: true },
+    startDate: { type: String, required: true },
+    endDate: { type: String, default: null },
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
+    createdAt: String,
+    updatedAt: String,
+  },
+  { versionKey: false }
+);
+
+const staffLeaveSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    staffId: { type: String, required: true, index: true },
+    hospitalId: { type: String, required: true, index: true },
+    departmentId: { type: String, default: null },
+    fromDate: { type: String, required: true },
+    toDate: { type: String, required: true },
+    reason: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "cancelled"],
+      default: "pending",
+    },
+    reviewedBy: { type: String, default: null },
+    reviewedAt: { type: String, default: null },
+    createdAt: String,
+  },
+  { versionKey: false }
+);
+staffLeaveSchema.index({ hospitalId: 1, fromDate: 1, toDate: 1 });
+
+const roomSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    code: { type: String, required: true },
+    name: String,
+    type: {
+      type: String,
+      enum: ["opd", "lab", "radiology", "procedure", "pharmacy", "other"],
+      default: "opd",
+    },
+    departmentId: { type: String, default: null },
+    floor: String,
+    status: { type: String, enum: ["active", "inactive", "maintenance"], default: "active" },
+  },
+  { versionKey: false }
+);
+roomSchema.index({ hospitalId: 1, code: 1 }, { unique: true });
+
+const hospitalServiceSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    code: { type: String, required: true },
+    category: {
+      type: String,
+      enum: ["opd", "laboratory", "radiology", "pharmacy", "emergency", "other"],
+      default: "opd",
+    },
+    departmentId: { type: String, default: null },
+    description: String,
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
+  },
+  { versionKey: false }
+);
+hospitalServiceSchema.index({ hospitalId: 1, code: 1 }, { unique: true });
+
+const shiftTemplateSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+    departmentId: { type: String, default: null },
+    breakMinutes: { type: Number, default: 0 },
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
+  },
+  { versionKey: false }
+);
+
+export const OpdSessionStates = [
+  "scheduled",
+  "open",
+  "active",
+  "paused",
+  "completed",
+  "cancelled",
+] as const;
+
+const opdSessionSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    departmentId: { type: String, required: true, index: true },
+    opdId: { type: String, required: true, index: true },
+    doctorId: { type: String, default: null },
+    roomId: { type: String, default: null },
+    shiftId: { type: String, default: null },
+    date: { type: String, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+    state: {
+      type: String,
+      enum: OpdSessionStates,
+      default: "scheduled",
+      index: true,
+    },
+    plannedCapacity: { type: Number, default: 0 },
+    tokensIssued: { type: Number, default: 0 },
+    tokensCompleted: { type: Number, default: 0 },
+    pauseReason: { type: String, default: null },
+    expectedResumeAt: { type: String, default: null },
+    pausedAt: { type: String, default: null },
+    resumedAt: { type: String, default: null },
+    openedAt: { type: String, default: null },
+    completedAt: { type: String, default: null },
+    cancelledAt: { type: String, default: null },
+    cancelReason: { type: String, default: null },
+    createdAt: String,
+  },
+  { versionKey: false }
+);
+opdSessionSchema.index({ opdId: 1, date: 1, startTime: 1 });
+opdSessionSchema.index({ hospitalId: 1, date: 1 });
+
+const hospitalClosureSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    scope: { type: String, enum: ["hospital", "department"], default: "hospital" },
+    departmentId: { type: String, default: null },
+    type: { type: String, enum: ["holiday", "maintenance", "emergency"], required: true },
+    fromDate: { type: String, required: true },
+    toDate: { type: String, required: true },
+    reason: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["planned", "active", "resolved", "cancelled"],
+      default: "planned",
+    },
+    affectedTotal: { type: Number, default: 0 },
+    affectedRescheduled: { type: Number, default: 0 },
+    affectedCancelled: { type: Number, default: 0 },
+    createdBy: String,
+    createdByName: String,
+    createdAt: String,
+  },
+  { versionKey: false }
+);
+hospitalClosureSchema.index({ hospitalId: 1, fromDate: 1, toDate: 1 });
+
+const configVersionSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    entity: {
+      type: String,
+      enum: ["adminsettings", "scheduleconfig", "department_capacity", "hospital_profile"],
+      required: true,
+    },
+    entityId: { type: String, required: true },
+    changes: { type: [], default: [] },
+    note: String,
+    actorId: String,
+    actorName: String,
+    actorRole: String,
+    createdAt: String,
+  },
+  { versionKey: false }
+);
+configVersionSchema.index({ hospitalId: 1, entity: 1, entityId: 1, createdAt: -1 });
+
+export const StaffAssignmentModel =
+  (mongoose.models.StaffAssignment as Model<StaffAssignment>) ??
+  mongoose.model("StaffAssignment", staffAssignmentSchema);
+
+export const StaffLeaveModel =
+  (mongoose.models.StaffLeave as Model<StaffLeave>) ??
+  mongoose.model("StaffLeave", staffLeaveSchema);
+
+export const RoomModel =
+  (mongoose.models.Room as Model<Room>) ?? mongoose.model("Room", roomSchema);
+
+export const HospitalServiceModel =
+  (mongoose.models.HospitalService as Model<HospitalService>) ??
+  mongoose.model("HospitalService", hospitalServiceSchema);
+
+export const ShiftTemplateModel =
+  (mongoose.models.ShiftTemplate as Model<ShiftTemplate>) ??
+  mongoose.model("ShiftTemplate", shiftTemplateSchema);
+
+export const OpdSessionModel =
+  (mongoose.models.OpdSession as Model<OpdSession>) ??
+  mongoose.model("OpdSession", opdSessionSchema);
+
+export const HospitalClosureModel =
+  (mongoose.models.HospitalClosure as Model<HospitalClosure>) ??
+  mongoose.model("HospitalClosure", hospitalClosureSchema);
+
+export const ConfigVersionModel =
+  (mongoose.models.ConfigVersion as Model<ConfigVersion>) ??
+  mongoose.model("ConfigVersion", configVersionSchema);
+
 /* ---------- Patients ---------- */
 
 const patientSchema = new Schema(
@@ -234,6 +466,7 @@ export const PatientModel =
 export type QueueEntryDoc = {
   _id: string;
   opdId: string;
+  sessionId?: string | null;
   tokenNumber: string;
   tokenId?: string;
   status: string;
@@ -249,6 +482,7 @@ export type QueueEntryDoc = {
 const queueEntrySchema = new Schema<QueueEntryDoc>(
   {
     opdId: { type: String, required: true, index: true },
+    sessionId: { type: String, default: null, index: true },
     tokenNumber: { type: String, required: true },
     tokenId: String,
     status: {
