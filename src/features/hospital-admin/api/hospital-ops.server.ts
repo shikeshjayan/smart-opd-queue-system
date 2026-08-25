@@ -18,6 +18,17 @@ import {
   type DayAvailability,
 } from "@/server/actions/hospital-ops";
 import {
+  opsListSessions,
+  opsGetSession,
+  opsListSessionQueue,
+  opsOpenSession,
+  opsActivateSession,
+  opsPauseSession,
+  opsResumeSession,
+  opsCompleteSession,
+  opsCancelSession,
+} from "@/server/actions/opd-sessions";
+import {
   opsListStaff,
   opsListAssignments,
   opsCreateAssignment,
@@ -191,6 +202,24 @@ export const hospitalOpsServerApi = {
     days?: number
   ): Promise<DayAvailability[]> =>
     opsDoctorAvailability(doctorId, hospitalId, fromDate, days).catch(() => []),
+
+  /* ── OPD sessions (WS5) ── */
+
+  listSessions: (hospitalId: string, date?: string) =>
+    opsListSessions(hospitalId, date).catch(() => [] as Array<Record<string, unknown>>),
+
+  getSession: (sessionId: string) => opsGetSession(sessionId),
+
+  listSessionQueue: (sessionId: string) =>
+    opsListSessionQueue(sessionId).catch(() => [] as unknown[]),
+
+  openSession: (sessionId: string) => opsOpenSession(sessionId),
+  activateSession: (sessionId: string) => opsActivateSession(sessionId),
+  pauseSession: (sessionId: string, reason: string, etaMinutes?: number) =>
+    opsPauseSession(sessionId, reason, etaMinutes),
+  resumeSession: (sessionId: string) => opsResumeSession(sessionId),
+  completeSession: (sessionId: string) => opsCompleteSession(sessionId),
+  cancelSession: (sessionId: string, reason: string) => opsCancelSession(sessionId, reason),
 };
 
 export type { OpsDepartmentConfig, OpsDepartmentConfigInput };

@@ -2,7 +2,7 @@
 
 import "server-only";
 import { dbConnect } from "@/lib/db";
-import { QueueEntryModel, CounterModel, PatientModel } from "@/lib/models";
+import { QueueEntryModel, CounterModel, PatientModel, OpdSessionModel } from "@/lib/models";
 import { plain } from "@/lib/models";
 
 const DEPARTMENT_PREFIXES: Record<string, string> = {
@@ -11,6 +11,16 @@ const DEPARTMENT_PREFIXES: Record<string, string> = {
   dep_011: "G", dep_012: "P", dep_013: "D", dep_014: "G", dep_015: "P",
   dep_016: "G", dep_017: "O"
 };
+
+/** Today's live session for this OPD (active preferred, then open/paused). */
+async function findLiveSession(opdId: string, date: string) {
+  return (
+    (await OpdSessionModel.findOne({ opdId, date, state: "active" }).select("_id").lean()) ??
+    (await OpdSessionModel.findOne({ opdId, date, state: { $in: ["open", "paused"] } })
+      .select("_id")
+      .lean())
+  );
+}
 
 export async function generateToken({
   opdId,
@@ -46,9 +56,14 @@ export async function generateToken({
   const seq = doc?.seq ?? 1;
   const tokenNumber = `${prefix}-${String(seq).padStart(3, "0")}`;
 
+  // Session-scoped queue (Phase 26): bind the token to today's live
+  // session when one exists; legacy opd-wide flow otherwise.
+  const session = await findLiveSession(opdId, date);
+
   const entry = await (QueueEntryModel as any).create({
     _id: `qe_${tokenNumber}_${date}`,
     opdId,
+    sessionId: session ? String((session as unknown as { _id: string })._id) : null,
     tokenNumber,
     patientId,
     patientName,
@@ -61,6 +76,13 @@ export async function generateToken({
     createdAt: new Date().toISOString(),
     metadata: { source, appointmentId }
   });
+
+  if (session) {
+    await OpdSessionModel.updateOne(
+      { _id: (session as unknown as { _id: string })._id },
+      { $inc: { tokensIssued: 1 } }
+    );
+  }
 
   return plain(entry);
 }

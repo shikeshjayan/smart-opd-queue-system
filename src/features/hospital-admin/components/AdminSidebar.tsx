@@ -10,7 +10,8 @@ const navGroups: Array<{ label: string; items: Array<{ href: string; label: stri
     items: [
       { href: "/hospital-admin/dashboard", label: "Dashboard" },
       { href: "/hospital-admin/departments", label: "Departments" },
-      { href: "/hospital-admin/opd", label: "OPD Sessions" },
+      { href: "/hospital-admin/opd-sessions", label: "OPD Sessions" },
+      { href: "/hospital-admin/opd", label: "OPDs" },
       { href: "/hospital-admin/schedules", label: "Schedules" },
       { href: "/hospital-admin/queues", label: "Queues" },
       { href: "/hospital-admin/services", label: "Services" },

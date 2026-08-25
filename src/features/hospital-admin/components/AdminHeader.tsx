@@ -10,6 +10,7 @@ import { HospitalSwitcher } from "./HospitalSwitcher";
 const mobileNavItems = [
   { href: "/hospital-admin/dashboard", label: "Dashboard" },
   { href: "/hospital-admin/departments", label: "Departments" },
+  { href: "/hospital-admin/opd-sessions", label: "Sessions" },
   { href: "/hospital-admin/opd", label: "OPDs" },
   { href: "/hospital-admin/rooms", label: "Rooms" },
   { href: "/hospital-admin/doctors", label: "Doctors" },
