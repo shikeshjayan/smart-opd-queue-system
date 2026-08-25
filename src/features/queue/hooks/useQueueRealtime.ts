@@ -27,7 +27,7 @@ export function useQueueRealtime(opdId: string, tokenId: string) {
 
   useEffect(() => {
     return subscribe("*", (event) => {
-      if (event.type === "CONNECTION_CHANGED" || event.opdId === opdId) {
+      if (event.type === "CONNECTION_CHANGED" || ("opdId" in event && event.opdId === opdId)) {
         reloadRef.current();
       }
     });
@@ -53,7 +53,7 @@ export function useDoctorQueueRealtime(opdId: string) {
 
   useEffect(() => {
     return subscribe("*", (event) => {
-      if (event.type === "CONNECTION_CHANGED" || event.opdId === opdId) {
+      if (event.type === "CONNECTION_CHANGED" || ("opdId" in event && event.opdId === opdId)) {
         reloadRef.current();
       }
     });

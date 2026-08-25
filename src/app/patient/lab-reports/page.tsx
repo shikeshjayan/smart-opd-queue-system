@@ -6,9 +6,11 @@ import { RecordAccessNotice } from "@/features/medical-records/components/Record
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 export default function PatientLabReportsPage() {
-  const { data, isLoading, error, reload } = usePatientTests("P10294");
+  const { user } = useAuth();
+  const { data, isLoading, error, reload } = usePatientTests(user?.id ?? "");
 
   if (isLoading) {
     return (

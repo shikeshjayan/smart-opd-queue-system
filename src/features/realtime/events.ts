@@ -12,7 +12,7 @@ export const QUEUE_EVENT_TYPES: Record<QueueEventType, QueueEventType> = {
 
 export const QUEUE_EVENT_NAMES = new Set<string>(Object.values(QUEUE_EVENT_TYPES));
 
-export function isQueueEvent(event: RealtimeEvent): event is QueueEvent {
+export function isQueueEvent(event: RealtimeEvent): event is QueueEvent & { opdId: string } {
   return QUEUE_EVENT_NAMES.has(event.type);
 }
 

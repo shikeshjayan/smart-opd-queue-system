@@ -34,10 +34,10 @@ function DisplayContent({ opdId }: { opdId: string }) {
 
   useEffect(() => {
     return subscribe("*", (event) => {
-      if (event.type === "CONNECTION_CHANGED" || event.opdId === opdId) {
+      if (event.type === "CONNECTION_CHANGED" || ("opdId" in event && event.opdId === opdId)) {
         reloadRef.current();
       }
-      if (event.type === "TOKEN_CALLED" && event.opdId === opdId && event.tokenNumber) {
+      if (event.type === "TOKEN_CALLED" && "opdId" in event && event.opdId === opdId && event.tokenNumber) {
         const snapshot = dataRef.current;
         if (snapshot?.nowServing !== event.tokenNumber) {
           announceRef.current(
