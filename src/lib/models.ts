@@ -63,6 +63,8 @@ const userSchema = new Schema<UserDoc>(
         "clinical_staff",
         "receptionist",
         "lab_staff",
+        "lab_reviewer",
+        "pharmacist",
         "hospital_admin",
         "district_admin",
         "state_admin",
@@ -445,7 +447,7 @@ const diagnosticResultSchema = new Schema(
     testName: String,
     category: String,
     patientId: String,
-    status: { type: String, enum: ["draft", "final", "amended", "cancelled"], default: "draft" },
+    status: { type: String, enum: ["draft", "submitted_for_verification", "verified", "published", "preliminary", "final", "amended", "cancelled"], default: "draft" },
     values: [Schema.Types.Mixed],
     notes: String,
     finalizedAt: String,
@@ -770,3 +772,134 @@ export async function nextSequence(key: string): Promise<number> {
   ).lean<{ seq: number } | null>();
   return doc?.seq ?? 1;
 }
+
+/* ---------- Pharmacy: batch-level medicine stock (§14/§15) ---------- */
+
+const medicineStockSchema = new Schema(
+  {
+    // Deterministic id: "{hospitalId}:{medicineId}:{batchNumber}"
+    _id: { type: String, required: true },
+    stockId: { type: String, required: true },
+    medicineId: { type: String, required: true },
+    hospitalId: { type: String, required: true },
+    batchNumber: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 0 },
+    expiryDate: { type: String, required: true }, // YYYY-MM-DD
+    unit: { type: String, default: "units" },
+    status: {
+      type: String,
+      enum: ["available", "expired", "blocked"],
+      default: "available",
+    },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+medicineStockSchema.index({ hospitalId: 1, medicineId: 1, status: 1, expiryDate: 1 });
+medicineStockSchema.index({ hospitalId: 1, medicineId: 1, batchNumber: 1 }, { unique: true });
+
+export const MedicineStockModel =
+  mongoose.models.MedicineStock ?? mongoose.model("MedicineStock", medicineStockSchema);
+
+/* ---------- Pharmacy: immutable stock transaction ledger (§18) ---------- */
+
+const stockTransactionSchema = new Schema(
+  {
+    txId: { type: String, required: true },
+    stockId: { type: String, required: true },
+    medicineId: { type: String, required: true },
+    medicineName: String,
+    hospitalId: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ["received", "dispensed", "damaged", "expired", "adjusted", "blocked", "unblocked"],
+      required: true,
+    },
+    /** positive = in, negative = out */
+    delta: { type: Number, required: true },
+    balanceAfter: { type: Number, required: true },
+    batchNumber: String,
+    prescriptionId: String,
+    note: String,
+    actorId: String,
+    actorName: String,
+    actorRole: String,
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+stockTransactionSchema.index({ medicineId: 1, createdAt: -1 });
+stockTransactionSchema.index({ stockId: 1, createdAt: -1 });
+stockTransactionSchema.index({ hospitalId: 1, createdAt: -1 });
+
+export const StockTransactionModel =
+  mongoose.models.StockTransaction ?? mongoose.model("StockTransaction", stockTransactionSchema);
+
+/* ---------- Pharmacy audit trail (§21) ---------- */
+
+const pharmacyAuditSchema = new Schema(
+  {
+    action: { type: String, required: true },
+    actorId: String,
+    actorName: String,
+    actorRole: String,
+    prescriptionId: String,
+    stockId: String,
+    medicineId: String,
+    detail: Schema.Types.Mixed,
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+pharmacyAuditSchema.index({ prescriptionId: 1, createdAt: -1 });
+pharmacyAuditSchema.index({ createdAt: -1 });
+
+export const PharmacyAuditModel =
+  mongoose.models.PharmacyAudit ?? mongoose.model("PharmacyAudit", pharmacyAuditSchema);
+
+/* ---------- Diagnostics service slots (configurable scheduling, §9) ---------- */
+
+const diagnosticSlotSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    slotId: { type: String, required: true },
+    testId: { type: String, required: true },
+    hospitalId: { type: String, required: true },
+    date: { type: String, required: true }, // YYYY-MM-DD
+    startTime: { type: String, required: true }, // HH:mm
+    endTime: String,
+    durationMinutes: { type: Number, default: 20 },
+    capacity: { type: Number, default: 1 },
+    bookedCount: { type: Number, default: 0 },
+    status: { type: String, enum: ["available", "full", "closed"], default: "available" },
+  },
+  { versionKey: false }
+);
+
+diagnosticSlotSchema.index({ testId: 1, hospitalId: 1, date: 1, startTime: 1 }, { unique: true });
+diagnosticSlotSchema.index({ testId: 1, hospitalId: 1, date: 1, status: 1 });
+
+export const DiagnosticSlotModel =
+  mongoose.models.DiagnosticSlot ?? mongoose.model("DiagnosticSlot", diagnosticSlotSchema);
+
+/* ---------- Per-hospital inventory config (low-stock minimums, §19) ---------- */
+
+const inventoryConfigSchema = new Schema(
+  {
+    hospitalId: { type: String, required: true },
+    medicineId: { type: String, required: true },
+    medicineName: String,
+    minLevel: { type: Number, default: 100 },
+    updatedAt: String,
+  },
+  { versionKey: false }
+);
+
+inventoryConfigSchema.index({ hospitalId: 1, medicineId: 1 }, { unique: true });
+
+export const InventoryConfigModel =
+  mongoose.models.InventoryConfig ?? mongoose.model("InventoryConfig", inventoryConfigSchema);

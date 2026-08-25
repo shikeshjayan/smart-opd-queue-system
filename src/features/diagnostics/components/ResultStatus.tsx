@@ -1,8 +1,11 @@
 import { Badge } from "@/components/ui/badge";
-import type { ResultStatus } from "@/services/diagnostics/types";
+import { normalizeResultStatus, type ResultStatus } from "@/services/diagnostics/types";
 
 const LABELS: Record<ResultStatus, string> = {
   draft: "Draft",
+  submitted_for_verification: "Awaiting verification",
+  verified: "Verified",
+  published: "Published",
   preliminary: "Preliminary",
   final: "Final",
   amended: "Amended",
@@ -11,6 +14,9 @@ const LABELS: Record<ResultStatus, string> = {
 
 const VARIANTS: Record<ResultStatus, "default" | "success" | "warning" | "danger" | "info"> = {
   draft: "default",
+  submitted_for_verification: "warning",
+  verified: "success",
+  published: "success",
   preliminary: "warning",
   final: "success",
   amended: "info",
@@ -22,5 +28,6 @@ export function resultStatusLabel(status: ResultStatus): string {
 }
 
 export function ResultStatusBadge({ status }: { status: ResultStatus }) {
-  return <Badge variant={VARIANTS[status]}>{LABELS[status]}</Badge>;
+  const normalized = normalizeResultStatus(status);
+  return <Badge variant={VARIANTS[normalized]}>{LABELS[normalized]}</Badge>;
 }

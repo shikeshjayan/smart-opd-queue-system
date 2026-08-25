@@ -1,27 +1,8 @@
 import { getEncounter, getPatient } from "@/services/data";
+import { dispensePrescription } from "@/server/actions/pharmacy";
 import { prescriptionService } from "@/services/prescription";
 import type { Prescription } from "@/services/prescription/types";
-import type { DispenseActivity, PharmacyQueueEntry, PharmacyQueueStatus } from "../types/pharmacy.types";
-
-const ACTIVITY_KEY = "smart-health.pharmacy-activity";
-
-function loadActivities(): DispenseActivity[] {
-  try {
-    const raw = localStorage.getItem(ACTIVITY_KEY);
-    return raw ? (JSON.parse(raw) as DispenseActivity[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveActivity(activity: DispenseActivity): void {
-  const current = loadActivities();
-  try {
-    localStorage.setItem(ACTIVITY_KEY, JSON.stringify([activity, ...current]));
-  } catch {
-    // storage unavailable
-  }
-}
+import type { PharmacyQueueEntry, PharmacyQueueStatus } from "../types/pharmacy.types";
 
 function entryFor(prescription: Prescription): PharmacyQueueEntry {
   const encounter = getEncounter(prescription.encounterId);
@@ -58,20 +39,10 @@ export const pharmacyMockApi = {
   },
 
   async dispatch(prescriptionId: string): Promise<void> {
-    const updated = await prescriptionService.updateStatus(prescriptionId, "sent_to_pharmacy");
-    if (updated) {
-      saveActivity({ id: `ph_act_${Date.now()}`, prescriptionId, action: "dispatched", at: new Date().toISOString(), by: "Doctor" });
-    }
+    await prescriptionService.updateStatus(prescriptionId, "sent_to_pharmacy");
   },
 
-  async dispense(prescriptionId: string): Promise<void> {
-    const updated = await prescriptionService.updateStatus(prescriptionId, "dispensed");
-    if (updated) {
-      saveActivity({ id: `ph_act_${Date.now()}`, prescriptionId, action: "dispensed", at: new Date().toISOString(), by: "Pharmacy" });
-    }
-  },
-
-  async listActivities(): Promise<DispenseActivity[]> {
-    return loadActivities();
+  async dispense(prescriptionId: string, items: { medicineId: string; qty: number }[] = []): Promise<void> {
+    await dispensePrescription(prescriptionId, items);
   },
 };

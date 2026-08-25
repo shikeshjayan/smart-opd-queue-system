@@ -28,6 +28,7 @@ const now = new Date();
 const iso = (d: Date) => d.toISOString();
 const dateStr = (d: Date) => iso(d).slice(0, 10);
 const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000);
+const hoursAgo = (n: number) => new Date(now.getTime() - n * 3600000);
 const timeOn = (d: Date, hh: number, mm: number) => {
   const x = new Date(d);
   x.setHours(hh, mm, 0, 0);
@@ -597,6 +598,147 @@ async function main() {
   }
   
   if (auditEntries.length) await coll("queueaudits").insertMany(auditEntries);
+
+  /* ========== PHASE 24 SEED: Lab/Diagnostics/Pharmacy ========== */
+
+  // --- Pharmacist + Lab Reviewer users ---
+  const pharmacistUser = { id: "pha_001", role: "pharmacist", name: "Rajesh Pillai", password: "pharm123", scope: { stateId: "kerala", districtId: "ernakulam", hospitalId: "hos_001" } };
+  const reviewerUser = { id: "lab_002", role: "lab_reviewer", name: "Dr. Kavitha Mohan", password: "review123", scope: { stateId: "kerala", districtId: "ernakulam", hospitalId: "hos_001" } };
+
+  for (const u of [pharmacistUser, reviewerUser]) {
+    const { passwordHash, salt } = hashPassword(u.password);
+    await coll("users").insertOne({
+      _id: u.id,
+      role: u.role,
+      name: u.name,
+      passwordHash,
+      salt,
+      scope: u.scope,
+      status: "active",
+      createdAt: daysAgo(365),
+    });
+  }
+
+  // --- Medicine Stock (FEFO demo: older-expiry batch first) ---
+  const medicines = [
+    { medicineId: "paracetamol", name: "Paracetamol 500mg" },
+    { medicineId: "amoxicillin", name: "Amoxicillin 500mg" },
+    { medicineId: "metformin", name: "Metformin 500mg" },
+    { medicineId: "atorvastatin", name: "Atorvastatin 10mg" },
+    { medicineId: "amlodipine", name: "Amlodipine 5mg" },
+    { medicineId: "salbutamol", name: "Salbutamol Inhaler" },
+    { medicineId: "omeprazole", name: "Omeprazole 20mg" },
+    { medicineId: "telmisartan", name: "Telmisartan 40mg" },
+  ];
+
+  // Per-hospital minimum levels
+  const inventoryConfigs = medicines.map((m) => ({
+    hospitalId: "hos_001",
+    medicineId: m.medicineId,
+    medicineName: m.name,
+    minLevel: 100,
+    updatedAt: iso(now),
+  }));
+  await coll("inventoryconfigs").insertMany(inventoryConfigs);
+
+  // Stock batches: some FEFO pairs, one low stock, one expiring soon, one expired
+  const stockBatches = [
+    // Paracetamol — two batches, FEFO: older expiry first
+    { _id: "hos_001:paracetamol:BPA-001", stockId: "STK-001", medicineId: "paracetamol", hospitalId: "hos_001", batchNumber: "BPA-001", quantity: 200, expiryDate: "2026-09-30", unit: "tablets", status: "available", createdAt: daysAgo(120), updatedAt: now },
+    { _id: "hos_001:paracetamol:BPA-002", stockId: "STK-002", medicineId: "paracetamol", hospitalId: "hos_001", batchNumber: "BPA-002", quantity: 500, expiryDate: "2027-06-15", unit: "tablets", status: "available", createdAt: daysAgo(30), updatedAt: now },
+    // Amoxicillin — normal
+    { _id: "hos_001:amoxicillin:BAM-001", stockId: "STK-003", medicineId: "amoxicillin", hospitalId: "hos_001", batchNumber: "BAM-001", quantity: 150, expiryDate: "2027-03-01", unit: "capsules", status: "available", createdAt: daysAgo(90), updatedAt: now },
+    // Metformin — LOW STOCK (below min 100)
+    { _id: "hos_001:metformin:BMT-001", stockId: "STK-004", medicineId: "metformin", hospitalId: "hos_001", batchNumber: "BMT-001", quantity: 45, expiryDate: "2027-01-20", unit: "tablets", status: "available", createdAt: daysAgo(60), updatedAt: now },
+    // Atorvastatin — normal
+    { _id: "hos_001:atorvastatin:BAT-001", stockId: "STK-005", medicineId: "atorvastatin", hospitalId: "hos_001", batchNumber: "BAT-001", quantity: 300, expiryDate: "2027-08-10", unit: "tablets", status: "available", createdAt: daysAgo(45), updatedAt: now },
+    // Amlodipine — EXPIRING SOON (≤30 days)
+    { _id: "hos_001:amlodipine:BAL-001", stockId: "STK-006", medicineId: "amlodipine", hospitalId: "hos_001", batchNumber: "BAL-001", quantity: 80, expiryDate: dateStr(new Date(now.getTime() + 20 * 86400000)), unit: "tablets", status: "available", createdAt: daysAgo(200), updatedAt: now },
+    // Salbutamol — EXPIRED
+    { _id: "hos_001:salbutamol:BSL-001", stockId: "STK-007", medicineId: "salbutamol", hospitalId: "hos_001", batchNumber: "BSL-001", quantity: 25, expiryDate: dateStr(daysAgo(30)), unit: "inhalers", status: "expired", createdAt: daysAgo(365), updatedAt: now },
+    // Omeprazole — normal
+    { _id: "hos_001:omeprazole:BOM-001", stockId: "STK-008", medicineId: "omeprazole", hospitalId: "hos_001", batchNumber: "BOM-001", quantity: 250, expiryDate: "2027-05-01", unit: "capsules", status: "available", createdAt: daysAgo(60), updatedAt: now },
+    // Telmisartan — normal
+    { _id: "hos_001:telmisartan:BTL-001", stockId: "STK-009", medicineId: "telmisartan", hospitalId: "hos_001", batchNumber: "BTL-001", quantity: 180, expiryDate: "2027-04-15", unit: "tablets", status: "available", createdAt: daysAgo(50), updatedAt: now },
+  ];
+  await coll("medicinestocks").insertMany(stockBatches);
+
+  // --- Lab orders across statuses ---
+  const labPatient = patients[0];
+  const labDoctor = doctors[1];
+  const labOrders = [
+    { _id: "LAB-P24-001", orderId: "LAB-60001", patientId: labPatient.id, patientName: labPatient.name, doctorId: labDoctor.id, doctorName: labDoctor.name, hospitalId: "hos_001", hospitalName: HOSPITALS[0].name, departmentName: "Cardiology", items: [{ testId: "t_cbc", testName: "Complete Blood Count", category: "laboratory", priority: "routine", workflow: { status: "sample_collected", sampleId: "SMP-80001", updatedAt: iso(daysAgo(1)) } }, { testId: "t_fbg", testName: "Blood Glucose (Fasting)", category: "laboratory", priority: "routine", workflow: { status: "sample_collected", sampleId: "SMP-80002", updatedAt: iso(daysAgo(1)) } }], specimens: [{ id: "SP-P24-001", orderId: "LAB-60001", patientId: labPatient.id, type: "Blood", status: "collected", sampleId: "SMP-80001", collectedAt: iso(daysAgo(1)), createdAt: iso(daysAgo(1)) }], status: "processing", priority: "routine", clinicalNotes: "Routine pre-op workup", orderedAt: iso(daysAgo(2)), createdAt: iso(daysAgo(3)), updatedAt: iso(daysAgo(1)) },
+    { _id: "LAB-P24-002", orderId: "LAB-60002", patientId: patients[2].id, patientName: patients[2].name, doctorId: labDoctor.id, doctorName: labDoctor.name, hospitalId: "hos_001", hospitalName: HOSPITALS[0].name, departmentName: "Cardiology", items: [{ testId: "t_rft", testName: "Renal Function Test", category: "laboratory", priority: "urgent", workflow: { status: "awaiting_verification", updatedAt: iso(hoursAgo(2)) } }, { testId: "t_lft", testName: "Liver Function Test", category: "laboratory", priority: "routine", workflow: { status: "awaiting_verification", updatedAt: iso(hoursAgo(2)) } }], specimens: [{ id: "SP-P24-002", orderId: "LAB-60002", patientId: patients[2].id, type: "Blood", status: "processing", sampleId: "SMP-80003", collectedAt: iso(daysAgo(1)), createdAt: iso(daysAgo(2)) }], status: "awaiting_verification", priority: "urgent", clinicalNotes: "Diabetic patient — check renal and liver", orderedAt: iso(daysAgo(3)), createdAt: iso(daysAgo(4)), updatedAt: iso(hoursAgo(2)) },
+    // A result ready for critical alert demo
+    { _id: "LAB-P24-003", orderId: "LAB-60003", patientId: patients[4].id, patientName: patients[4].name, doctorId: labDoctor.id, doctorName: labDoctor.name, hospitalId: "hos_001", hospitalName: HOSPITALS[0].name, departmentName: "Cardiology", items: [{ testId: "t_fbg", testName: "Blood Glucose (Fasting)", category: "laboratory", priority: "urgent", workflow: { status: "published", updatedAt: iso(hoursAgo(1)) } }], specimens: [{ id: "SP-P24-003", orderId: "LAB-60003", patientId: patients[4].id, type: "Blood", status: "completed", sampleId: "SMP-80004", collectedAt: iso(daysAgo(2)), createdAt: iso(daysAgo(2)) }], status: "published", priority: "urgent", clinicalNotes: "Hyperglycaemia alert — check fasting glucose", orderedAt: iso(daysAgo(3)), completedAt: iso(hoursAgo(1)), createdAt: iso(daysAgo(4)), updatedAt: iso(hoursAgo(1)) },
+  ];
+  await coll("diagnosticorders").insertMany(labOrders);
+
+  // --- Results for the lab orders ---
+  const labResults = [
+    { _id: "RS-P24-001", orderId: "LAB-60002", testId: "t_rft", testName: "Renal Function Test", category: "laboratory", patientId: patients[2].id, status: "submitted_for_verification", values: [{ parameterKey: "cr", name: "Creatinine", unit: "mg/dL", value: "0.9", refLow: 0.6, refHigh: 1.3, flag: "normal" }, { parameterKey: "urea", name: "Urea", unit: "mg/dL", value: "32", refLow: 15, refHigh: 45, flag: "normal" }], submittedAt: iso(hoursAgo(2)), draftedAt: iso(daysAgo(1)), createdAt: iso(daysAgo(1)), updatedAt: iso(hoursAgo(2)) },
+    { _id: "RS-P24-002", orderId: "LAB-60002", testId: "t_lft", testName: "Liver Function Test", category: "laboratory", patientId: patients[2].id, status: "submitted_for_verification", values: [{ parameterKey: "alt", name: "ALT", unit: "U/L", value: "42", refLow: 7, refHigh: 56, flag: "normal" }, { parameterKey: "ast", name: "AST", unit: "U/L", value: "38", refLow: 10, refHigh: 40, flag: "normal" }], submittedAt: iso(hoursAgo(2)), draftedAt: iso(daysAgo(1)), createdAt: iso(daysAgo(1)), updatedAt: iso(hoursAgo(2)) },
+    // Critical glucose result (unacknowledged → shows on dashboard)
+    { _id: "RS-P24-003", orderId: "LAB-60003", testId: "t_fbg", testName: "Blood Glucose (Fasting)", category: "laboratory", patientId: patients[4].id, status: "published", values: [{ parameterKey: "glu", name: "Glucose (Fasting)", unit: "mg/dL", value: "485", refLow: 70, refHigh: 110, criticalLow: 50, criticalHigh: 400, flag: "high" }], critical: { parameters: [{ key: "glu", name: "Glucose (Fasting)", value: "485" }], detectedAt: iso(hoursAgo(1)) }, publishedAt: iso(hoursAgo(1)), verifiedAt: iso(hoursAgo(1)), verifiedById: "lab_002", verifiedByName: "Dr. Kavitha Mohan", draftedAt: iso(daysAgo(2)), createdAt: iso(daysAgo(2)), updatedAt: iso(hoursAgo(1)) },
+  ];
+  await coll("diagnosticresults").insertMany(labResults);
+
+  // --- Prescriptions in sent_to_pharmacy / partially_dispensed ---
+  const prescriptionsForPharmacy = [
+    { patientId: labPatient.id, encounterId: "enc_001", doctorId: labDoctor.id, doctorName: labDoctor.name, hospitalId: "hos_001", hospitalName: HOSPITALS[0].name, departmentName: "Cardiology", workflowStatus: "finalized", status: "sent_to_pharmacy", items: [{ id: "rx_m1", medicineId: "paracetamol", medicineName: "Paracetamol 500mg", genericName: "Paracetamol", dosage: "500mg", frequency: "2 × daily", durationDays: 5, duration: { value: 5, unit: "days" }, route: "oral", status: "prescribed", quantity: 10 }], createdAt: iso(daysAgo(1)), finalizedAt: iso(daysAgo(1)), updatedAt: iso(daysAgo(1)) },
+    { patientId: patients[2].id, encounterId: "enc_003", doctorId: labDoctor.id, doctorName: labDoctor.name, hospitalId: "hos_001", hospitalName: HOSPITALS[0].name, departmentName: "Cardiology", workflowStatus: "finalized", status: "partially_dispensed", items: [{ id: "rx_m2", medicineId: "metformin", medicineName: "Metformin 500mg", genericName: "Metformin", dosage: "500mg", frequency: "2 × daily", durationDays: 30, duration: { value: 30, unit: "days" }, route: "oral", status: "prescribed", quantity: 60, dispensedQty: 45, dispensedBatches: [{ stockId: "STK-004", batchNumber: "BMT-001", expiryDate: "2027-01-20", qty: 45 }] }], createdAt: iso(daysAgo(3)), finalizedAt: iso(daysAgo(3)), updatedAt: iso(daysAgo(1)) },
+  ];
+  await coll("prescriptions").insertMany(prescriptionsForPharmacy);
+
+  // --- Diagnostic Slots for CT (next 3 days) ---
+  const slotDocs: Record<string, unknown>[] = [];
+  for (let day = 0; day < 3; day++) {
+    const d = new Date(now.getTime() + day * 86400000);
+    const dStr = dateStr(d);
+    // CT: 20-min slots, 09:00-13:00 + 14:00-17:00, capacity 1
+    for (let m = 540; m < 780; m += 20) {
+      const hh = String(Math.floor(m / 60)).padStart(2, "0");
+      const mm = String(m % 60).padStart(2, "0");
+      const hh2 = String(Math.floor((m + 20) / 60)).padStart(2, "0");
+      const mm2 = String((m + 20) % 60).padStart(2, "0");
+      slotDocs.push({ _id: `t_ct:hos_001:${dStr}:${hh}:${mm}`, slotId: `DSL-CT-${dStr}-${hh}${mm}`, testId: "t_ct", hospitalId: "hos_001", date: dStr, startTime: `${hh}:${mm}`, endTime: `${hh2}:${mm2}`, durationMinutes: 20, capacity: 1, bookedCount: 0, status: "available" });
+    }
+    for (let m = 840; m < 1020; m += 20) {
+      const hh = String(Math.floor(m / 60)).padStart(2, "0");
+      const mm = String(m % 60).padStart(2, "0");
+      const hh2 = String(Math.floor((m + 20) / 60)).padStart(2, "0");
+      const mm2 = String((m + 20) % 60).padStart(2, "0");
+      slotDocs.push({ _id: `t_ct:hos_001:${dStr}:${hh}:${mm}`, slotId: `DSL-CT-${dStr}-${hh}${mm}`, testId: "t_ct", hospitalId: "hos_001", date: dStr, startTime: `${hh}:${mm}`, endTime: `${hh2}:${mm2}`, durationMinutes: 20, capacity: 1, bookedCount: 0, status: "available" });
+    }
+  }
+  if (slotDocs.length) await coll("diagnosticslots").insertMany(slotDocs);
+
+  // --- Stock Transactions (baseline) ---
+  const stockTxEntries = stockBatches.map((b) => ({
+    txId: `TXN-${b.stockId}`,
+    stockId: b.stockId,
+    medicineId: b.medicineId,
+    hospitalId: b.hospitalId,
+    type: "received",
+    delta: b.quantity,
+    balanceAfter: b.quantity,
+    batchNumber: b.batchNumber,
+    note: "Initial stock",
+    actorId: "adm_001",
+    actorName: "Dr. Sreeja Nambiar",
+    actorRole: "hospital_admin",
+    createdAt: new Date(now.getTime() - 90 * 86400000),
+  }));
+  await coll("stocktransactions").insertMany(stockTxEntries);
+
+  // --- Pharmacy Audit baseline ---
+  await coll("pharmacyaudits").insertMany([
+    { action: "stock_received", actorId: "adm_001", actorName: "Dr. Sreeja Nambiar", actorRole: "hospital_admin", detail: { batchCount: stockBatches.length }, createdAt: daysAgo(90) },
+  ]);
+
+  console.log("Phase 24 seed data inserted.");
+  console.log("  Pharmacist : pha_001 / pharm123");
+  console.log("  Lab Reviewer: lab_002 / review123");
 
   console.log("Seed complete.");
   console.log("Demo logins:");

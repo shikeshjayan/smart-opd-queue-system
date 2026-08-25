@@ -64,12 +64,59 @@ export type QueueEvent =
   | PriorityChangedEvent
   | QueueUpdatedEvent;
 
+/* ───────── Clinical workflow events (Phase 24, §28) ───────── */
+
+type ClinicalEventBase = {
+  at: string;
+  hospitalId?: string;
+  actorId?: string;
+};
+
+export type LabEventType =
+  | "LAB_ORDER_CREATED"
+  | "SAMPLE_COLLECTED"
+  | "LAB_RESULT_SUBMITTED"
+  | "LAB_RESULT_VERIFIED"
+  | "CRITICAL_RESULT_DETECTED";
+
+export type PharmacyEventType =
+  | "PRESCRIPTION_CREATED"
+  | "PRESCRIPTION_READY"
+  | "PRESCRIPTION_PARTIALLY_DISPENSED"
+  | "PRESCRIPTION_DISPENSED"
+  | "LOW_STOCK_DETECTED"
+  | "EXPIRY_ALERT";
+
+export type DiagnosticEventType =
+  | "DIAGNOSTIC_ORDER_CREATED"
+  | "DIAGNOSTIC_COMPLETED"
+  | "REPORT_VERIFIED";
+
+export type LabEvent = ClinicalEventBase & {
+  type: LabEventType;
+  orderId: string;
+  patientId?: string;
+};
+
+export type PharmacyEvent = ClinicalEventBase & {
+  type: PharmacyEventType;
+  prescriptionId?: string;
+  medicineId?: string;
+};
+
+export type DiagnosticEvent = ClinicalEventBase & {
+  type: DiagnosticEventType;
+  orderId: string;
+};
+
+export type ClinicalEvent = LabEvent | PharmacyEvent | DiagnosticEvent;
+
 export type ConnectionChangedEvent = {
   type: "CONNECTION_CHANGED";
   status: ConnectionStatus;
   at: string;
 };
 
-export type RealtimeEvent = QueueEvent | ConnectionChangedEvent;
+export type RealtimeEvent = (QueueEvent & { opdId: string }) | ClinicalEvent | ConnectionChangedEvent;
 
 export type RealtimeListener = (event: RealtimeEvent) => void;
