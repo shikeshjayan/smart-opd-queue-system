@@ -4,6 +4,17 @@ import "server-only";
 import { dbConnect } from "@/lib/db";
 import { QueueEntryModel, QueueAuditModel, OpdModel, HospitalModel, DepartmentModel, DoctorModel } from "@/lib/models";
 import { plain } from "@/lib/models";
+import { notify } from "@/server/notifications/service";
+
+async function deptInfo(opdId: string): Promise<{ hospitalName: string; departmentName: string }> {
+  const opd = await OpdModel.findById(opdId).select("hospitalId departmentId").lean() as any;
+  if (!opd) return { hospitalName: "", departmentName: "" };
+  const [hosp, dept] = await Promise.all([
+    HospitalModel.findById(opd.hospitalId).select("name").lean() as Promise<any>,
+    DepartmentModel.findById(opd.departmentId).select("name").lean() as Promise<any>,
+  ]);
+  return { hospitalName: hosp?.name ?? "", departmentName: dept?.name ?? "" };
+}
 
 const GRACE_PERIOD_MS = 5 * 60 * 1000;
 
@@ -69,6 +80,46 @@ export async function callNextEntry(opdId: string, actorId = "system") {
   if (!entry) return null;
 
   await audit(opdId, (entry as any).tokenNumber, (entry as any).patientId ?? "", (entry as any).patientName ?? "", "waiting", "called", actorId);
+
+  const e = entry as any;
+  const { hospitalName, departmentName } = await deptInfo(opdId);
+  const room = e.room ?? "";
+
+  // §7, §8: notify called patient + approaching queue
+  if (e.patientId) {
+    await notify({
+      userId: e.patientId,
+      templateKey: "QUEUE_TOKEN_CALLED",
+      params: { token: e.tokenNumber, department: departmentName, room: room || "—", hospital: hospitalName },
+      idempotencyKey: `queue:${e.tokenNumber}:called`,
+      hospitalId: e.hospitalId,
+      audience: "patient",
+      resourceType: "token",
+      resourceId: String(e._id ?? e.tokenNumber),
+    });
+  }
+
+  const ahead = await QueueEntryModel.find({ opdId, status: "waiting" })
+    .sort({ priority: 1, tokenNumber: 1 })
+    .limit(3)
+    .select("tokenNumber patientId patientId hospitalId")
+    .lean();
+
+  for (let i = 0; i < ahead.length; i++) {
+    const a = ahead[i] as any;
+    if (!a.patientId) continue;
+    await notify({
+      userId: a.patientId,
+      templateKey: "QUEUE_TOKEN_APPROACHING",
+      params: { token: a.tokenNumber, ahead: String(i + 1), department: departmentName },
+      idempotencyKey: `queue:${a.tokenNumber}:approaching:${opdId}`,
+      hospitalId: a.hospitalId,
+      audience: "patient",
+      resourceType: "token",
+      resourceId: String(a._id ?? a.tokenNumber),
+    });
+  }
+
   return plain(entry);
 }
 
@@ -193,6 +244,28 @@ export async function updateOpdStatus(opdId: string, status: string, reason?: st
   const update: Record<string, unknown> = { status, statusUpdatedAt: new Date().toISOString() };
   if (status === "paused") update.statusReason = reason;
   await OpdModel.updateOne({ _id: opdId }, { $set: update });
+
+  // §9: delay notification to all waiting patients on this OPD
+  if (status === "paused") {
+    const waiting = await QueueEntryModel.find({ opdId, status: "waiting" })
+      .select("patientId patientId hospitalId tokenNumber")
+      .lean();
+    const { departmentName } = await deptInfo(opdId);
+    const eta = reason?.match(/\d+/)?.[0] ?? "40";
+    for (const w of waiting) {
+      if (!(w as any).patientId) continue;
+      await notify({
+        userId: (w as any).patientId,
+        templateKey: "QUEUE_DELAYED",
+        params: { department: departmentName, eta, token: (w as any).tokenNumber },
+        idempotencyKey: `queue:${opdId}:delayed`,
+        hospitalId: (w as any).hospitalId,
+        audience: "patient",
+        resourceType: "opd",
+        resourceId: opdId,
+      });
+    }
+  }
 }
 
 export async function setPriority(tokenNumber: string, priority: string, actorId = "system") {

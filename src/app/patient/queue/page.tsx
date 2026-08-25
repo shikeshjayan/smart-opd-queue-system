@@ -39,7 +39,6 @@ function QueueContent() {
   const activeToken = snapshot
     ? { tokenId, tokenNumber: snapshot.tokenNumber, opdId }
     : null;
-  const { notify } = useNotifications(patientId, activeToken);
   const assistance = useAssistanceActions();
 
   const [reorderNotice, setReorderNotice] = useState(false);
@@ -49,21 +48,11 @@ function QueueContent() {
   useEffect(() => {
     if (!phase) return;
     if (prevPhase.current === "waiting" && phase === "near_turn" && snapshot) {
-      void notify(
-        {
-          type: "queue",
-          priority: "important",
-          title: "Your turn is approaching",
-          message: `Token ${snapshot.tokenNumber}. You are ${snapshot.patientsAhead} patient${
-            snapshot.patientsAhead === 1 ? "" : "s"
-          } ahead. Please stay nearby.`,
-          tokenNumber: snapshot.tokenNumber,
-        },
-        "token_approaching"
-      );
+      // Server sends QUEUE_TOKEN_APPROACHING via callNextEntry (§8) —
+      // client notify removed to avoid duplicate.
     }
     prevPhase.current = phase;
-  }, [phase, snapshot, notify]);
+  }, [phase, snapshot]);
 
   useEffect(() => {
     if (!snapshot || (phase !== "waiting" && phase !== "near_turn")) return;

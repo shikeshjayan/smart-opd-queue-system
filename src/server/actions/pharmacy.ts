@@ -11,6 +11,8 @@ import {
   CounterModel 
 } from "@/lib/models";
 import { getSession } from "@/lib/auth";
+import { notify } from "@/server/notifications/service";
+import { HospitalModel } from "@/lib/models";
 
 // Helper: atomic batch select FEFO
 async function getBatchesForDispense(medicineId: string, hospitalId: string, quantityNeeded: number) {
@@ -82,6 +84,27 @@ export async function dispensePrescription(prescriptionId: string, items: { medi
     }], { session: sessionDb });
 
     await sessionDb.commitTransaction();
+
+    // §7: notify patient of prescription status (outside transaction — §1)
+    if (prescription.patientId) {
+      const hosp = await HospitalModel.findById(prescription.hospitalId).select("name").lean();
+      const hospName = hosp?.name ?? "the hospital";
+      const templateKey =
+        prescription.status === "dispensed"
+          ? "PRESCRIPTION_DISPENSED"
+          : "PRESCRIPTION_PARTIALLY_DISPENSED";
+      await notify({
+        userId: prescription.patientId,
+        templateKey,
+        params: { hospital: hospName },
+        idempotencyKey: `prescription:${prescriptionId}:${prescription.status}`,
+        hospitalId: prescription.hospitalId,
+        audience: "patient",
+        resourceType: "prescription",
+        resourceId: prescriptionId,
+      });
+    }
+
     return { success: true, status: prescription.status };
   } catch (err) {
     await sessionDb.abortTransaction();

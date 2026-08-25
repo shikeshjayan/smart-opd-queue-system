@@ -88,7 +88,10 @@ export type Permission =
   | "VIEW_INTEGRATIONS"
   | "MANAGE_INTEGRATIONS"
   | "VIEW_INTEGRATION_LOGS"
-  | "RETRY_INTEGRATION";
+  | "RETRY_INTEGRATION"
+  | "SEND_ANNOUNCEMENT"
+  | "VIEW_NOTIFICATION_HEALTH"
+  | "RETRY_NOTIFICATION";
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   patient: [
@@ -229,6 +232,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "MANAGE_INTEGRATIONS",
     "VIEW_INTEGRATION_LOGS",
     "RETRY_INTEGRATION",
+    "SEND_ANNOUNCEMENT",
+    "VIEW_NOTIFICATION_HEALTH",
+    "RETRY_NOTIFICATION",
   ],
   district_admin: [
     "VIEW_OWN_PROFILE",

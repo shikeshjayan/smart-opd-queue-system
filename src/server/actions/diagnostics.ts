@@ -13,6 +13,7 @@ import {
 } from "@/lib/models";
 import { getSession } from "@/lib/auth";
 import { roleHasPermission } from "@/features/auth/permissions";
+import { notify } from "@/server/notifications/service";
 import type { SessionUser } from "@/features/auth/types/auth.types";
 import { testCatalogue, testById } from "@/services/diagnostics/catalog";
 import {
@@ -942,6 +943,21 @@ export async function publishResult(resultId: string): Promise<DiagnosticResult 
 
   await advanceItemByResult(doc, "published", now);
   await resultAudit(resultId, doc.orderId, "RESULT_PUBLISHED");
+  // §7: notify patient that result is available
+  if (doc.patientId) {
+    const orderId = doc.orderId;
+    const category = (doc.category as string) ?? "laboratory";
+    await notify({
+      userId: doc.patientId,
+      templateKey: category === "laboratory" ? "LAB_RESULT_AVAILABLE" : "DIAGNOSTIC_REPORT_AVAILABLE",
+      params: { orderId },
+      idempotencyKey: `result:${resultId}:published`,
+      hospitalId: (doc as any).hospitalId,
+      audience: "patient",
+      resourceType: "diagnosticResult",
+      resourceId: resultId,
+    });
+  }
   return normalizeResult(doc);
 }
 

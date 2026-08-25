@@ -390,7 +390,9 @@ const appointments = [3, 7, 12, 18, 22].map((pi, k) => {
 
 /* ---------------- notifications / settings / alerts ---------------- */
 
-const notifications = [
+/* ---------------- notifications / settings / alerts ---------------- */
+
+const hospitalNotifications = [
   { hospitalId: "hos_001", audience: "hospital", type: "queue", title: "Queue pressure: General Medicine", message: "General Medicine has 38 patients waiting. Consider opening an additional OPD window.", priority: "high", read: false, createdAt: timeOn(now, 9, 5) },
   { hospitalId: "hos_001", audience: "hospital", type: "alert", title: "Cardiology tokens nearly full", message: "The Cardiology Evening OPD is nearing capacity for today.", priority: "critical", read: false, createdAt: timeOn(now, 8, 40) },
   { hospitalId: "hos_001", audience: "hospital", type: "info", title: "OPD schedule updated", message: "Dermatology Afternoon OPD is unavailable today. Patients are being notified.", priority: "normal", read: false, createdAt: timeOn(now, 8, 30) },
@@ -440,7 +442,7 @@ async function main() {
   if (consultations.length) await coll("consultations").insertMany(consultations);
   if (prescriptions.length) await coll("prescriptions").insertMany(prescriptions);
   if (appointments.length) await coll("appointments").insertMany(appointments);
-  await coll("notifications").insertMany(notifications.map((n, i) => ({ _id: `ntf_${String(i + 1).padStart(3, "0")}`, ...n })));
+  await coll("notifications").insertMany(hospitalNotifications.map((n, i) => ({ _id: `ntf_${String(i + 1).padStart(3, "0")}`, ...n })));
   await coll("adminsettings").insertMany(settings);
   await coll("governmentalerts").insertMany(alerts.map((a, i) => ({ _id: `gal_${String(i + 1).padStart(3, "0")}`, ...a })));
 
@@ -735,6 +737,169 @@ async function main() {
   await coll("pharmacyaudits").insertMany([
     { action: "stock_received", actorId: "adm_001", actorName: "Dr. Sreeja Nambiar", actorRole: "hospital_admin", detail: { batchCount: stockBatches.length }, createdAt: daysAgo(90) },
   ]);
+
+  // --- Phase 25: Notification seed data ---
+  console.log("Seeding Phase 25 notifications...");
+
+  // Notification preferences for patients
+  const phase25Prefs = [
+    { patientId: patients[0].id, sms: true, email: false, push: true, appointmentReminders: true, queueUpdates: true, resultNotifications: true, prescriptionNotifications: true, followUpReminders: true, announcements: true, locale: "en", phoneVerified: true },
+    { patientId: patients[1].id, sms: true, email: false, push: false, appointmentReminders: true, queueUpdates: true, resultNotifications: true, prescriptionNotifications: true, followUpReminders: true, announcements: true, locale: "ml", phoneVerified: false },
+    { patientId: patients[2].id, sms: true, email: false, push: true, appointmentReminders: false, queueUpdates: true, resultNotifications: true, prescriptionNotifications: true, followUpReminders: false, announcements: false, locale: "en", phoneVerified: true },
+  ];
+  await coll("notificationpreferences").insertMany(phase25Prefs);
+
+  // Notifications across all delivery states
+  const notifications = [
+    {
+      _id: "notif_001",
+      hospitalId: "hos_001",
+      userId: patients[0].id,
+      audience: "patient",
+      templateKey: "APPOINTMENT_BOOKED",
+      category: "appointment",
+      title: "Appointment Booked",
+      message: "Your OPD appointment at General Hospital Ernakulam (Cardiology) is booked for 2024-01-20 at 10:00. Appointment: APT-1001.",
+      bodyEn: "Your OPD appointment at General Hospital Ernakulam (Cardiology) is booked for 2024-01-20 at 10:00. Appointment: APT-1001.",
+      bodyMl: "ജനറൽ ഹോസ്പിറ്റൽ എറണാകുളം (കാർഡിയോളജി)-ൽ 2024-01-20 10:00-ന് നിങ്ങളുടെ ഒപിഡി അപ്പോയിൻറ്മെന്റ് ബുക്ക് ചെയ്തിട്ടുണ്ട്. അപ്പോയിൻറ്മെന്റ്: APT-1001.",
+      locale: "en",
+      priority: "normal",
+      required: false,
+      read: false,
+      deepLink: "/patient/appointments/APT-1001",
+      resourceType: "appointment",
+      resourceId: "APT-1001",
+      channels: ["in_app", "push"],
+      idempotencyKey: "n:job_001",
+      sentBy: "system",
+      createdAt: daysAgo(2).toISOString(),
+    },
+    {
+      _id: "notif_002",
+      hospitalId: "hos_001",
+      userId: patients[0].id,
+      audience: "patient",
+      templateKey: "QUEUE_TOKEN_CALLED",
+      category: "queue",
+      title: "Your Token Is Being Called",
+      message: "Token TKN-001 is now being called.\n\nPlease proceed to Room 3, Cardiology OPD.",
+      bodyEn: "Token TKN-001 is now being called.\n\nPlease proceed to Room 3, Cardiology OPD.",
+      bodyMl: "ടോക്കൺ TKN-001 ഇപ്പോൾ വിളിക്കുന്നു.\n\nദയവായി കാർഡിയോളജി ഒപിഡിയിലെ റൂം 3-ലേക്ക് വരിക.",
+      locale: "en",
+      priority: "critical",
+      required: true,
+      read: true,
+      readAt: hoursAgo(1).toISOString(),
+      deepLink: "/patient/queue",
+      resourceType: "token",
+      resourceId: "TKN-001",
+      channels: ["in_app", "sms", "push"],
+      idempotencyKey: "n:job_002",
+      sentBy: "system",
+      createdAt: hoursAgo(2).toISOString(),
+    },
+    {
+      _id: "notif_003",
+      hospitalId: "hos_001",
+      userId: patients[1].id,
+      audience: "patient",
+      templateKey: "LAB_RESULT_AVAILABLE",
+      category: "clinical",
+      title: "Lab Result Available",
+      message: "Your medical test result is available. Please sign in to view it.",
+      bodyEn: "Your medical test result is available. Please sign in to view it.",
+      bodyMl: "നിങ്ങളുടെ മെഡിക്കൽ ടെസ്റ്റ് ഫലം ലഭ്യമാണ്. കാണുന്നതിന് സൈൻ ഇൻ ചെയ്യുക.",
+      locale: "ml",
+      priority: "normal",
+      required: false,
+      read: false,
+      deepLink: "/patient/lab-reports/LAB-60002",
+      resourceType: "diagnosticResult",
+      resourceId: "LAB-60002",
+      channels: ["in_app", "push"],
+      idempotencyKey: "n:job_003",
+      sentBy: "system",
+      createdAt: hoursAgo(4).toISOString(),
+    },
+    {
+      _id: "notif_004",
+      hospitalId: "hos_001",
+      userId: patients[1].id,
+      audience: "patient",
+      templateKey: "APPOINTMENT_REMINDER",
+      category: "appointment",
+      title: "Appointment Reminder",
+      message: "Your OPD appointment is tomorrow.\n\nGeneral Hospital Ernakulam\nCardiology\n10:00\n\nAppointment: APT-1002",
+      bodyEn: "Your OPD appointment is tomorrow.\n\nGeneral Hospital Ernakulam\nCardiology\n10:00\n\nAppointment: APT-1002",
+      bodyMl: "നാളെ നിങ്ങളുടെ ഒപിഡി അപ്പോയിൻറ്മെന്റ് ഉണ്ട്.\n\nജനറൽ ഹോസ്പിറ്റൽ എറണാകുളം\nകാർഡിയോളജി\n10:00\n\nഅപ്പോയിൻറ്മെന്റ്: APT-1002",
+      locale: "en",
+      priority: "normal",
+      required: false,
+      read: false,
+      deepLink: "/patient/appointments/APT-1002",
+      resourceType: "appointment",
+      resourceId: "APT-1002",
+      channels: ["in_app", "sms", "push"],
+      idempotencyKey: "n:job_004",
+      sentBy: "system",
+      createdAt: hoursAgo(6).toISOString(),
+    },
+    {
+      _id: "notif_005",
+      hospitalId: "hos_001",
+      userId: patients[0].id,
+      audience: "patient",
+      templateKey: "HOSPITAL_ANNOUNCEMENT",
+      category: "announcement",
+      title: "Hospital Announcement",
+      message: "OPD hours extended to 8 PM starting Monday. Please plan your visits accordingly.",
+      bodyEn: "OPD hours extended to 8 PM starting Monday. Please plan your visits accordingly.",
+      bodyMl: "തിങ്കളാഴ്ച മുതൽ ഒപിഡി സമയം രാത്രി 8 മണി വരെ നീട്ടിയിട്ടുണ്ട്. നിങ്ങളുടെ സന്ദർശനങ്ങൾ അനുസരിച്ച് ആസൂത്രണം ചെയ്യുക.",
+      locale: "en",
+      priority: "important",
+      required: true,
+      read: false,
+      deepLink: "/patient/dashboard",
+      resourceType: "announcement",
+      resourceId: "ann_001",
+      channels: ["in_app", "push", "email"],
+      idempotencyKey: "n:job_005",
+      sentBy: "adm_001",
+      createdAt: daysAgo(1).toISOString(),
+    },
+  ];
+  await coll("notifications").insertMany(notifications);
+
+  // Notification deliveries — mix of states
+  const deliveries = [
+    { _id: "del_001", notificationId: "notif_001", channel: "in_app", state: "delivered", attempts: 1, maxAttempts: 1, providerMessageId: "in_app_abc123", sentAt: daysAgo(2).toISOString(), deliveredAt: daysAgo(2).toISOString(), readAt: null, updatedAt: daysAgo(2).toISOString() },
+    { _id: "del_002", notificationId: "notif_001", channel: "push", state: "sent", attempts: 1, maxAttempts: 3, providerMessageId: "push_xyz789", sentAt: daysAgo(2).toISOString(), deliveredAt: null, readAt: null, updatedAt: daysAgo(2).toISOString() },
+    { _id: "del_003", notificationId: "notif_002", channel: "in_app", state: "delivered", attempts: 1, maxAttempts: 1, providerMessageId: "in_app_def456", sentAt: hoursAgo(2).toISOString(), deliveredAt: hoursAgo(2).toISOString(), readAt: hoursAgo(1).toISOString(), updatedAt: hoursAgo(1).toISOString() },
+    { _id: "del_004", notificationId: "notif_002", channel: "sms", state: "delivered", attempts: 1, maxAttempts: 3, providerMessageId: "sms_mno345", sentAt: hoursAgo(2).toISOString(), deliveredAt: hoursAgo(2).toISOString(), readAt: null, updatedAt: hoursAgo(2).toISOString() },
+    { _id: "del_005", notificationId: "notif_002", channel: "push", state: "delivered", attempts: 1, maxAttempts: 3, providerMessageId: "push_qrs678", sentAt: hoursAgo(2).toISOString(), deliveredAt: hoursAgo(2).toISOString(), readAt: null, updatedAt: hoursAgo(2).toISOString() },
+    { _id: "del_006", notificationId: "notif_003", channel: "in_app", state: "delivered", attempts: 1, maxAttempts: 1, providerMessageId: "in_app_ghi789", sentAt: hoursAgo(4).toISOString(), deliveredAt: hoursAgo(4).toISOString(), readAt: null, updatedAt: hoursAgo(4).toISOString() },
+    { _id: "del_007", notificationId: "notif_003", channel: "push", state: "failed", attempts: 3, maxAttempts: 3, lastError: "Provider rejected recipient (simulated)", providerMessageId: null, sentAt: hoursAgo(4).toISOString(), deliveredAt: null, readAt: null, updatedAt: hoursAgo(3).toISOString() },
+    { _id: "del_008", notificationId: "notif_004", channel: "in_app", state: "delivered", attempts: 1, maxAttempts: 1, providerMessageId: "in_app_jkl012", sentAt: hoursAgo(6).toISOString(), deliveredAt: hoursAgo(6).toISOString(), readAt: null, updatedAt: hoursAgo(6).toISOString() },
+    { _id: "del_009", notificationId: "notif_004", channel: "sms", state: "sent", attempts: 1, maxAttempts: 3, providerMessageId: "sms_vwx345", sentAt: hoursAgo(6).toISOString(), deliveredAt: null, readAt: null, updatedAt: hoursAgo(6).toISOString() },
+    { _id: "del_010", notificationId: "notif_004", channel: "push", state: "delivered", attempts: 1, maxAttempts: 3, providerMessageId: "push_yza678", sentAt: hoursAgo(6).toISOString(), deliveredAt: hoursAgo(6).toISOString(), readAt: null, updatedAt: hoursAgo(6).toISOString() },
+    { _id: "del_011", notificationId: "notif_005", channel: "in_app", state: "delivered", attempts: 1, maxAttempts: 1, providerMessageId: "in_app_bcd901", sentAt: daysAgo(1).toISOString(), deliveredAt: daysAgo(1).toISOString(), readAt: null, updatedAt: daysAgo(1).toISOString() },
+    { _id: "del_012", notificationId: "notif_005", channel: "push", state: "delivered", attempts: 1, maxAttempts: 3, providerMessageId: "push_efg234", sentAt: daysAgo(1).toISOString(), deliveredAt: daysAgo(1).toISOString(), readAt: null, updatedAt: daysAgo(1).toISOString() },
+    { _id: "del_013", notificationId: "notif_005", channel: "email", state: "sent", attempts: 1, maxAttempts: 3, providerMessageId: "email_hij567", sentAt: daysAgo(1).toISOString(), deliveredAt: null, readAt: null, updatedAt: daysAgo(1).toISOString() },
+  ];
+  await coll("notificationdeliveries").insertMany(deliveries);
+
+  // Notification jobs — queued reminder + one dead-letter
+  const jobs = [
+    { _id: "job_001", payload: { userId: patients[0].id, templateKey: "APPOINTMENT_REMINDER", params: { hospital: "General Hospital Ernakulam", department: "Cardiology", time: "10:00", appointmentId: "APT-1001" }, hospitalId: "hos_001", audience: "patient", resourceType: "appointment", resourceId: "APT-1001", extraChannels: [], announcementBody: null }, state: "done", attempts: 1, maxAttempts: 3, runAfter: daysAgo(2).toISOString(), lockedAt: null, leaseExpiresAt: null, lastError: null, idempotencyKey: "n:job_001", createdAt: daysAgo(2).toISOString() },
+    { _id: "job_002", payload: { userId: patients[0].id, templateKey: "QUEUE_TOKEN_CALLED", params: { token: "TKN-001", department: "Cardiology", room: "3", hospital: "General Hospital Ernakulam" }, hospitalId: "hos_001", audience: "patient", resourceType: "token", resourceId: "TKN-001", extraChannels: [], announcementBody: null }, state: "done", attempts: 1, maxAttempts: 3, runAfter: hoursAgo(2).toISOString(), lockedAt: null, leaseExpiresAt: null, lastError: null, idempotencyKey: "n:job_002", createdAt: hoursAgo(2).toISOString() },
+    { _id: "job_003", payload: { userId: patients[1].id, templateKey: "LAB_RESULT_AVAILABLE", params: { orderId: "LAB-60002" }, hospitalId: "hos_001", audience: "patient", resourceType: "diagnosticResult", resourceId: "LAB-60002", extraChannels: [], announcementBody: null }, state: "done", attempts: 1, maxAttempts: 3, runAfter: hoursAgo(4).toISOString(), lockedAt: null, leaseExpiresAt: null, lastError: null, idempotencyKey: "n:job_003", createdAt: hoursAgo(4).toISOString() },
+    { _id: "job_004", payload: { userId: patients[1].id, templateKey: "APPOINTMENT_REMINDER", params: { hospital: "General Hospital Ernakulam", department: "Cardiology", time: "10:00", appointmentId: "APT-1002" }, hospitalId: "hos_001", audience: "patient", resourceType: "appointment", resourceId: "APT-1002", extraChannels: [], announcementBody: null }, state: "queued", attempts: 0, maxAttempts: 3, runAfter: new Date(now.getTime() + 3600000).toISOString(), lockedAt: null, leaseExpiresAt: null, lastError: null, idempotencyKey: "n:job_004", createdAt: hoursAgo(6).toISOString() },
+    { _id: "job_005", payload: { userId: patients[0].id, templateKey: "HOSPITAL_ANNOUNCEMENT", params: { message: "OPD hours extended to 8 PM starting Monday. Please plan your visits accordingly." }, hospitalId: "hos_001", audience: "patient", announcementBody: "OPD hours extended to 8 PM starting Monday. Please plan your visits accordingly.", sentBy: "adm_001", resourceType: "announcement", resourceId: "ann_001", extraChannels: [] }, state: "done", attempts: 1, maxAttempts: 3, runAfter: daysAgo(1).toISOString(), lockedAt: null, leaseExpiresAt: null, lastError: null, idempotencyKey: "n:job_005", createdAt: daysAgo(1).toISOString() },
+    { _id: "job_006", payload: { userId: patients[2].id, templateKey: "APPOINTMENT_CANCELLED", params: { hospital: "General Hospital Ernakulam", date: "2024-01-15", time: "09:00" }, hospitalId: "hos_001", audience: "patient", resourceType: "appointment", resourceId: "APT-1003", extraChannels: [], announcementBody: null }, state: "dead", attempts: 3, maxAttempts: 3, runAfter: daysAgo(3).toISOString(), lockedAt: null, leaseExpiresAt: null, lastError: "SMS provider rejected recipient (simulated)", idempotencyKey: "n:job_006", createdAt: daysAgo(3).toISOString() },
+  ];
+  await coll("notificationjobs").insertMany(jobs);
+
+  console.log("Phase 25 seed data inserted.");
 
   console.log("Phase 24 seed data inserted.");
   console.log("  Pharmacist : pha_001 / pharm123");

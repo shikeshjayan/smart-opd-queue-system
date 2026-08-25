@@ -5,24 +5,30 @@ import { EmptyState } from "@/components/feedback/empty-state";
 type NotificationListProps = {
   notifications: Notification[];
   onMarkRead?: (id: string) => void;
-  busy?: boolean;
+  emptyMessage?: string;
+  busyIds?: Set<string>;
 };
 
-export function NotificationList({ notifications, onMarkRead, busy = false }: NotificationListProps) {
+export function NotificationList({
+  notifications,
+  onMarkRead,
+  emptyMessage = "No notifications",
+  busyIds,
+}: NotificationListProps) {
   if (notifications.length === 0) {
-    return <EmptyState title="No notifications" description="You're all caught up." />;
+    return <EmptyState title="No notifications" description={emptyMessage} />;
   }
 
   return (
-    <ul className="flex flex-col gap-2">
-      {notifications.map((notification) => (
+    <ol className="flex flex-col gap-3" role="list" aria-label="Notifications">
+      {notifications.map((n) => (
         <NotificationItem
-          key={notification.id}
-          notification={notification}
+          key={n.id}
+          notification={n}
           onMarkRead={onMarkRead}
-          busy={busy}
+          busy={busyIds?.has(n.id)}
         />
       ))}
-    </ul>
+    </ol>
   );
 }

@@ -6,7 +6,6 @@ import { useAsync } from "@/lib/use-async";
 import { testById } from "@/services/diagnostics";
 import type { DiagnosticOrderItem, DiagnosticResult, ResultValue, TestCatalogItem } from "@/services/diagnostics/types";
 import { diagnosticsMockApi } from "@/features/diagnostics/api/diagnostics.mock";
-import { notificationMockApi } from "@/features/notifications/api/notification.mock";
 import { useDiagnosticResultActions } from "@/features/diagnostics/hooks/useDiagnosticResults";
 import { ResultForm } from "@/features/diagnostics/components/ResultForm";
 import { DiagnosticResultView } from "@/features/diagnostics/components/DiagnosticResultView";
@@ -192,13 +191,6 @@ function TestResultEntry({
         setError("Unable to finalize result. Check that all fields are complete.");
         return;
       }
-      await notificationMockApi.add(finalized.patientId, {
-        id: `n_lab_${finalized.id}`,
-        type: "medical",
-        title: "Lab result available",
-        message: `Your ${test.name} report is now available.`,
-        createdAt: new Date().toISOString(),
-      });
       onFinalized();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unable to finalize result");

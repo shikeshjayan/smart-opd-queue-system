@@ -2,34 +2,47 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { NotificationEventKey, NotificationPreferences } from "../types/notification.types";
-import { EVENT_LABELS, SUPPORTED_CHANNELS } from "../types/notification.types";
+import { Select } from "@/components/ui/select";
+import type { NotificationPreference } from "../types/notification.types";
 
-type NotificationPreferencesProps = {
-  preferences: NotificationPreferences;
-  onSave: (preferences: NotificationPreferences) => Promise<void>;
-  busy?: boolean;
-};
-
-const channelLabels: Record<string, string> = {
-  in_app: "In-app",
+const CHANNEL_LABELS = {
   sms: "SMS",
+  email: "Email",
   push: "Push",
 };
 
-export function NotificationPreferences({ preferences, onSave, busy = false }: NotificationPreferencesProps) {
-  const [draft, setDraft] = useState<NotificationPreferences>(preferences);
+const CATEGORY_LABELS = {
+  appointmentReminders: "Appointment reminders",
+  queueUpdates: "Queue updates",
+  resultNotifications: "Lab/diagnostic results",
+  prescriptionNotifications: "Prescription ready",
+  followUpReminders: "Follow-up reminders",
+  announcements: "Hospital announcements",
+};
+
+type NotificationPreferencesProps = {
+  prefs: NotificationPreference | null;
+  onSave: (input: Partial<NotificationPreference>) => Promise<void>;
+  loading?: boolean;
+};
+
+export function NotificationPreferences({ prefs, onSave, loading = false }: NotificationPreferencesProps) {
+  const [draft, setDraft] = useState<Partial<NotificationPreference>>({
+    sms: prefs?.sms ?? true,
+    email: prefs?.email ?? false,
+    push: prefs?.push ?? true,
+    appointmentReminders: prefs?.appointmentReminders ?? true,
+    queueUpdates: prefs?.queueUpdates ?? true,
+    resultNotifications: prefs?.resultNotifications ?? true,
+    prescriptionNotifications: prefs?.prescriptionNotifications ?? true,
+    followUpReminders: prefs?.followUpReminders ?? true,
+    announcements: prefs?.announcements ?? true,
+    locale: prefs?.locale ?? "en",
+  });
   const [saved, setSaved] = useState(false);
 
-  const eventKeys = Object.keys(EVENT_LABELS) as NotificationEventKey[];
-
-  function toggle(key: NotificationEventKey) {
-    setSaved(false);
-    setDraft((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], in_app: !prev[key].in_app },
-    }));
-  }
+  const channelKeys = Object.keys(CHANNEL_LABELS) as Array<keyof typeof CHANNEL_LABELS>;
+  const categoryKeys = Object.keys(CATEGORY_LABELS) as Array<keyof typeof CATEGORY_LABELS>;
 
   async function handleSave() {
     await onSave(draft);
@@ -37,75 +50,62 @@ export function NotificationPreferences({ preferences, onSave, busy = false }: N
   }
 
   return (
-    <section aria-labelledby="preferences-title" className="flex flex-col gap-4">
+    <section aria-labelledby="preferences-title" className="flex flex-col gap-6">
       <h2 id="preferences-title" className="text-lg font-semibold text-ink-900">
         Notification Preferences
       </h2>
 
-      <ul className="flex flex-col gap-3">
-        {eventKeys.map((key) => {
-          const { label, description } = EVENT_LABELS[key];
-          const enabled = draft[key].in_app;
-          return (
-            <li
-              key={key}
-              className="flex items-start justify-between gap-4 rounded-card border border-ink-200 bg-surface p-4 shadow-card"
-            >
-              <div>
-                <p className="text-sm font-medium text-ink-900">{label}</p>
-                <p className="mt-0.5 text-xs text-ink-500">{description}</p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={enabled}
-                onClick={() => toggle(key)}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-brand-600 ${
-                  enabled ? "bg-brand-600" : "bg-ink-300"
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                    enabled ? "translate-x-[22px]" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="rounded-card border border-ink-200 bg-surface p-4 text-sm shadow-card">
-        <p className="font-medium text-ink-900">Channels</p>
-        <ul className="mt-2 flex flex-wrap gap-2">
-          {SUPPORTED_CHANNELS.map((channel) => {
-            const supported = channel === "in_app";
-            return (
-              <li
-                key={channel}
-                className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                  supported
-                    ? "border-status-success-soft bg-status-success-soft text-status-success"
-                    : "border-ink-200 bg-ink-100 text-ink-400"
-                }`}
-              >
-                {channelLabels[channel]}
-                {!supported && " · Not available"}
-              </li>
-            );
-          })}
-        </ul>
-        <p className="mt-2 text-xs text-ink-500">
-          Only channels supported by the system are shown. SMS and push notifications arrive with
-          the backend integration.
-        </p>
+      <div className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
+        <h3 className="font-medium mb-3">Channels</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {channelKeys.map((key) => (
+            <label key={key} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!draft[key]}
+                onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.checked }))}
+                className="rounded-sm border-ink-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span className="text-sm text-ink-700">{CHANNEL_LABELS[key]}</span>
+            </label>
+          ))}
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={busy}>
-          {busy ? "Saving…" : "Save Preferences"}
+      <div className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
+        <h3 className="font-medium mb-3">Categories</h3>
+        <div className="grid gap-3">
+          {categoryKeys.map((key) => (
+            <label key={key} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!draft[key]}
+                onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.checked }))}
+                className="rounded-sm border-ink-300 text-brand-600 focus:ring-brand-500"
+              />
+              <span className="text-sm text-ink-700">{CATEGORY_LABELS[key]}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
+        <h3 className="font-medium mb-3">Language</h3>
+        <select
+          value={draft.locale ?? "en"}
+          onChange={(e) => setDraft((d) => ({ ...d, locale: e.target.value }))}
+          className="h-11 w-48 rounded-btn border border-ink-300 bg-surface px-3 text-sm"
+        >
+          <option value="en">English</option>
+          <option value="ml">മലയാളം</option>
+        </select>
+      </div>
+
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={loading || saved}>
+          {saved ? "Saved" : loading ? "Saving…" : "Save preferences"}
         </Button>
-        {saved && <p className="text-sm text-status-success">Saved.</p>}
       </div>
     </section>
   );

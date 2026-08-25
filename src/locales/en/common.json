@@ -1,0 +1,62 @@
+{
+  "appointment": {
+    "booked_title": "Appointment Booked",
+    "booked_body": "Your OPD appointment at {{hospital}} ({{department}}) is booked for {{date}} at {{time}}. Appointment: {{appointmentId}}.",
+    "confirmed_title": "Appointment Confirmed",
+    "confirmed_body": "Your OPD appointment at {{hospital}} is confirmed for {{date}} at {{time}}.",
+    "cancelled_title": "Appointment Cancelled",
+    "cancelled_body": "Your appointment at {{hospital}} on {{date}} at {{time}} has been cancelled. You can book a new appointment anytime.",
+    "rescheduled_title": "Appointment Rescheduled",
+    "rescheduled_body": "Your {{department}} appointment has been moved to {{date}} at {{time}} at {{hospital}}.",
+    "reminder_title": "Appointment Reminder",
+    "reminder_body": "Your OPD appointment is tomorrow.\n\n{{hospital}}\n{{department}}\n{{time}}\n\nAppointment: {{appointmentId}}"
+  },
+  "queue": {
+    "checked_in_title": "Checked In",
+    "checked_in_body": "You are checked in at {{department}}, {{hospital}}. Your token is {{token}}.",
+    "token_generated_title": "Token Generated",
+    "token_generated_body": "Token {{token}} issued for {{department}} at {{hospital}}.",
+    "approaching_title": "Your Token Is Approaching",
+    "approaching_body": "Your token {{token}} is approaching. {{ahead}} patients before you.\n\nPlease remain near the {{department}} OPD.",
+    "called_title": "Your Token Is Being Called",
+    "called_body": "Token {{token}} is now being called.\n\nPlease proceed to Room {{room}}, {{department}} OPD.",
+    "delayed_title": "OPD Delay",
+    "delayed_body": "{{department}} OPD is currently delayed.\n\nUpdated estimated waiting time: ~{{eta}} minutes.\n\nWe apologize for the delay."
+  },
+  "results": {
+    "lab_available_title": "Lab Result Available",
+    "lab_available_body": "Your medical test result is available. Please sign in to view it.",
+    "diagnostic_available_title": "Diagnostic Report Available",
+    "diagnostic_available_body": "Your diagnostic report is available. Please sign in to view it.",
+    "result_ready_for_review_title": "Result Requires Review",
+    "result_ready_for_review_body": "{{count}} lab result(s) submitted and awaiting verification.",
+    "critical_result_title": "Critical Result Alert",
+    "critical_result_body": "A critical result for patient {{patientId}} requires acknowledgement."
+  },
+  "pharmacy": {
+    "prescription_ready_title": "Prescription Ready",
+    "prescription_ready_body": "Your prescription is ready for collection at the {{hospital}} pharmacy.",
+    "partially_dispensed_title": "Prescription Partially Dispensed",
+    "partially_dispensed_body": "Part of your prescription has been dispensed. Please visit the pharmacy counter for details.",
+    "dispensed_title": "Prescription Dispensed",
+    "dispensed_body": "Your prescription has been fully dispensed at the {{hospital}} pharmacy.",
+    "low_stock_title": "Low Stock Alert",
+    "low_stock_body": "{{medicine}} stock is below minimum level ({{quantity}} remaining)."
+  },
+  "followup": {
+    "scheduled_title": "Follow-up Scheduled",
+    "scheduled_body": "Dr. {{doctor}} has advised a follow-up on {{date}}. Please book an appointment.",
+    "reminder_title": "Follow-up Reminder",
+    "reminder_body": "Reminder: your follow-up with {{doctor}} is due tomorrow ({{department}}, {{hospital}})."
+  },
+  "announcement": {
+    "title": "Hospital Announcement",
+    "body": "{{message}}"
+  },
+  "common": {
+    "view_details": "View details",
+    "action_required": "Action required",
+    "unread": "Unread",
+    "read": "Read"
+  }
+}
