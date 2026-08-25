@@ -209,6 +209,14 @@ export const TEMPLATES: Record<string, TemplateDefinition> = {
     required: true,
     deepLink: () => "/patient/dashboard",
   },
+  STAFF_LEAVE_APPROVED: {
+    titleKey: "staff.leave_approved_title",
+    bodyKey: "staff.leave_approved_body",
+    category: "system",
+    priority: "normal",
+    channels: [],
+    deepLink: (p) => `/hospital-admin/staff/${p.staffId}`,
+  },
 };
 
 /** Preference group each template belongs to (§23 mapping). */

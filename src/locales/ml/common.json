@@ -53,6 +53,10 @@
     "title": "ആശുപത്രി പ്രഖ്യാപനം",
     "body": "{{message}}"
   },
+  "staff": {
+    "leave_approved_title": "അവധി അംഗീകരിച്ചു",
+    "leave_approved_body": "{{from}} മുതൽ {{to}} വരെയുള്ള നിങ്ങളുടെ അവധി അംഗീകരിച്ചിട്ടുണ്ട്."
+  },
   "common": {
     "view_details": "വിശദാംശങ്ങൾ കാണുക",
     "action_required": "നടപടി ആവശ്യമാണ്",

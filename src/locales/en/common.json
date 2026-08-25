@@ -53,6 +53,10 @@
     "title": "Hospital Announcement",
     "body": "{{message}}"
   },
+  "staff": {
+    "leave_approved_title": "Leave Approved",
+    "leave_approved_body": "Your leave from {{from}} to {{to}} has been approved."
+  },
   "common": {
     "view_details": "View details",
     "action_required": "Action required",

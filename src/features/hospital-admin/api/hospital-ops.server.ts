@@ -12,8 +12,20 @@ import {
   type OpsDepartmentConfig,
   type OpsDepartmentConfigInput,
 } from "@/server/actions/hospital-ops";
+import {
+  opsListStaff,
+  opsListAssignments,
+  opsCreateAssignment,
+  opsEndAssignment,
+  opsRequestLeave,
+  opsListLeaves,
+  opsReviewLeave,
+  opsCancelLeave,
+  opsLeaveImpact,
+  type OpsStaffRow,
+} from "@/server/actions/staff-ops";
 import type { HospitalServiceEntry } from "@/services/hospital-ops/types";
-import type { Room } from "@/types";
+import type { Room, StaffAssignment, StaffLeave } from "@/types";
 
 function serviceToEntry(s: Awaited<ReturnType<typeof opsListServices>>[number]): HospitalServiceEntry {
   return {
@@ -94,6 +106,53 @@ export const hospitalOpsServerApi = {
   async setDepartmentStatus(departmentId: string, status: "active" | "inactive"): Promise<void> {
     await opsSetDepartmentStatus(departmentId, status);
   },
+
+  /* ── Staff & leave (WS3) ── */
+
+  async listStaff(hospitalId: string): Promise<OpsStaffRow[]> {
+    try {
+      return await opsListStaff(hospitalId);
+    } catch {
+      return [];
+    }
+  },
+
+  async listAssignments(staffId: string): Promise<StaffAssignment[]> {
+    try {
+      return await opsListAssignments(staffId);
+    } catch {
+      return [];
+    }
+  },
+
+  createAssignment: (
+    input: {
+      hospitalId: string;
+      staffId: string;
+      departmentId?: string | null;
+      role: string;
+      startDate: string;
+      endDate?: string | null;
+    }
+  ): Promise<StaffAssignment> => opsCreateAssignment(input),
+
+  endAssignment: (assignmentId: string): Promise<void> => opsEndAssignment(assignmentId),
+
+  requestLeave: (
+    input: { hospitalId: string; staffId?: string; fromDate: string; toDate: string; reason: string }
+  ): Promise<StaffLeave> => opsRequestLeave(input),
+
+  listLeaves: (
+    hospitalId: string,
+    status?: StaffLeave["status"]
+  ): Promise<Array<StaffLeave & { staffName: string }>> =>
+    opsListLeaves(hospitalId, status).catch(() => []),
+
+  reviewLeave: (leaveId: string, approve: boolean): Promise<void> => opsReviewLeave(leaveId, approve),
+
+  cancelLeave: (leaveId: string): Promise<void> => opsCancelLeave(leaveId),
+
+  leaveImpact: (leaveId: string) => opsLeaveImpact(leaveId),
 };
 
 export type { OpsDepartmentConfig, OpsDepartmentConfigInput };

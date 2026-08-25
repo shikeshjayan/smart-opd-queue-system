@@ -72,6 +72,52 @@ export function useRoleAssignments(hospitalId: string) {
   return useAsync(() => hospitalOpsService.listRoleAssignments(hospitalId), [hospitalId]);
 }
 
+export function useOpsStaff(hospitalId: string) {
+  return useAsync(() => hospitalOpsServerApi.listStaff(hospitalId), [hospitalId]);
+}
+
+export function useOpsStaffAssignments(staffId: string) {
+  return useAsync(
+    () => (staffId ? hospitalOpsServerApi.listAssignments(staffId) : Promise.resolve([])),
+    [staffId]
+  );
+}
+
+export function useOpsLeaves(hospitalId: string, status?: "pending" | "approved" | "rejected" | "cancelled") {
+  return useAsync(() => hospitalOpsServerApi.listLeaves(hospitalId, status), [hospitalId, status]);
+}
+
+export function useStaffOpsMutations() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
+    setBusy(true);
+    setError(null);
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message.replace(/^Error:\s*/, "") : "Something went wrong");
+      return undefined;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return {
+    busy,
+    error,
+    createAssignment: (input: Parameters<typeof hospitalOpsServerApi.createAssignment>[0]) =>
+      run(() => hospitalOpsServerApi.createAssignment(input)),
+    endAssignment: (id: string) => run(() => hospitalOpsServerApi.endAssignment(id)),
+    requestLeave: (input: { hospitalId: string; staffId?: string; fromDate: string; toDate: string; reason: string }) =>
+      run(() => hospitalOpsServerApi.requestLeave(input)),
+    reviewLeave: (leaveId: string, approve: boolean) =>
+      run(() => hospitalOpsServerApi.reviewLeave(leaveId, approve)),
+    cancelLeave: (leaveId: string) => run(() => hospitalOpsServerApi.cancelLeave(leaveId)),
+  };
+}
+
 export function useOpsAudit(
   hospitalId: string,
   filters: { action?: OperationalAuditAction | ""; query?: string }
