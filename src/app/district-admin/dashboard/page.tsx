@@ -1,13 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useEffect } from "react";
 import { useDistrictAdmin } from "@/features/auth/context";
-import {
-  useDistrictDashboard,
-  useDistrictComparison,
-  useDistrictCapacity,
-} from "@/features/district-admin/hooks/useDistrictAdminData";
+import { useDistrictDashboard } from "@/features/district-admin/hooks/useDistrictAdminData";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { LiveIndicator } from "@/features/government-admin/components/LiveIndicator";
 import { StatGrid } from "@/features/government-admin/components/StatGrid";
@@ -24,21 +18,15 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import { DistrictMap } from "@/features/district-admin/components/DistrictMap";
-import { HospitalComparison } from "@/features/district-admin/components/HospitalComparison";
-import { CapacityOverview } from "@/features/district-admin/components/CapacityOverview";
+import Link from "next/link";
 
 export default function DistrictAdminDashboardPage() {
   const { admin, districtId } = useDistrictAdmin();
   const { data: dashboard, isLoading, error, reload } = useDistrictDashboard(
     districtId ?? "ernakulam"
   );
-  const { data: comparison, isLoading: comparisonLoading } =
-    useDistrictComparison(districtId ?? "ernakulam");
-  const { data: capacity, isLoading: capacityLoading } =
-    useDistrictCapacity(districtId ?? "ernakulam");
 
-  if (isLoading || !districtId || comparisonLoading || capacityLoading) {
+  if (isLoading || !districtId) {
     return (
       <div className="flex flex-col gap-6">
         <Skeleton className="h-9 w-2/3" />
@@ -49,7 +37,7 @@ export default function DistrictAdminDashboardPage() {
     );
   }
 
-  if (error || !dashboard || !comparison || !capacity) {
+  if (error || !dashboard) {
     return (
       <ErrorState
         message={error ?? "Unable to load dashboard."}
@@ -63,21 +51,20 @@ export default function DistrictAdminDashboardPage() {
     hospitals,
     alerts,
     longestQueue,
-    announcements,
   } = dashboard;
 
   const stats = [
-    { id: "hospitals", label: "Hospitals", value: performance.hospitals },
-    { id: "activeOpds", label: "Active OPDs", value: performance.activeOpds },
-    { id: "patients", label: "Patients Today", value: performance.patientsToday },
-    { id: "waiting", label: "Currently Waiting", value: performance.waiting, highlight: true },
-    { id: "completed", label: "Completed", value: performance.completed },
+    { id: "hospitals", label: "Hospitals", value: hospitals.length },
+    { id: "activeOpds", label: "Active OPDs", value: hospitals.reduce((s, h) => s + h.activeOpds, 0) },
+    { id: "patients", label: "Patients Today", value: performance.totalPatients },
+    { id: "waiting", label: "Currently Waiting", value: performance.totalWaiting, highlight: true },
+    { id: "completed", label: "Completed", value: hospitals.reduce((s, h) => s + h.completed, 0) },
   ];
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={`${performance.districtName} District`}
+        title={`${dashboard.districtName} District`}
         description={`${getGreeting()}, ${admin?.name ?? "Admin"} · ${admin?.email ?? ""}`}
         actions={<LiveIndicator />}
       />
@@ -90,7 +77,7 @@ export default function DistrictAdminDashboardPage() {
             Longest queue right now
           </p>
           <p className="mt-1 font-semibold text-ink-900">
-            {longestQueue.departmentName} — {longestQueue.hospitalName}
+            {longestQueue.name}
           </p>
           <p className="text-sm text-ink-700">
             {longestQueue.waiting} patients waiting. Consider opening additional OPD windows.
@@ -115,20 +102,20 @@ export default function DistrictAdminDashboardPage() {
               </TableHeader>
               <TableBody>
                 {hospitals.map((row) => (
-                  <TableRow key={row.hospital.id}>
+                  <TableRow key={row.hospitalId}>
                     <TableCell className="font-medium text-ink-900">
                       <Link
-                        href={`/district-admin/hospitals/${row.hospital.id}`}
+                        href={`/district-admin/hospitals/${row.hospitalId}`}
                         className="text-brand-600 hover:underline focus-visible:outline-2 focus-visible:outline-brand-600"
                       >
-                        {row.hospital.name}
+                        {row.name}
                       </Link>
                     </TableCell>
                     <TableCell className="text-right font-semibold text-ink-900">
                       {row.waiting}
                     </TableCell>
                     <TableCell>
-                      <HealthBadge health={row.health} />
+                      <HealthBadge health={row.status === "alert" ? "critical" : row.status === "high_load" ? "warning" : "healthy"} />
                     </TableCell>
                     <TableCell className="text-right text-ink-700">{row.activeOpds}</TableCell>
                   </TableRow>
@@ -141,17 +128,17 @@ export default function DistrictAdminDashboardPage() {
         <ul className="flex flex-col gap-3 md:hidden">
           {hospitals.map((row) => (
             <li
-              key={row.hospital.id}
+              key={row.hospitalId}
               className="rounded-card border border-ink-200 bg-surface p-4 shadow-card"
             >
               <div className="flex items-start justify-between gap-2">
                 <Link
-                  href={`/district-admin/hospitals/${row.hospital.id}`}
+                  href={`/district-admin/hospitals/${row.hospitalId}`}
                   className="font-medium text-brand-600 hover:underline"
                 >
-                  {row.hospital.name}
+                  {row.name}
                 </Link>
-                <HealthBadge health={row.health} />
+                <HealthBadge health={row.status === "alert" ? "critical" : row.status === "high_load" ? "warning" : "healthy"} />
               </div>
               <div className="mt-3 flex items-center justify-between text-sm text-ink-700">
                 <span>
@@ -173,7 +160,7 @@ export default function DistrictAdminDashboardPage() {
           View all alerts
         </Link>
       </div>
-      <AlertList alerts={alerts} limit={4} />
+      <AlertList alerts={alerts as any} limit={4} />
     </div>
   );
 }

@@ -1,93 +1,82 @@
 "use client";
 
 import { useAsync } from "@/lib/use-async";
-import { districtAdminMockApi } from "../api/district-admin.mock";
-import type { DistrictFilters } from "../types/district-admin.types";
+import type { DistrictFilters, DistrictReportType } from "../types/district-admin.types";
 import type { DistrictId } from "@/config/districts";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import { useState } from "react";
-import type { AuditActor } from "@/services/hospital-ops/types";
+import { DEFAULT_DISTRICT_FILTERS } from "@/services/district/types";
+import {
+  getDistrictDashboard,
+  getDistrictAnalytics,
+  listDistrictHospitalRows,
+  getDistrictComparison,
+  getDistrictCapacity,
+  getDistrictResources,
+  getHospitalDoctorAvailability,
+  getDistrictServiceMatrix,
+  getDistrictReferrals,
+  listDistrictAnnouncements,
+  publishDistrictAnnouncement,
+  listDistrictAudit,
+  getDistrictSettings,
+  saveDistrictSettings,
+  getDistrictReport,
+  toggleDistrictHospitalActive,
+} from "@/server/actions/district-admin";
 
-export function useDistrictDashboard(districtId: DistrictId, filters: DistrictFilters) {
-  return useAsync(() => districtAdminMockApi.getDashboard(districtId, filters), [districtId, JSON.stringify(filters)]);
+export function useDistrictDashboard(districtId: DistrictId, filters: DistrictFilters = DEFAULT_DISTRICT_FILTERS) {
+  return useAsync(() => getDistrictDashboard(districtId, filters), [districtId, JSON.stringify(filters)]);
 }
 
-export function useDistrictAnalytics(districtId: DistrictId, period: "today" | "week" | "month", filters: DistrictFilters) {
-  return useAsync(() => districtAdminMockApi.getAnalytics(districtId, period, filters), [districtId, period, JSON.stringify(filters)]);
+export function useDistrictAnalytics(districtId: DistrictId, period: "today" | "weekly" | "monthly", filters: DistrictFilters = DEFAULT_DISTRICT_FILTERS) {
+  return useAsync(() => getDistrictAnalytics(districtId, period, filters), [districtId, period, JSON.stringify(filters)]);
 }
 
 export function useDistrictHospitals(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.listHospitalRows(districtId), [districtId]);
+  return useAsync(() => listDistrictHospitalRows(districtId), [districtId]);
 }
 
 export function useDistrictComparison(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.getComparison(districtId), [districtId]);
+  return useAsync(() => getDistrictComparison(districtId), [districtId]);
 }
 
 export function useDistrictCapacity(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.getCapacity(districtId), [districtId]);
+  return useAsync(() => getDistrictCapacity(districtId), [districtId]);
 }
 
 export function useDistrictResources(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.getResources(districtId), [districtId]);
+  return useAsync(() => getDistrictResources(districtId), [districtId]);
 }
 
 export function useHospitalDoctorAvailability(hospitalId: string) {
-  return useAsync(() => districtAdminMockApi.getDoctorAvailability(hospitalId), [hospitalId]);
+  return useAsync(() => getHospitalDoctorAvailability(hospitalId), [hospitalId]);
 }
 
 export function useDistrictServiceMatrix(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.getServiceMatrix(districtId), [districtId]);
+  return useAsync(() => getDistrictServiceMatrix(districtId), [districtId]);
 }
 
 export function useDistrictReferrals(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.getReferrals(districtId), [districtId]);
+  return useAsync(() => getDistrictReferrals(districtId), [districtId]);
 }
 
 export function useDistrictAnnouncements(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.listAnnouncements(districtId), [districtId]);
+  return useAsync(() => listDistrictAnnouncements(districtId), [districtId]);
 }
 
-export function useDistrictAudit(districtId: DistrictId, filters: { action?: string; query?: string }) {
-  return useAsync(() => districtAdminMockApi.listAudit(districtId, filters), [districtId, JSON.stringify(filters)]);
+export function useDistrictAudit(districtId: DistrictId) {
+  return useAsync(() => listDistrictAudit(districtId), [districtId]);
 }
 
 export function useDistrictSettings(districtId: DistrictId) {
-  return useAsync(() => districtAdminMockApi.getSettings(districtId), [districtId]);
+  return useAsync(() => getDistrictSettings(districtId), [districtId]);
 }
 
-export function useDistrictReport(districtId: DistrictId, type: string, filters: DistrictFilters) {
-  return useAsync(() => districtAdminMockApi.getReport(districtId, type, filters), [districtId, type, JSON.stringify(filters)]);
+export function useDistrictReport(districtId: DistrictId, type: DistrictReportType, filters: DistrictFilters = DEFAULT_DISTRICT_FILTERS) {
+  return useAsync(() => getDistrictReport(districtId, type, filters), [districtId, type, JSON.stringify(filters)]);
 }
 
-export function useDistrictMutations() {
-  const { user } = useAuth();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const actor: AuditActor = {
-    id: user?.id ?? "unknown",
-    name: user?.name ?? "Unknown Admin",
-    role: "District Admin",
-  };
-
-  async function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
-    setBusy(true);
-    setError(null);
-    try {
-      return await fn();
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
-      return undefined;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return {
-    busy,
-    error,
-    publishAnnouncement: (input: any) => run(() => districtAdminMockApi.publishAnnouncement(input, actor)),
-    saveSettings: (districtId: DistrictId, settings: any) => run(() => districtAdminMockApi.saveSettings(districtId, settings, actor)),
-  };
-}
+export {
+  publishDistrictAnnouncement as districtPublishAnnouncement,
+  saveDistrictSettings as districtSaveSettings,
+  toggleDistrictHospitalActive as districtToggleHospitalActive,
+};

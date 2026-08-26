@@ -30,7 +30,7 @@ export const stateAdminMockApi = {
     return stateAdminService.listAnnouncements();
   },
   async publishAnnouncement(
-    input: { title: string; message: string; targetType: "all" | "districts" | "hospitals"; targetIds: string[]; scheduledAt: string | null; expiresAt: string | null },
+    input: Omit<StateAnnouncement, "id" | "status" | "createdAt" | "publishedBy">,
     actor: { id: string; name: string; role: string }
   ): Promise<StateAnnouncement> {
     return stateAdminService.publishAnnouncement(input, actor);

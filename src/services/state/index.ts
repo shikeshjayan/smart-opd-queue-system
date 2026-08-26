@@ -5,6 +5,7 @@ import type {
   StateAuditAction,
   StateAuditEvent,
   StateConfig,
+  StateReportType,
   StateUserRow,
   SystemHealthData,
   SystemHealthItem,
@@ -17,6 +18,7 @@ import type {
   StateServiceAvailabilityRow,
   StateCapacityRow,
   StateAlertSummary,
+  QueueHealth,
 } from "./types";
 import { DISTRICTS, getDistrictName, type DistrictId } from "@/config/districts";
 import {
@@ -301,13 +303,16 @@ export const stateAdminService = {
               todaysLoad: load,
               utilizationPercent: Math.round(util),
               status: util > 100 ? "exceeded" : util >= 85 ? "near_capacity" : "normal",
+          };
+      });
+  },
+
   async getReport(type: StateReportType): Promise<{
     type: StateReportType;
     title: string;
     period: string;
     summary: Array<{ label: string; value: string | number }>;
-    columns: string[];
-    rows: Array<Record<string, string | number>>;
+    table: { columns: string[]; rows: Array<Array<string | number>> };
   }> {
     await delay();
     return {
@@ -315,13 +320,11 @@ export const stateAdminService = {
       title: type.replace(/_/g, " "),
       period: "Today",
       summary: [{ label: "Total", value: 100 }],
-      columns: ["Metric", "Value"],
-      rows: [{ Metric: "Example", Value: 100 }],
+      table: {
+        columns: ["Metric", "Value"],
+        rows: [["Example", 100]],
+      },
     };
-  },
-};
-
-      });
   },
 
   async listAnnouncements(): Promise<StateAnnouncement[]> {
@@ -370,21 +373,6 @@ export const stateAdminService = {
     return ensureLoaded().audit;
   },
 
-  async getAlertsSummary(): Promise<StateAlertSummary> {
-    await delay();
-    const items = listAllAlerts().filter((a) => a.status === "active");
-    return {
-      critical: items.filter((a) => a.severity === "critical").length,
-      warning: items.filter((a) => a.severity === "warning").length,
-      notice: items.filter((a) => a.severity === "info").length,
-      items,
-    };
-  },
-
-  async getUsers(): Promise<StateUserRow[]> {
-    await delay();
-    return ensureLoaded().users;
-  },
 
   async getSystemHealth(): Promise<SystemHealthData> {
     await delay();

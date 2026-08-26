@@ -1,5 +1,5 @@
 import React from "react";
-import { useDistrictMutations } from "@/features/district-admin/hooks/useDistrictAdminData";
+import { useDistrictAdmin } from "@/features/government-admin/district-context";
 import { DistrictSettings } from "@/services/district/types";
 
 export interface HospitalActivationToggleProps {

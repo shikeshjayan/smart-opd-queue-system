@@ -1,5 +1,5 @@
 import React from "react";
-import { DistrictMapPinProps } from "../DistrictMap";
+// import { DistrictMapPinProps } from "../DistrictMap";
 
 export interface HospitalComparisonColumn {
   field: keyof HospitalComparisonRow;

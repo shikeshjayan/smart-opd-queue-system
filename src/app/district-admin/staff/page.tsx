@@ -3,12 +3,19 @@
 import { useDistrictAdmin } from "@/features/auth/context";
 import { useDistrictHospitals } from "@/features/district-admin/hooks/useDistrictAdminData";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
-import { StatsCard } from "@/features/government-admin/components/StatsCard";
-import { Table } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import { useState, useEffect } from "react";
 import { listStaffByHospital } from "@/services/data";
+import type { DistrictHospitalRow } from "@/features/district-admin/types/district-admin.types";
 
 export default function DistrictAdminStaffPage() {
   const { admin, districtId } = useDistrictAdmin();
@@ -35,8 +42,8 @@ export default function DistrictAdminStaffPage() {
       setIsLoadingStaff(true);
       const map = new Map<string, any[]>();
       for (const hospital of hospitals) {
-        const staff = listStaffByHospital(hospital.id).filter((s) => s.status === "active");
-        map.set(hospital.id, staff);
+        const staff = listStaffByHospital(hospital.hospitalId).filter((s) => s.status === "active");
+        map.set(hospital.hospitalId, staff);
       }
       setStaffData(map);
       setIsLoadingStaff(false);
@@ -54,9 +61,9 @@ export default function DistrictAdminStaffPage() {
   }
 
   const staffRows: Array<{ name: string; role: string; hospitalName: string; status: string }> = [];
-  hospitals.forEach((h) => {
-    const staff = staffData.get(h.id) || [];
-    staff.forEach((s) => {
+  hospitals.forEach((h: DistrictHospitalRow) => {
+    const staff = staffData.get(h.hospitalId) || [];
+    staff.forEach((s: any) => {
       staffRows.push({
         name: s.name,
         role: s.role,
@@ -74,30 +81,30 @@ export default function DistrictAdminStaffPage() {
       />
 
       <Table>
-        <Table.Header>
-          <Table.Row>
-            <Table.Cell>Name</Table.Cell>
-            <Table.Cell>Role</Table.Cell>
-            <Table.Cell>Hospital</Table.Cell>
-            <Table.Cell className="text-right">Status</Table.Cell>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {staffRows.map((row) => (
-            <Table.Key row>
-              <Table.Cell>{row.name}</Table.Cell>
-              <Table.Cell>{row.role}</Table.Cell>
-              <Table.Cell>{row.hospitalName}</Table.Cell>
-              <Table.Cell className="text-right">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Hospital</TableHead>
+            <TableHead className="text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {staffRows.map((row, i) => (
+            <TableRow key={i}>
+              <TableCell>{row.name}</TableCell>
+              <TableCell>{row.role}</TableCell>
+              <TableCell>{row.hospitalName}</TableCell>
+              <TableCell className="text-right">
                 {row.status === "active" ? (
                   <span className="text-green-600">Active</span>
                 ) : (
                   <span className="text-red-600">Inactive</span>
                 )}
-              </Table.Cell>
-            </Table.Key>
+              </TableCell>
+            </TableRow>
           ))}
-        </Table.Body>
+        </TableBody>
       </Table>
     </div>
   );

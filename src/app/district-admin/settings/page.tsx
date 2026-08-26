@@ -2,12 +2,11 @@
 
 import { useDistrictAdmin } from "@/features/auth/context";
 import { useDistrictSettings } from "@/features/district-admin/hooks/useDistrictAdminData";
-import { useDistrictMutations } from "@/features/district-admin/hooks/useDistrictAdminData";
+import { districtToggleHospitalActive } from "@/features/district-admin/hooks/useDistrictAdminData";
 import { HospitalActivationToggle } from "@/features/district-admin/components/HospitalActivationToggle";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import { useState, useEffect } from "react";
 
 export default function DistrictAdminSettingsPage() {
   const { admin, districtId } = useDistrictAdmin();
@@ -25,8 +24,6 @@ export default function DistrictAdminSettingsPage() {
   if (error || !settings) {
     return <ErrorState message={error ?? "Unable to load settings."} onRetry={() => { }} />;
   }
-
-  const { saveSettings, setHospitalActivation } = useDistrictMutations();
 
   return (
     <div className="space-y-6">
@@ -49,7 +46,7 @@ export default function DistrictAdminSettingsPage() {
 
       <HospitalActivationToggle
         districtId={districtId ?? "ernakulam"}
-        onActivationChange={setHospitalActivation}
+        onActivationChange={districtToggleHospitalActive as any}
         settings={settings}
       />
     </div>

@@ -1,11 +1,13 @@
 import React from "react";
 import { useDistrictAdmin } from "@/features/auth/context";
 import { useDistrictHospitals } from "@/features/district-admin/hooks/useDistrictAdminData";
-import { listServices } from "@/services/hospital-ops";
-import { ServiceAvailabilityRow } from "@/services/district/types";
+import { hospitalOpsService } from "@/services/hospital-ops";
+import type { HospitalServiceEntry } from "@/services/hospital-ops/types";
+import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface ServiceListProps {
-  hospitals: typeof import("@/services/data").Hospital[];
+  hospitals: any[];
   onSelect?: (hospitalId: string) => void;
 }
 
@@ -13,13 +15,13 @@ export const ServiceList: React.FC<ServiceListProps> = ({ hospitals, onSelect })
   const { admin } = useDistrictAdmin();
 
   const [selectedHospital, setSelectedHospital] = React.useState<string | null>(null);
-  const [services, setServices] = React.useState<ServiceAvailabilityRow[]>([]);
+  const [services, setServices] = React.useState<HospitalServiceEntry[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (selectedHospital) {
       setIsLoading(true);
-      listServices(selectedHospital).then((result) => {
+      hospitalOpsService.listServices(selectedHospital).then((result) => {
         setServices(result);
         setIsLoading(false);
       });
@@ -53,32 +55,30 @@ export const ServiceList: React.FC<ServiceListProps> = ({ hospitals, onSelect })
           ) : services.length === 0 ? (
             <p className="text-sm text-ink-400">No active services</p>
           ) : (
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.Cell>Service</Table.Cell>
-                  <Table.Cell className="text-right">Code</Table.Cell>
-                  <Table.Cell>Status</Table.Cell>
-                  <Table.Cell className="text-right">Hospitals</Table.Cell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
+            <table className="min-w-full divide-y divide-ink-100">
+              <thead>
+                <tr>
+                  <th className="text-left p-3 text-sm font-medium text-ink-500">Service</th>
+                  <th className="text-right p-3 text-sm text-ink-500">Code</th>
+                  <th className="text-right p-3 text-sm text-ink-500">Status</th>
+                </tr>
+              </thead>
+              <tbody>
                 {services.map((svc) => (
-                  <Table.Key row>
-                    <Table.Cell>{svc.serviceName}</Table.Cell>
-                    <Table.Cell className="text-right text-ink-500">{svc.code}</Table.Cell>
-                    <Table.Cell>
+                  <tr className="hover:bg-surface-muted">
+                    <td className="p-3">{svc.name}</td>
+                    <td className="text-right text-ink-500 p-3">{svc.code}</td>
+                    <td className="text-right p-3">
                       {svc.status === "active" ? (
                         <span className="text-green-600">Active</span>
                       ) : (
                         <span className="text-red-600">Inactive</span>
                       )}
-                    </Table.Cell>
-                    <Table.Cell className="text-right">{svc.providerHospitalIds.length}</Table.Cell>
-                  </Table.Key>
+                    </td>
+                  </tr>
                 ))}
-              </Table.Body>
-            </Table>
+              </tbody>
+            </table>
           )}
         </div>
       )}
