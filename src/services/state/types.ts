@@ -1,6 +1,7 @@
 import type { DistrictId } from "@/config/districts";
 import type { QueueHealth, GovernmentAlert, HospitalStatus } from "@/types";
 import type { AuditActor } from "@/services/hospital-ops/types";
+export { QueueHealth }
 
 export type StateDateRange = "today" | "7d" | "30d";
 

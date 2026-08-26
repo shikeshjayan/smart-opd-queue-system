@@ -91,7 +91,15 @@ export type Permission =
   | "RETRY_INTEGRATION"
   | "SEND_ANNOUNCEMENT"
   | "VIEW_NOTIFICATION_HEALTH"
-  | "RETRY_NOTIFICATION";
+  | "RETRY_NOTIFICATION"
+  | "MANAGE_ROOMS"
+  | "MANAGE_SHIFTS"
+  | "MANAGE_SESSIONS"
+  | "REQUEST_LEAVE"
+  | "APPROVE_LEAVE"
+  | "MANAGE_CLOSURES"
+  | "VIEW_STAFF_STATUS"
+  | "VIEW_HOSPITAL_DASHBOARD";
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   patient: [
@@ -132,6 +140,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "DOWNLOAD_PATIENT_DOCUMENT",
     "MANAGE_OWN_SESSIONS",
     "REQUEST_PATIENT_CONSENT",
+    "REQUEST_LEAVE",
   ],
   clinical_staff: [
     "VIEW_OWN_PROFILE",
@@ -235,6 +244,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "SEND_ANNOUNCEMENT",
     "VIEW_NOTIFICATION_HEALTH",
     "RETRY_NOTIFICATION",
+    "MANAGE_ROOMS",
+    "MANAGE_SHIFTS",
+    "MANAGE_SESSIONS",
+    "APPROVE_LEAVE",
+    "MANAGE_CLOSURES",
+    "VIEW_STAFF_STATUS",
+    "VIEW_HOSPITAL_DASHBOARD",
   ],
   district_admin: [
     "VIEW_OWN_PROFILE",
@@ -245,6 +261,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     "PUBLISH_ANNOUNCEMENTS",
     "VIEW_DISTRICT_AUDIT",
     "EXPORT_REPORTS",
+    "VIEW_HOSPITAL_DASHBOARD",
   ],
   state_admin: [
     "VIEW_OWN_PROFILE",

@@ -8,20 +8,20 @@ import { ErrorState } from "@/components/feedback/error-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { DISTRICTS } from "@/config/districts";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { DISTRICTS, type DistrictId } from "@/config/districts";
 
 export default function StateHospitalsPage() {
   const [query, setQuery] = useState("");
-  const [districtId, setDistrictId] = useState("");
+  const [districtId, setDistrictId] = useState<DistrictId | "">("");
 
   const filters = useMemo(() => ({
     dateRange: "today" as const,
-    districtId: districtId || undefined,
+    districtId: (districtId || undefined),
     query
   }), [districtId, query]);
 
-  const { data, isLoading, error, reload } = useStateHospitals(filters);
+  const { data, isLoading, error, reload } = useStateHospitals(filters as any);
 
   if (isLoading) {
     return (
@@ -50,7 +50,7 @@ export default function StateHospitalsPage() {
           />
         </div>
         <div className="w-48">
-          <Select value={districtId} onChange={(e) => setDistrictId(e.target.value)}>
+          <Select value={districtId} onChange={(e) => setDistrictId(e.target.value as DistrictId | "")}>
             <option value="">All Districts</option>
             {DISTRICTS.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
@@ -78,11 +78,11 @@ export default function StateHospitalsPage() {
                 <TableCell className="font-medium text-ink-900">{row.name}</TableCell>
                 <TableCell>{row.districtName}</TableCell>
                 <TableCell className="capitalize">{row.type.replace("_", " ")}</TableCell>
-                <TableCell>
-                  <Badge variant={row.status === "online" ? "success" : "danger"}>
-                    {row.status}
-                  </Badge>
-                </TableCell>
+                  <TableCell>
+                    <Badge variant={(row.status === "active" ? "success" : "danger") as BadgeVariant}>
+                      {row.status}
+                    </Badge>
+                  </TableCell>
                 <TableCell className="text-right">{row.patients.toLocaleString("en-IN")}</TableCell>
                 <TableCell className="text-right">{row.waiting}</TableCell>
                 <TableCell className="text-right">

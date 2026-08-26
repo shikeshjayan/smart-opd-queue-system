@@ -5,6 +5,8 @@ import { useAsync } from "@/lib/use-async";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { roleLabel } from "@/features/auth/roles";
 import { hospitalOpsService } from "@/services/hospital-ops";
+import { hospitalOpsServerApi } from "../api/hospital-ops.server";
+import type { OpsDepartmentConfigInput } from "@/server/actions/hospital-ops";
 import type {
   AuditActor,
   DashboardFilters,
@@ -47,7 +49,7 @@ export function useExceptions(hospitalId: string) {
 }
 
 export function useDepartmentConfigs(hospitalId: string) {
-  return useAsync(() => hospitalOpsService.listDepartmentConfigs(hospitalId), [hospitalId]);
+  return useAsync(() => hospitalOpsServerApi.listDepartmentConfigs(hospitalId), [hospitalId]);
 }
 
 export function useQueueConfigs(hospitalId: string) {
@@ -59,7 +61,7 @@ export function useTokenConfig(hospitalId: string) {
 }
 
 export function useServices(hospitalId: string) {
-  return useAsync(() => hospitalOpsService.listServices(hospitalId), [hospitalId]);
+  return useAsync(() => hospitalOpsServerApi.listServices(hospitalId), [hospitalId]);
 }
 
 export function useStaffProfiles(hospitalId: string) {
@@ -68,6 +70,93 @@ export function useStaffProfiles(hospitalId: string) {
 
 export function useRoleAssignments(hospitalId: string) {
   return useAsync(() => hospitalOpsService.listRoleAssignments(hospitalId), [hospitalId]);
+}
+
+export function useOpsStaff(hospitalId: string) {
+  return useAsync(() => hospitalOpsServerApi.listStaff(hospitalId), [hospitalId]);
+}
+
+export function useOpsStaffAssignments(staffId: string) {
+  return useAsync(
+    () => (staffId ? hospitalOpsServerApi.listAssignments(staffId) : Promise.resolve([])),
+    [staffId]
+  );
+}
+
+export function useOpsLeaves(hospitalId: string, status?: "pending" | "approved" | "rejected" | "cancelled") {
+  return useAsync(() => hospitalOpsServerApi.listLeaves(hospitalId, status), [hospitalId, status]);
+}
+
+export function useShifts(hospitalId: string) {
+  return useAsync(() => hospitalOpsServerApi.listShifts(hospitalId), [hospitalId]);
+}
+
+export function useDoctorAvailability(doctorId: string, hospitalId: string, fromDate: string) {
+  return useAsync(
+    () =>
+      doctorId
+        ? hospitalOpsServerApi.doctorAvailability(doctorId, hospitalId, fromDate, 14)
+        : Promise.resolve([]),
+    [doctorId, hospitalId, fromDate]
+  );
+}
+
+export function useClosures(hospitalId: string) {
+  return useAsync(() => hospitalOpsServerApi.listClosures(hospitalId), [hospitalId]);
+}
+
+export function useConfigVersions(
+  hospitalId: string,
+  entity: "adminsettings" | "scheduleconfig" | "department_capacity" | "hospital_profile",
+  entityId?: string
+) {
+  return useAsync(
+    () => hospitalOpsServerApi.listConfigVersions(hospitalId, entity, entityId),
+    [hospitalId, entity, entityId]
+  );
+}
+
+export function useStaffOpsMutations() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run<T>(fn: () => Promise<T>): Promise<T | undefined> {
+    setBusy(true);
+    setError(null);
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message.replace(/^Error:\s*/, "") : "Something went wrong");
+      return undefined;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return {
+    busy,
+    error,
+    createAssignment: (input: Parameters<typeof hospitalOpsServerApi.createAssignment>[0]) =>
+      run(() => hospitalOpsServerApi.createAssignment(input)),
+    endAssignment: (id: string) => run(() => hospitalOpsServerApi.endAssignment(id)),
+    requestLeave: (input: { hospitalId: string; staffId?: string; fromDate: string; toDate: string; reason: string }) =>
+      run(() => hospitalOpsServerApi.requestLeave(input)),
+    reviewLeave: (leaveId: string, approve: boolean) =>
+      run(() => hospitalOpsServerApi.reviewLeave(leaveId, approve)),
+    cancelLeave: (leaveId: string) => run(() => hospitalOpsServerApi.cancelLeave(leaveId)),
+    saveShift: (
+      input: Parameters<typeof hospitalOpsServerApi.saveShift>[0]
+    ) => run(() => hospitalOpsServerApi.saveShift(input)),
+    setShiftStatus: (id: string, status: "active" | "inactive") =>
+      run(() => hospitalOpsServerApi.setShiftStatus(id, status)),
+    createClosure: (
+      input: Parameters<typeof hospitalOpsServerApi.createClosure>[0]
+    ) => run(() => hospitalOpsServerApi.createClosure(input)),
+    rescheduleAffected: (closureId: string) =>
+      run(() => hospitalOpsServerApi.rescheduleAffected(closureId)),
+    cancelAffected: (closureId: string) =>
+      run(() => hospitalOpsServerApi.cancelAffected(closureId)),
+  };
 }
 
 export function useOpsAudit(
@@ -119,8 +208,8 @@ export function useOpsMutations() {
   return {
     busy,
     error,
-    saveDepartmentConfig: (config: DepartmentConfig) =>
-      run(() => hospitalOpsService.saveDepartmentConfig(config, actor)),
+    saveDepartmentConfig: (config: OpsDepartmentConfigInput) =>
+      run(() => hospitalOpsServerApi.saveDepartmentConfig(config)),
     saveStaffProfile: (profile: StaffProfile) =>
       run(() => hospitalOpsService.saveStaffProfile(profile, actor)),
     nextEmployeeId: (hospitalId: string, role: StaffProfile["role"]) =>
@@ -147,7 +236,9 @@ export function useOpsMutations() {
     saveQueueConfig: (config: DepartmentQueueConfig) =>
       run(() => hospitalOpsService.saveQueueConfig(config, actor)),
     saveTokenConfig: (config: TokenConfig) => run(() => hospitalOpsService.saveTokenConfig(config, actor)),
-    saveService: (entry: HospitalServiceEntry) => run(() => hospitalOpsService.saveService(entry, actor)),
-    toggleServiceStatus: (id: string) => run(() => hospitalOpsService.toggleServiceStatus(id, actor)),
+    saveService: (entry: HospitalServiceEntry) =>
+      run(() => hospitalOpsServerApi.saveService(entry) as Promise<HospitalServiceEntry | null>),
+    toggleServiceStatus: (id: string) =>
+      run(() => hospitalOpsServerApi.toggleServiceStatus(id)),
   };
 }

@@ -4,10 +4,9 @@ import { useDistrictAdmin } from "@/features/auth/context";
 import { useDistrictReferrals } from "@/features/district-admin/hooks/useDistrictAdminData";
 import { ReferralSummary } from "@/features/district-admin/components/ReferralSummary";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
-import { StatsCard } from "@/features/government-admin/components/StatsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import { useState, useEffect } from "react";
+import type { ReferralFlow } from "@/features/district-admin/types/district-admin.types";
 
 export default function DistrictAdminReferralsPage() {
   const { admin, districtId } = useDistrictAdmin();
@@ -26,7 +25,21 @@ export default function DistrictAdminReferralsPage() {
     return <ErrorState message={error ?? "Unable to load referrals."} onRetry={() => { }} />;
   }
 
-  const { rows, columns } = referrals;
+  const rows = referrals.map((r: ReferralFlow) => ({
+    id: r.id,
+    fromHospitalId: r.fromHospitalId,
+    fromHospitalName: r.fromHospitalName,
+    toHospitalId: r.toHospitalId,
+    toHospitalName: r.toHospitalName,
+    count: r.count,
+    periodLabel: r.periodLabel,
+  }));
+  const columns = [
+    { field: "fromHospitalName" as const, header: "From" },
+    { field: "toHospitalName" as const, header: "To" },
+    { field: "count" as const, header: "Referrals" },
+    { field: "periodLabel" as const, header: "Period" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -38,7 +51,7 @@ export default function DistrictAdminReferralsPage() {
       <ReferralSummary rows={rows} columns={columns} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {rows.map((row) => (
+        {referrals.map((row: ReferralFlow) => (
           <div
             key={row.id}
             className="rounded-card border border-ink-200 p-4 shadow-card hover:shadow-lg transition-shadow"

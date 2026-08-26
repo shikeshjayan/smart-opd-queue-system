@@ -19,3 +19,18 @@ export async function broadcastToUser(userId: string, event: RealtimeEvent): Pro
     // BroadcastChannel not available in some server environments (e.g. edge)
   }
 }
+
+/**
+ * Server-wide broadcast (hospital/ops events). Same BroadcastChannel
+ * transport — subscribers filter by event type and hospitalId.
+ */
+export async function broadcastToServer(event: RealtimeEvent): Promise<void> {
+  if (typeof BroadcastChannel === "undefined") return;
+  try {
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    channel.postMessage(event);
+    channel.close();
+  } catch {
+    // BroadcastChannel not available in some server environments (e.g. edge)
+  }
+}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { hospitalOpsService } from "@/services/hospital-ops";
-import type { DepartmentConfig } from "@/services/hospital-ops/types";
+import { hospitalOpsServerApi } from "../api/hospital-ops.server";
+import type { OpsDepartmentConfig } from "@/server/actions/hospital-ops";
 import type { Workday } from "@/services/appointments/types";
 import { WEEKDAYS } from "@/services/hospital-ops";
 import { useAsync } from "@/lib/use-async";
@@ -19,18 +19,21 @@ type DepartmentConfigDialogProps = {
   onSaved: () => void;
 };
 
+const numLabelCls = "mb-1 block text-xs font-medium text-ink-600";
+const numInputCls = "h-10 w-full rounded-btn border border-ink-300 bg-surface px-3 text-sm";
+
 function ConfigForm({
   initial,
   services,
   onSaved,
   onClose,
 }: {
-  initial: DepartmentConfig;
+  initial: OpsDepartmentConfig;
   services: Array<{ id: string; name: string }>;
   onSaved: () => void;
   onClose: () => void;
 }) {
-  const [draft, setDraft] = useState<DepartmentConfig>(initial);
+  const [draft, setDraft] = useState<OpsDepartmentConfig>(initial);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const { saveDepartmentConfig, busy, error } = useOpsMutations();
 
@@ -42,6 +45,12 @@ function ConfigForm({
         : [...draft.opdAvailabilityDays, day],
     });
     setSavedAt(null);
+  };
+
+  const num = (v: string): number | null => {
+    if (v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
   };
 
   return (
@@ -105,6 +114,76 @@ function ConfigForm({
         </div>
       </fieldset>
 
+      <fieldset>
+        <legend className="mb-1.5 block text-sm font-medium text-ink-700">Daily capacity &amp; allocation</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className={numLabelCls}>Daily capacity (patients)</span>
+            <input
+              className={numInputCls}
+              type="number"
+              min={0}
+              value={draft.dailyCapacity ?? ""}
+              placeholder="e.g. 120"
+              onChange={(e) => {
+                setDraft({ ...draft, dailyCapacity: num(e.target.value) });
+                setSavedAt(null);
+              }}
+            />
+          </label>
+          <label className="block">
+            <span className={numLabelCls}>Avg consultation (min)</span>
+            <input
+              className={numInputCls}
+              type="number"
+              min={1}
+              value={draft.avgConsultationMinutes ?? ""}
+              placeholder="e.g. 8"
+              onChange={(e) => {
+                setDraft({ ...draft, avgConsultationMinutes: num(e.target.value) });
+                setSavedAt(null);
+              }}
+            />
+          </label>
+          <label className="block">
+            <span className={numLabelCls}>Appointment allocation %</span>
+            <input
+              className={numInputCls}
+              type="number"
+              min={0}
+              max={100}
+              value={draft.appointmentAllocationPct ?? ""}
+              placeholder="e.g. 70"
+              onChange={(e) => {
+                const v = num(e.target.value);
+                setDraft({
+                  ...draft,
+                  appointmentAllocationPct: v,
+                  walkInAllocationPct:
+                    v === null ? draft.walkInAllocationPct : Math.max(0, 100 - v),
+                });
+                setSavedAt(null);
+              }}
+            />
+          </label>
+          <label className="block">
+            <span className={numLabelCls}>Walk-in allocation %</span>
+            <input
+              className={numInputCls}
+              type="number"
+              min={0}
+              max={100}
+              value={draft.walkInAllocationPct ?? ""}
+              readOnly
+              tabIndex={-1}
+            />
+          </label>
+        </div>
+        <p className="mt-1.5 text-xs text-ink-400">
+          Appointment + walk-in shares must total 100%. Changes are versioned in the audit trail.
+        </p>
+      </fieldset>
+
       {services.length > 0 && (
         <fieldset>
           <legend className="mb-1.5 block text-sm font-medium text-ink-700">Linked services</legend>
@@ -156,16 +235,16 @@ export function DepartmentConfigDialog({
   onSaved,
 }: DepartmentConfigDialogProps) {
   const { data: configs, isLoading } = useAsync(
-    () => (open && departmentId ? hospitalOpsService.listDepartmentConfigs(hospitalId) : Promise.resolve([])),
+    () => (open && departmentId ? hospitalOpsServerApi.listDepartmentConfigs(hospitalId) : Promise.resolve([])),
     [open, departmentId, hospitalId]
   );
   const { data: services } = useAsync(
-    () => (open ? hospitalOpsService.listServices(hospitalId) : Promise.resolve([])),
+    () => (open ? hospitalOpsServerApi.listServices(hospitalId) : Promise.resolve([])),
     [open, hospitalId]
   );
 
   const existing = configs?.find((c) => c.id === departmentId);
-  const fallback: DepartmentConfig = {
+  const fallback: OpsDepartmentConfig = {
     id: departmentId || "unknown",
     hospitalId,
     name: "",
@@ -173,6 +252,10 @@ export function DepartmentConfigDialog({
     status: "active",
     opdAvailabilityDays: ["mon", "tue", "wed", "thu", "fri"],
     serviceIds: [],
+    dailyCapacity: null,
+    avgConsultationMinutes: null,
+    appointmentAllocationPct: null,
+    walkInAllocationPct: null,
   };
 
   return (

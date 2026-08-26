@@ -10,6 +10,7 @@ import {
 } from "@/features/hospital-admin/hooks/useHospitalAdmin";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { UpdatedBy } from "@/features/hospital-admin/components/UpdatedBy";
+import { ConfigHistory } from "@/features/hospital-admin/components/ConfigHistory";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -198,6 +199,8 @@ export default function SettingsPage() {
           <UpdatedBy name={settings.updatedBy} updatedAt={settings.updatedAt} />
         </div>
       </form>
+
+      <ConfigHistory />
     </div>
   );
 }

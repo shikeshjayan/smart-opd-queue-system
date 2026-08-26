@@ -6,6 +6,8 @@ import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 import { useState, useEffect } from "react";
+import { hospitalOpsService } from "@/services/hospital-ops";
+import type { DistrictHospitalRow } from "@/features/district-admin/types/district-admin.types";
 
 export default function DistrictAdminServicesPage() {
   const { admin, districtId } = useDistrictAdmin();
@@ -31,12 +33,12 @@ export default function DistrictAdminServicesPage() {
   useEffect(() => {
     if (selectedHospital) {
       setIsLoadingServices(true);
-      // Use hospital ops service to list services
-      import("@/services/hospital-ops").then((mod) => {
-        mod.listServices(selectedHospital).then((result: any[]) => {
-          setServices(result);
-          setIsLoadingServices(false);
-        });
+      hospitalOpsService.listServices(selectedHospital).then((result: any[]) => {
+        setServices(result);
+        setIsLoadingServices(false);
+      }).catch(() => {
+        setServices([]);
+        setIsLoadingServices(false);
       });
     } else {
       setServices([]);
@@ -61,7 +63,7 @@ export default function DistrictAdminServicesPage() {
       {selectedHospital && (
         <div>
           <p className="text-sm text-ink-500">
-            Hospital: <span className="font-medium">{hospitals.find((h) => h.id === selectedHospital)?.name ?? selectedHospital}</span>
+            Hospital: <span className="font-medium">{hospitals.find((h: DistrictHospitalRow) => h.hospitalId === selectedHospital)?.name ?? selectedHospital}</span>
           </p>
           {isLoadingServices ? (
             <Skeleton className="h-10 w-full mb-3" />
@@ -70,7 +72,7 @@ export default function DistrictAdminServicesPage() {
           ) : (
             <div>
               <h4 className="font-medium text-ink-900 mb-2">Services</h4>
-              {services.map((svc, i) => (
+              {services.map((svc: any, i: number) => (
                 <div
                   key={i}
                   className="text-sm text-ink-700 flex items-center gap-2 py-1 border-b border-ink-100 last:mb-0"
@@ -87,14 +89,14 @@ export default function DistrictAdminServicesPage() {
       <div>
         <h3 className="font-medium text-ink-900">Hospitals</h3>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {hospitals.map((hospital) => (
+          {hospitals.map((hospital: DistrictHospitalRow) => (
             <div
-              key={hospital.id}
-              onClick={() => setSelectedHospital(hospital.id)}
+              key={hospital.hospitalId}
+              onClick={() => setSelectedHospital(hospital.hospitalId)}
               className="cursor-pointer rounded-card border border-ink-200 p-3 shadow-card hover:bg-surface-muted hover:transition-colors"
             >
               <div className="font-medium text-ink-900">{hospital.name}</div>
-              <div className="text-xs text-ink-400">{hospital.id}</div>
+              <div className="text-xs text-ink-400">{hospital.hospitalId}</div>
             </div>
           ))}
         </div>

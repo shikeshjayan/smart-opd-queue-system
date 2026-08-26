@@ -111,6 +111,35 @@ export type DiagnosticEvent = ClinicalEventBase & {
 
 export type ClinicalEvent = LabEvent | PharmacyEvent | DiagnosticEvent;
 
+/* ───────── Hospital operations events (Phase 26) ───────── */
+
+export type SessionEventType =
+  | "SESSION_OPENED"
+  | "SESSION_ACTIVATED"
+  | "SESSION_PAUSED"
+  | "SESSION_RESUMED"
+  | "SESSION_COMPLETED"
+  | "SESSION_CANCELLED";
+
+export type SessionEvent = ClinicalEventBase & {
+  type: SessionEventType;
+  sessionId: string;
+  opdId: string;
+  departmentId?: string;
+  reason?: string;
+};
+
+export type OpsEventType =
+  | "STAFF_LEAVE_APPROVED"
+  | "CLOSURE_CREATED"
+  | "CAPACITY_CHANGED";
+
+export type OpsEvent = ClinicalEventBase & {
+  type: OpsEventType;
+  resourceType?: string;
+  resourceId?: string;
+};
+
 export type NotificationChangeEvent = {
   type: "NOTIFICATION_EVENT";
   at: string;
@@ -124,6 +153,6 @@ export type ConnectionChangedEvent = {
   at: string;
 };
 
-export type RealtimeEvent = (QueueEvent & { opdId: string }) | ClinicalEvent | NotificationChangeEvent | ConnectionChangedEvent;
+export type RealtimeEvent = (QueueEvent & { opdId: string }) | ClinicalEvent | SessionEvent | OpsEvent | NotificationChangeEvent | ConnectionChangedEvent;
 
 export type RealtimeListener = (event: RealtimeEvent) => void;

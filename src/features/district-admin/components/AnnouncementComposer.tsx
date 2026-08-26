@@ -1,5 +1,5 @@
 import React from "react";
-import { useDistrictMutations } from "@/features/district-admin/hooks/useDistrictAdminData";
+import { districtPublishAnnouncement } from "@/features/district-admin/hooks/useDistrictAdminData";
 import { Announcement } from "@/services/district/types";
 
 export interface AnnouncementFormInput {
@@ -13,7 +13,6 @@ export const AnnouncementComposer: React.FC<{
   districtId: string;
   onAnnouncementPublished?: (ann: Announcement) => void;
 }> = ({ districtId, onAnnouncementPublished }) => {
-  const { publishAnnouncement } = useDistrictMutations();
   const [form, setForm] = React.useState<AnnouncementFormInput>({
     title: "",
     message: "",
@@ -25,17 +24,14 @@ export const AnnouncementComposer: React.FC<{
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.message.trim()) return;
-    publishAnnouncement(
-      {
+    districtPublishAnnouncement(districtId as any, {
         title: form.title,
         message: form.message,
         audience: form.audience,
         targetIds: form.targetIds,
-      },
-      { id: "dadm_001", name: "District Admin", role: "District Admin" }
-    );
-    setShow(false);
-    onAnnouncementPublished?.(form);
+      }).then((ann: any) => {
+      if (ann) onAnnouncementPublished?.(ann);
+    });
   };
 
   return (

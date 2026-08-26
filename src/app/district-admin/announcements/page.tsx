@@ -7,7 +7,6 @@ import { AuditTimeline } from "@/features/district-admin/components/AuditTimelin
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import { useState, useEffect } from "react";
 
 export default function DistrictAdminAnnouncementsPage() {
   const { admin, districtId } = useDistrictAdmin();
@@ -26,7 +25,20 @@ export default function DistrictAdminAnnouncementsPage() {
     return <ErrorState message={error ?? "Unable to load announcements."} onRetry={() => { }} />;
   }
 
-  const { rows, columns } = announcements;
+  const rows = announcements.map((ann) => ({
+    id: ann.id,
+    at: ann.publishedAt,
+    actorName: ann.publishedBy,
+    actorRole: "District Admin",
+    action: "announcement_published",
+    targetType: "announcement",
+    targetId: ann.id,
+    summary: `${ann.title} — ${ann.message}`,
+  }));
+  const columns = [
+    { field: "summary" as const, header: "Announcement" },
+    { field: "at" as const, header: "Published" },
+  ];
 
   return (
     <div className="space-y-6">

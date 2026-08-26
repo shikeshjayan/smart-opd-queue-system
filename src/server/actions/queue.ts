@@ -2,7 +2,7 @@
 
 import "server-only";
 import { dbConnect } from "@/lib/db";
-import { QueueEntryModel, QueueAuditModel, OpdModel, HospitalModel, DepartmentModel, DoctorModel } from "@/lib/models";
+import { QueueEntryModel, QueueAuditModel, OpdModel, HospitalModel, DepartmentModel, DoctorModel, OpdSessionModel } from "@/lib/models";
 import { plain } from "@/lib/models";
 import { notify } from "@/server/notifications/service";
 
@@ -71,8 +71,19 @@ export async function orderWaitingEntries(entries: any[]) {
 export async function callNextEntry(opdId: string, actorId = "system") {
   await dbConnect();
 
+  // Session-scoped calling (Phase 26): prefer today's live session for
+  // this OPD; fall back to the legacy opd-wide queue when no session
+  // exists so older flows keep working unchanged.
+  const date = new Date().toISOString().split("T")[0];
+  const liveSession =
+    (await OpdSessionModel.findOne({ opdId, date, state: "active" }).select("_id").lean()) ??
+    (await OpdSessionModel.findOne({ opdId, date, state: "open" }).select("_id").lean());
+  const sessionId = liveSession ? String((liveSession as unknown as { _id: string })._id) : null;
+
   const entry = await QueueEntryModel.findOneAndUpdate(
-    { opdId, status: "waiting" },
+    sessionId
+      ? { sessionId, status: "waiting" }
+      : { opdId, status: "waiting", sessionId: null },
     { $set: { status: "called", updatedAt: new Date().toISOString() } },
     { new: true, sort: { priority: 1, tokenNumber: 1 } }
   ).lean();
@@ -99,7 +110,11 @@ export async function callNextEntry(opdId: string, actorId = "system") {
     });
   }
 
-  const ahead = await QueueEntryModel.find({ opdId, status: "waiting" })
+  const ahead = await QueueEntryModel.find({
+    opdId,
+    status: "waiting",
+    ...(sessionId ? { sessionId } : { sessionId: null }),
+  })
     .sort({ priority: 1, tokenNumber: 1 })
     .limit(3)
     .select("tokenNumber patientId patientId hospitalId")

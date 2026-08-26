@@ -8,11 +8,14 @@ import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { ScheduleEditor } from "@/features/hospital-admin/components/ScheduleEditor";
 import { ExceptionList } from "@/features/hospital-admin/components/ExceptionList";
 import { AppointmentSlotsEditor } from "@/features/hospital-admin/components/AppointmentSlotsEditor";
+import { ShiftsEditor } from "@/features/hospital-admin/components/ShiftsEditor";
+import { DoctorAvailability } from "@/features/hospital-admin/components/DoctorAvailability";
+import { ClosureList } from "@/features/hospital-admin/components/ClosureList";
 import { Tabs } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
 
-const TAB_VALUES = new Set(["weekly", "exceptions", "slots"]);
+const TAB_VALUES = new Set(["weekly", "exceptions", "slots", "shifts", "availability", "closures"]);
 
 function SchedulesContent() {
   const { hospitalId } = useHospitalAdmin();
@@ -63,6 +66,21 @@ function SchedulesContent() {
           value: "slots",
           label: "Appointment Slots",
           content: <AppointmentSlotsEditor />,
+        },
+        {
+          value: "shifts",
+          label: "Shifts",
+          content: <ShiftsEditor departments={departmentOptions} />,
+        },
+        {
+          value: "availability",
+          label: "Doctor Availability",
+          content: <DoctorAvailability doctors={doctorOptions} />,
+        },
+        {
+          value: "closures",
+          label: "Closures",
+          content: <ClosureList departments={departmentOptions} />,
         },
       ]}
     />

@@ -11,6 +11,7 @@ import type { DashboardFilters } from "@/services/hospital-ops/types";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { DashboardFiltersBar } from "@/features/hospital-admin/components/DashboardFiltersBar";
 import { OperationalAlerts } from "@/features/hospital-admin/components/OperationalAlerts";
+import { TodayOverview, OpsAlertFeed } from "@/features/hospital-admin/components/OpsLive";
 import { getGreeting } from "@/features/hospital-admin/utils/format";
 import {
   Table,
@@ -70,7 +71,8 @@ export default function HospitalAdminDashboardPage() {
         <h2 id="overview-title" className="sr-only">
           Today&apos;s Overview
         </h2>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <TodayOverview />
+        <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {overviewCards.map((card) => (
             <div key={card.id} className="rounded-card border border-ink-200 bg-surface p-4 shadow-card">
               <dt className="text-xs uppercase tracking-wide text-ink-400">{card.label}</dt>
@@ -115,6 +117,8 @@ export default function HospitalAdminDashboardPage() {
       </section>
 
       <OperationalAlerts alerts={data.alerts} />
+
+      <OpsAlertFeed />
 
       <section aria-labelledby="workload-title" className="rounded-card border border-ink-200 bg-surface shadow-card">
         <h2 id="workload-title" className="border-b border-ink-100 px-5 py-3.5 text-lg font-semibold text-ink-900">
