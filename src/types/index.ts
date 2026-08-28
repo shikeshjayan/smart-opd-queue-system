@@ -90,6 +90,52 @@ export type PatientKnownInfo = {
   conditions: string[];
 };
 
+/* ---------- Phase 28 — Medical Records & Patient History ---------- */
+
+export type PatientGender = "male" | "female" | "other";
+
+export type PatientIdentity = {
+  name: string;
+  dateOfBirth?: string;
+  gender?: PatientGender;
+};
+
+export type PatientContact = {
+  mobile?: string;
+  email?: string;
+};
+
+export type PatientAddress = {
+  district?: string;
+  state?: string;
+  line1?: string;
+  line2?: string;
+  pincode?: string;
+};
+
+export type PatientEmergencyContact = {
+  name?: string;
+  relationship?: string;
+  mobile?: string;
+};
+
+export type PatientStatus = "active" | "inactive";
+
+export type Patient = {
+  id: string;
+  patientNumber: string;
+  identity: PatientIdentity;
+  contact: PatientContact;
+  address?: PatientAddress;
+  emergencyContact?: PatientEmergencyContact;
+  bloodGroup?: string;
+  registeredHospitalId: string;
+  knownInfo: PatientKnownInfo;
+  status: PatientStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PatientSummary = {
   id: string;
   patientNumber?: string;
@@ -102,8 +148,11 @@ export type PatientSummary = {
   knownInfo: PatientKnownInfo;
 };
 
+export type EncounterType = "opd" | "emergency" | "follow_up" | "diagnostic" | "other";
+
 export type EncounterStatus =
   | "open"
+  | "planned"
   | "in_progress"
   | "completed"
   | "cancelled";
@@ -112,20 +161,100 @@ export type Encounter = {
   id: string;
   patientId: string;
   hospitalId: string;
-  departmentId: string;
-  doctorId: string;
-  opdId: string;
+  departmentId?: string;
+  doctorId?: string;
+  appointmentId?: string;
+  opdSessionId?: string;
+  opdId?: string;
   tokenId?: string;
-  tokenNumber: string;
-  date: string;
-  hospitalName: string;
-  departmentName: string;
-  doctorName: string;
+  tokenNumber?: string;
+  type?: EncounterType;
   status: EncounterStatus;
+  date: string;
+  hospitalName?: string;
+  departmentName?: string;
+  doctorName?: string;
   startedAt?: string;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AllergySeverity = "mild" | "moderate" | "severe";
+export type AllergyStatus = "active" | "resolved" | "unknown";
+
+export type Allergy = {
+  id: string;
+  patientId: string;
+  substance: string;
+  reaction?: string;
+  severity?: AllergySeverity;
+  status: AllergyStatus;
+  recordedAt: string;
+  recordedBy: string;
+};
+
+export type ConditionStatus = "active" | "resolved" | "inactive" | "unknown";
+
+export type Condition = {
+  id: string;
+  patientId: string;
+  name: string;
+  status: ConditionStatus;
+  diagnosedAt?: string;
+  recordedBy: string;
+  createdAt: string;
+};
+
+export type VitalSigns = {
+  id: string;
+  patientId: string;
+  encounterId?: string;
+  temperature?: number;
+  heartRate?: number;
+  respiratoryRate?: number;
+  systolicBP?: number;
+  diastolicBP?: number;
+  oxygenSaturation?: number;
+  heightCm?: number;
+  weightKg?: number;
+  recordedAt: string;
+  recordedBy: string;
+};
+
+export type RecordVisibility = "draft" | "final" | "reviewed" | "released" | "restricted";
+
+export type BreakGlassStatus = "pending" | "approved" | "denied" | "expired";
+
+export type BreakGlassRequest = {
+  id: string;
+  patientId: string;
+  requestorId: string;
+  requestorName: string;
+  requestorRole: string;
+  reason: string;
+  hospitalId: string;
+  status: BreakGlassStatus;
+  expiresAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+};
+
+export type CorrectionRequestStatus = "pending" | "approved" | "rejected";
+
+export type CorrectionRequest = {
+  id: string;
+  patientId: string;
+  requestorId: string;
+  targetType: "patient_profile" | "allergy" | "condition" | "diagnosis" | "prescription";
+  targetId?: string;
+  requestedChanges: Record<string, { before: unknown; after: unknown }>;
+  reason?: string;
+  status: CorrectionRequestStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
 };
 
 export type OPDCounts = {

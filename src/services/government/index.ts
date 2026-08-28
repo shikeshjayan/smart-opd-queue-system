@@ -110,7 +110,7 @@ function buildHospitalRows(districtId: DistrictId): GovernmentHospitalRow[] {
 function encountersForHospitalIds(hospitalIds: string[]) {
   const ids = new Set(hospitalIds);
   return listAllEncounters().filter((e) => {
-    const opd = getOpd(e.opdId);
+    const opd = getOpd(e.opdId ?? "");
     const department = opd ? getDepartment(opd.departmentId) : undefined;
     return Boolean(department && ids.has(department.hospitalId));
   });
@@ -356,7 +356,7 @@ export const governmentService = {
     const recentEncounters = encountersForHospitalIds(hospitalIds)
       .slice(0, 10)
       .map((e) => {
-        const opd = getOpd(e.opdId);
+        const opd = getOpd(e.opdId ?? "");
         const department = opd ? getDepartment(opd.departmentId) : undefined;
         const hospital = department
           ? getHospital(department.hospitalId)
@@ -364,8 +364,8 @@ export const governmentService = {
         return {
           id: e.id,
           patientName: e.patientId,
-          hospitalName: hospital?.name ?? e.hospitalName,
-          departmentName: department?.name ?? e.departmentName,
+          hospitalName: hospital?.name ?? e.hospitalName ?? "",
+          departmentName: department?.name ?? e.departmentName ?? "",
           date: e.date,
         };
       });

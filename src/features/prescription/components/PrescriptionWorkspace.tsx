@@ -56,11 +56,11 @@ export function PrescriptionWorkspace({ patientId }: { patientId: string }) {
       encounter
         ? {
             patientId: encounter.patientId,
-            doctorId: encounter.doctorId,
+            doctorId: encounter.doctorId ?? "",
             hospitalId: encounter.hospitalId,
-            doctorName: encounter.doctorName,
-            hospitalName: encounter.hospitalName,
-            departmentName: encounter.departmentName,
+            doctorName: encounter.doctorName ?? "",
+            hospitalName: encounter.hospitalName ?? "",
+            departmentName: encounter.departmentName ?? "",
           }
         : EMPTY_REF,
     [encounter]
@@ -215,9 +215,9 @@ export function PrescriptionWorkspace({ patientId }: { patientId: string }) {
         <PrescriptionReview
           patientName={patientName}
           encounterId={encounter.id}
-          doctorName={encounter.doctorName}
-          hospitalName={encounter.hospitalName}
-          departmentName={encounter.departmentName}
+          doctorName={encounter.doctorName ?? ""}
+          hospitalName={encounter.hospitalName ?? ""}
+          departmentName={encounter.departmentName ?? ""}
           items={workflow.items}
           instructions={workflow.instructions}
           allergies={allergies}

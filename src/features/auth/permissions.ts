@@ -4,6 +4,8 @@ export type Permission =
   | "VIEW_OWN_PROFILE"
   | "VIEW_OWN_MEDICAL_HISTORY"
   | "VIEW_PATIENT"
+  | "REGISTER_PATIENT"
+  | "BREAK_GLASS_ACCESS"
   | "VIEW_MEDICAL_HISTORY"
   | "CREATE_ENCOUNTER"
   | "EDIT_ENCOUNTER"
@@ -119,6 +121,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   doctor: [
     "VIEW_OWN_PROFILE",
     "VIEW_PATIENT",
+    "BREAK_GLASS_ACCESS",
     "VIEW_MEDICAL_HISTORY",
     "VIEW_QUEUE",
     "CALL_PATIENT",
@@ -145,6 +148,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   clinical_staff: [
     "VIEW_OWN_PROFILE",
     "VIEW_PATIENT",
+    "BREAK_GLASS_ACCESS",
     "VIEW_QUEUE",
     "CALL_PATIENT",
     "ASSESS_PRIORITY",
@@ -155,6 +159,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   receptionist: [
     "VIEW_OWN_PROFILE",
     "VIEW_PATIENT",
+    "REGISTER_PATIENT",
     "VIEW_QUEUE",
     "CALL_PATIENT",
     "REQUEST_OVERRIDE",

@@ -4,6 +4,7 @@ import { encounterStatusLabel } from "../utils/status";
 
 const STATUS_VARIANTS: Record<EncounterStatus, "default" | "success" | "warning" | "info" | "danger"> = {
   open: "info",
+  planned: "info",
   in_progress: "warning",
   completed: "success",
   cancelled: "danger",

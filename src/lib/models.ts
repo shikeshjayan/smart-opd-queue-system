@@ -29,6 +29,12 @@ import type {
   StateSettings,
   AuditLog,
   Announcement,
+  Patient,
+  Allergy,
+  Condition,
+  VitalSigns,
+  BreakGlassRequest,
+  CorrectionRequest,
 } from "@/types";
 import type { UserRole } from "@/features/auth/types/auth.types";
 
@@ -449,11 +455,28 @@ export const ConfigVersionModel =
 const patientSchema = new Schema(
   {
     _id: { type: String, required: true },
-    patientNumber: String,
-    name: { type: String, required: true },
-    age: Number,
-    gender: { type: String, enum: ["male", "female", "other"] },
-    phone: String,
+    patientNumber: { type: String, required: true, unique: true },
+    identity: {
+      name: { type: String, required: true },
+      dateOfBirth: String,
+      gender: { type: String, enum: ["male", "female", "other"] },
+    },
+    contact: {
+      mobile: String,
+      email: String,
+    },
+    address: {
+      district: String,
+      state: String,
+      line1: String,
+      line2: String,
+      pincode: String,
+    },
+    emergencyContact: {
+      name: String,
+      relationship: String,
+      mobile: String,
+    },
     bloodGroup: String,
     registeredHospitalId: { type: String, index: true },
     knownInfo: {
@@ -461,15 +484,17 @@ const patientSchema = new Schema(
       medications: [String],
       conditions: [String],
     },
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
   },
-  { versionKey: false }
+  { timestamps: true, versionKey: false }
 );
 
-patientSchema.index({ phone: 1 });
-patientSchema.index({ name: 1 });
+patientSchema.index({ "contact.mobile": 1 });
+patientSchema.index({ "identity.name": 1 });
+patientSchema.index({ patientNumber: "text", "identity.name": "text", "contact.mobile": "text" });
 
 export const PatientModel =
-  (mongoose.models.Patient as Model<PatientSummary>) ??
+  (mongoose.models.Patient as Model<Patient>) ??
   mongoose.model("Patient", patientSchema);
 
 /* ---------- Queue entries ---------- */
@@ -528,19 +553,26 @@ const encounterSchema = new Schema(
   {
     _id: { type: String, required: true },
     patientId: { type: String, required: true, index: true },
-    doctorId: { type: String, required: true },
-    hospitalId: String,
+    doctorId: { type: String, required: false },
+    hospitalId: { type: String, required: true, index: true },
     departmentId: String,
     opdId: String,
+    opdSessionId: String,
+    appointmentId: String,
     tokenId: String,
     tokenNumber: String,
     date: { type: String, required: true },
     hospitalName: String,
     departmentName: String,
     doctorName: String,
+    type: {
+      type: String,
+      enum: ["opd", "emergency", "follow_up", "diagnostic", "other"],
+      default: "opd",
+    },
     status: {
       type: String,
-      enum: ["open", "in_progress", "completed", "cancelled"],
+      enum: ["open", "planned", "in_progress", "completed", "cancelled"],
       default: "open",
     },
     startedAt: String,
@@ -1550,3 +1582,121 @@ announcementSchema.index({ publishedAt: -1 });
 export const AnnouncementModel =
   (mongoose.models.Announcement as Model<Announcement>) ??
   mongoose.model<Announcement>("Announcement", announcementSchema);
+
+/* ---------- Phase 28 — Medical Records ---------- */
+
+/* Allergy */
+const allergySchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    substance: { type: String, required: true },
+    reaction: String,
+    severity: { type: String, enum: ["mild", "moderate", "severe"] },
+    status: { type: String, enum: ["active", "resolved", "unknown"], default: "active" },
+    recordedAt: { type: String, required: true },
+    recordedBy: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+allergySchema.index({ patientId: 1, status: 1 });
+allergySchema.index({ patientId: 1, substance: 1 }, { unique: true });
+allergySchema.index({ substance: "text" });
+
+export const AllergyModel =
+  mongoose.models.Allergy ?? mongoose.model("Allergy", allergySchema);
+
+/* Condition */
+const conditionSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    status: { type: String, enum: ["active", "resolved", "inactive", "unknown"], default: "active" },
+    diagnosedAt: String,
+    recordedBy: { type: String, required: true },
+    createdAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+conditionSchema.index({ patientId: 1, status: 1 });
+conditionSchema.index({ name: "text" });
+
+export const ConditionModel =
+  mongoose.models.Condition ?? mongoose.model("Condition", conditionSchema);
+
+/* Vital Signs */
+const vitalSignsSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    encounterId: { type: String, default: null },
+    temperature: Number,
+    heartRate: Number,
+    respiratoryRate: Number,
+    systolicBP: Number,
+    diastolicBP: Number,
+    oxygenSaturation: Number,
+    heightCm: Number,
+    weightKg: Number,
+    recordedAt: { type: String, required: true },
+    recordedBy: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+vitalSignsSchema.index({ patientId: 1, recordedAt: -1 });
+vitalSignsSchema.index({ patientId: 1, encounterId: 1 });
+
+export const VitalSignsModel =
+  mongoose.models.VitalSigns ?? mongoose.model("VitalSigns", vitalSignsSchema);
+
+/* Break-Glass Access Request */
+const breakGlassRequestSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    requestorId: { type: String, required: true },
+    requestorName: { type: String, required: true },
+    requestorRole: { type: String, required: true },
+    reason: { type: String, required: true },
+    hospitalId: { type: String, required: true },
+    status: { type: String, enum: ["pending", "approved", "denied", "expired"], default: "pending" },
+    expiresAt: { type: String, required: true },
+    reviewedBy: String,
+    reviewedAt: String,
+    createdAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+breakGlassRequestSchema.index({ patientId: 1, status: 1 });
+breakGlassRequestSchema.index({ status: 1, expiresAt: 1 });
+
+export const BreakGlassRequestModel =
+  mongoose.models.BreakGlassRequest ?? mongoose.model("BreakGlassRequest", breakGlassRequestSchema);
+
+/* Correction Request */
+const correctionRequestSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    requestorId: { type: String, required: true },
+    targetType: { type: String, required: true },
+    targetId: String,
+    requestedChanges: { type: Schema.Types.Mixed, required: true },
+    reason: String,
+    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    reviewedBy: String,
+    reviewedAt: String,
+    createdAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+correctionRequestSchema.index({ patientId: 1, status: 1 });
+
+export const CorrectionRequestModel =
+  mongoose.models.CorrectionRequest ?? mongoose.model("CorrectionRequest", correctionRequestSchema);

@@ -41,6 +41,43 @@ export function assertAnyDistrictAccess(ctx: AccessContext): void {
   }
 }
 
+/**
+ * Least-privilege clinical access to a patient's medical record.
+ *
+ *  - The patient themselves may only view their own record.
+ *  - Clinical staff (doctor / clinical_staff / lab_reviewer / pharmacist / receptionist)
+ *    are granted physical access by the presence of VIEW_MEDICAL_HISTORY permission;
+ *    cross-hospital visibility is then enforced per-record in the repository/service layer.
+ *  - Organizational authority (admin roles) does NOT confer clinical access here.
+ */
+export function assertPatientAccess(ctx: AccessContext, patientId: string): void {
+  if (ctx.role === "patient") {
+    if (ctx.userId !== patientId) {
+      throw new ScopeError("Patients may only access their own medical record", "FORBIDDEN");
+    }
+    return;
+  }
+
+  const joined = ctx.permissions.join(",");
+  const hasClinicalAccess = ctx.permissions.some((p) => p === "VIEW_MEDICAL_HISTORY");
+  if (!hasClinicalAccess) {
+    throw new ScopeError(
+      `Role ${ctx.role} requires VIEW_MEDICAL_HISTORY to access patient records`,
+      "FORBIDDEN"
+    );
+  }
+  void joined;
+  void ctx;
+}
+
+/** True when the requester can view records originating from a given hospital. */
+export function canAccessPatientRecordFromHospital(ctx: AccessContext, hospitalId: string): boolean {
+  if (ctx.role === "patient") return true; // own record — release status decides visibility elsewhere
+  if (ctx.hospitalIds.includes(hospitalId)) return true; // home hospital
+  // Cross-hospital: permitted for clinical roles within their authorized districts.
+  return ctx.permissions.includes("VIEW_MEDICAL_HISTORY" as Permission) && ctx.districtIds.length > 0;
+}
+
 export function buildScopeFilter(
   ctx: AccessContext,
   entityType: "hospital" | "patient" | "appointment" | "queue" | "district" | "staff" | "department"

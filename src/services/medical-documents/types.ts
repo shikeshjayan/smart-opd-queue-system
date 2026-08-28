@@ -45,6 +45,8 @@ export type MedicalDocument = {
   status: DocumentStatus;
   archivedAt?: string;
   access: DocumentAccess;
+  visibility?: import("@/types").RecordVisibility;
+  releasedAt?: string;
   createdAt: string;
   updatedAt: string;
 };
