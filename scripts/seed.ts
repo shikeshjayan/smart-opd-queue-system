@@ -5,6 +5,9 @@
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
+import dns from "node:dns";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 import mongoose from "mongoose";
 import { scryptSync, randomBytes } from "node:crypto";
 

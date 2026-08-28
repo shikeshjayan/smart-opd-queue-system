@@ -73,7 +73,7 @@ function buildQueueRows(hospitals: Hospital[]): GovernmentQueueItem[] {
         opdName: opd.name,
         hospitalId: hospital.id,
         hospitalName: hospital.name,
-        districtId: hospital.district,
+        districtId: hospital.districtId,
         departmentId: opd.departmentId,
         departmentName: department?.name ?? "",
         status: opd.status,
@@ -225,7 +225,7 @@ export const governmentService = {
       const waiting = countWaitingByHospital(hospital.id);
       return {
         hospital,
-        districtId: hospital.district,
+        districtId: hospital.districtId,
         patientsToday: countTokensByHospital(hospital.id),
         waiting,
         completed: countCompletedTokensByHospital(hospital.id),
@@ -250,7 +250,7 @@ export const governmentService = {
 
     return {
       hospital,
-      districtName: getDistrictName(hospital.district),
+      districtName: getDistrictName(hospital.districtId),
       stats: {
         departments: departments.length,
         opds: opds.length,
@@ -276,7 +276,7 @@ export const governmentService = {
     filters: QueueMonitorFilters = {}
   ): Promise<GovernmentQueueItem[]> {
     await delay();
-    const hospitals = mockHospitals.filter((h) => districtIds.includes(h.district));
+    const hospitals = mockHospitals.filter((h) => districtIds.includes(h.districtId));
     let rows = buildQueueRows(hospitals);
     if (filters.hospitalId) rows = rows.filter((r) => r.hospitalId === filters.hospitalId);
     if (filters.departmentId) rows = rows.filter((r) => r.departmentId === filters.departmentId);

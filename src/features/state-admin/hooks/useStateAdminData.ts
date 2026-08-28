@@ -65,6 +65,6 @@ export function useStateMutations() {
     busy,
     error,
     publishAnnouncement: (input: Parameters<typeof publishAnnouncement>[0]) =>
-      run(() => publishAnnouncement(input, { id: user?.id ?? "unknown", name: user?.name ?? "Unknown", role: "state_admin" })),
+      run(() => publishAnnouncement(input)),
   };
 }

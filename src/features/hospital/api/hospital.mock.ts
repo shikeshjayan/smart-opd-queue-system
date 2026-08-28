@@ -9,7 +9,7 @@ export const hospitalMockApi = {
     const search = query.search?.trim().toLowerCase();
 
     return hospitals.filter((hospital) => {
-      const matchesDistrict = !district || hospital.district === district;
+      const matchesDistrict = !district || hospital.districtId === district;
       const matchesSearch =
         !search ||
         hospital.name.toLowerCase().includes(search) ||

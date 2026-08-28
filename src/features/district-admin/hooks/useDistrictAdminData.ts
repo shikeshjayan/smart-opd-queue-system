@@ -23,12 +23,12 @@ import {
   toggleDistrictHospitalActive,
 } from "@/server/actions/district-admin";
 
-export function useDistrictDashboard(districtId: DistrictId, filters: DistrictFilters = DEFAULT_DISTRICT_FILTERS) {
-  return useAsync(() => getDistrictDashboard(districtId, filters), [districtId, JSON.stringify(filters)]);
+export function useDistrictDashboard(districtId: DistrictId) {
+  return useAsync(() => getDistrictDashboard(districtId), [districtId]);
 }
 
-export function useDistrictAnalytics(districtId: DistrictId, period: "today" | "weekly" | "monthly", filters: DistrictFilters = DEFAULT_DISTRICT_FILTERS) {
-  return useAsync(() => getDistrictAnalytics(districtId, period, filters), [districtId, period, JSON.stringify(filters)]);
+export function useDistrictAnalytics(districtId: DistrictId, period: "today" | "weekly" | "monthly") {
+  return useAsync(() => getDistrictAnalytics(districtId, period), [districtId, period]);
 }
 
 export function useDistrictHospitals(districtId: DistrictId) {
@@ -71,8 +71,8 @@ export function useDistrictSettings(districtId: DistrictId) {
   return useAsync(() => getDistrictSettings(districtId), [districtId]);
 }
 
-export function useDistrictReport(districtId: DistrictId, type: DistrictReportType, filters: DistrictFilters = DEFAULT_DISTRICT_FILTERS) {
-  return useAsync(() => getDistrictReport(districtId, type, filters), [districtId, type, JSON.stringify(filters)]);
+export function useDistrictReport(districtId: DistrictId, type: DistrictReportType) {
+  return useAsync(() => getDistrictReport(districtId, type), [districtId, type]);
 }
 
 export {

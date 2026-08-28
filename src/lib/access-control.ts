@@ -9,7 +9,7 @@ export function canAccessHospital(user: SessionUser, hospitalId: string): boolea
   if (user.role === "state_admin") return true;
   if (user.role === "district_admin") {
     const hospital = mockHospitals.find((h) => h.id === hospitalId);
-    return hospital?.district === user.scope.districtId;
+    return hospital?.districtId === user.scope.districtId;
   }
   return user.scope.hospitalId === hospitalId;
 }
@@ -18,7 +18,7 @@ export function canAccessDistrict(user: SessionUser, districtId: string): boolea
   if (user.role === "state_admin") return true;
   if (user.role === "district_admin") return user.scope.districtId === districtId;
   const hospital = mockHospitals.find((h) => h.id === user.scope.hospitalId);
-  return hospital?.district === districtId;
+  return hospital?.districtId === districtId;
 }
 
 export function isOwnPatientRecord(user: SessionUser, patientId: string): boolean {

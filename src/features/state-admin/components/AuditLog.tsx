@@ -30,7 +30,7 @@ export function AuditLog() {
 
   const actions = useMemo(() => {
     if (!data) return [] as StateAuditAction[];
-    return Array.from(new Set(data.map((event) => event.action)));
+    return Array.from(new Set(data.map((event) => event.action as StateAuditAction)));
   }, [data]);
 
   if (isLoading) {
@@ -41,7 +41,7 @@ export function AuditLog() {
     return <ErrorState message={error ?? "Could not load audit log"} onRetry={reload} />;
   }
 
-  const filtered = filter === "all" ? data : data.filter((event) => event.action === filter);
+  const filtered = filter === "all" ? data : data.filter((event) => (event.action as StateAuditAction) === filter);
 
   return (
     <div className="rounded-card border border-ink-200 bg-surface shadow-card overflow-hidden">
@@ -87,7 +87,7 @@ export function AuditLog() {
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-ink-700">
-                {event.actorName} ({event.actorRole}) &middot; {actionLabels[event.action]}
+                {event.actorName} ({event.actorRole}) &middot; {actionLabels[event.action as StateAuditAction]}
               </p>
               <p className="mt-0.5 text-xs text-ink-400">{formatDateTime(event.at)}</p>
             </li>

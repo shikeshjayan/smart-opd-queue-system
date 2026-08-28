@@ -1,7 +1,14 @@
 import type { DistrictId } from "@/config/districts";
-import type { QueueHealth, GovernmentAlert, HospitalStatus } from "@/types";
+import type {
+  QueueHealth,
+  GovernmentAlert,
+  HospitalStatus,
+  Announcement,
+  AnnouncementStatus,
+  AnnouncementTargetType,
+} from "@/types";
 import type { AuditActor } from "@/services/hospital-ops/types";
-export { QueueHealth }
+export { QueueHealth, Announcement, AnnouncementStatus, AnnouncementTargetType }
 
 export type StateDateRange = "today" | "7d" | "30d";
 
@@ -109,9 +116,6 @@ export type StateAlertSummary = {
   notice: number;
   items: GovernmentAlert[];
 };
-
-export type AnnouncementStatus = "draft" | "scheduled" | "published" | "expired";
-export type AnnouncementTargetType = "all" | "districts" | "hospitals";
 
 export type StateAnnouncement = {
   id: string;

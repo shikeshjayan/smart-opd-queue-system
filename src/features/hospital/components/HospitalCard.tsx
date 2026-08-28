@@ -14,7 +14,7 @@ export function HospitalCard({ hospital }: HospitalCardProps) {
         <div>
           <h3 className="font-semibold text-ink-900">{hospital.name}</h3>
           <p className="mt-0.5 text-sm text-ink-500">
-            {getDistrictName(hospital.district)} &middot; {hospital.address}
+            {getDistrictName(hospital.districtId)} &middot; {hospital.address}
           </p>
         </div>
         <Badge variant={hospital.status === "active" ? "success" : "danger"}>

@@ -30,7 +30,7 @@ export default function StateQueuesPage() {
     () =>
       Array.from(
         new Map((hospitalsData ?? []).map((h) => [h.hospital.id, h.hospital])).values()
-      ).filter((h) => !districtFilter || h.district === districtFilter),
+      ).filter((h) => !districtFilter || h.districtId === districtFilter),
     [hospitalsData, districtFilter]
   );
 

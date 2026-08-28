@@ -243,7 +243,7 @@ export const stateAdminService = {
     await delay();
     const allHospitals = DISTRICTS.flatMap(d => listHospitalsByDistrict(d.id));
     const filtered = allHospitals.filter(h => {
-        if (filters.districtId && h.district !== filters.districtId) return false;
+        if (filters.districtId && h.districtId !== filters.districtId) return false;
         if (filters.query && !h.name.toLowerCase().includes(filters.query.toLowerCase())) return false;
         return true;
     });
@@ -252,8 +252,8 @@ export const stateAdminService = {
         return {
             hospitalId: h.id,
             name: h.name,
-            districtId: h.district,
-            districtName: getDistrictName(h.district),
+            districtId: h.districtId,
+            districtName: getDistrictName(h.districtId),
             type: hospitalTypeFor(h.name),
             status: h.status,
             patients: countTokensByHospital(h.id),
@@ -276,7 +276,7 @@ export const stateAdminService = {
               if (s.status !== 'active') continue;
               const entry = services.get(s.name) || {hospitalCount: 0, districtCount: new Set()};
               entry.hospitalCount++;
-              entry.districtCount.add(h.district);
+               entry.districtCount.add(h.districtId);
               services.set(s.name, entry);
           }
       }

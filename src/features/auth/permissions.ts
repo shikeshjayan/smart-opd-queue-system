@@ -284,6 +284,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   ],
 };
 
+export function getPermissionsForRole(role: UserRole): readonly Permission[] {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
 export function roleHasPermission(role: UserRole | undefined, permission: Permission): boolean {
   if (!role) return false;
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
