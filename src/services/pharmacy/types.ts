@@ -1,6 +1,6 @@
 /* Server-safe pharmacy domain types shared by server actions + frontend */
 
-export type StockBatchStatus = "available" | "expired" | "blocked";
+export type StockBatchStatus = "available" | "expired" | "blocked" | "recalled" | "depleted";
 
 /** One physical batch of a medicine at one hospital. Quantity lives here, never on the medicine itself. */
 export type MedicineStockBatch = {

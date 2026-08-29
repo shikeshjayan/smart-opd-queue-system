@@ -25,6 +25,12 @@ const typeLabel: Record<GovernmentAlert["type"], string> = {
   long_wait: "Long wait",
   opd_full: "OPD full",
   system: "System",
+  capacity_exceeded: "Capacity exceeded",
+  lab_backlog: "Lab backlog",
+  pharmacy_shortage: "Pharmacy shortage",
+  queue_backlog: "Queue backlog",
+  high_wait: "High wait",
+  high_volume: "High volume",
 };
 
 function formatTime(iso: string): string {

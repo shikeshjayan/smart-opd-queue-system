@@ -456,9 +456,9 @@ function resolveEncounter(encounterId?: string): ResolvedEncounter | undefined {
     return {
       encounterId: live.id,
       hospitalId: live.hospitalId,
-      hospitalName: live.hospitalName,
-      departmentName: live.departmentName,
-      doctorId: live.doctorId,
+      hospitalName: live.hospitalName ?? "",
+      departmentName: live.departmentName ?? "",
+      doctorId: live.doctorId ?? "",
       patientId: live.patientId,
     };
   }

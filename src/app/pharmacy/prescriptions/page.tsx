@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useAsync } from "@/lib/use-async";
-import { pharmacyMockApi } from "@/features/pharmacy/api/pharmacy.mock";
+import { pharmacyApi } from "@/features/pharmacy/api/pharmacy.api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { ErrorState } from "@/components/feedback/error-state";
 
 export default function PharmacyPrescriptionsPage() {
-  const { data: queue, isLoading, error, reload } = useAsync(() => pharmacyMockApi.getQueue(), []);
+  const { data: queue, isLoading, error, reload } = useAsync(() => pharmacyApi.getQueue(), []);
 
   if (isLoading) return <div className="flex flex-col gap-4"><Skeleton className="h-10 w-1/2" /><Skeleton className="h-20 w-full" /></div>;
   if (error || !queue) return <ErrorState message={error ?? "Unable to load prescriptions."} onRetry={reload} />;

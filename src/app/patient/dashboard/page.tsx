@@ -106,8 +106,8 @@ export default function DashboardPage() {
         <FollowUpForm
           patientId={patientId}
           encounterId={recommendation.data.encounter.id}
-          departmentId={recommendation.data.encounter.departmentId}
-          doctorId={recommendation.data.encounter.doctorId}
+          departmentId={recommendation.data.encounter.departmentId ?? ""}
+          doctorId={recommendation.data.encounter.doctorId ?? ""}
           followUp={recommendation.data.followUp}
           onBooked={() => appointmentList.reload()}
         />

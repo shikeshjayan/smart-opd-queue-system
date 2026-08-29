@@ -19,7 +19,7 @@ export function ActiveTokenCard({ bundle }: ActiveTokenCardProps) {
         Your Active Token
       </p>
       <p className="mt-1 text-sm text-brand-100">
-        {hospital.name}, {hospital.district}
+        {hospital.name}, {hospital.districtId}
       </p>
 
       <p className="mt-4 text-6xl font-bold tracking-tight" aria-label={`Token ${token.tokenNumber}`}>

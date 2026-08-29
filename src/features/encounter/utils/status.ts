@@ -2,6 +2,7 @@ import type { EncounterStatus } from "@/types";
 
 export const ENCOUNTER_STATUS_LABELS: Record<EncounterStatus, string> = {
   open: "Open",
+  planned: "Planned",
   in_progress: "In Progress",
   completed: "Completed",
   cancelled: "Cancelled",

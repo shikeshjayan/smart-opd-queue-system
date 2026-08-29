@@ -253,6 +253,7 @@ export type DiagnosticResult = {
   reviewedAt?: string;
   reviewedBy?: string;
   cancelledReason?: string;
+  createdAt?: string;
 };
 
 export type PatientTestEntry = {

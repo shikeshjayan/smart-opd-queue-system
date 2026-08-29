@@ -3,21 +3,38 @@ import type {
   AdminNotification,
   AdminSettings,
   ConfigVersion,
+  CurrentHospitalCapacity,
+  DailyDistrictMetrics,
+  DailyHospitalMetrics,
+  DailyStateMetrics,
   Department,
+  District,
+  DistrictConfig,
   DoctorRecord,
   Encounter,
   GovernmentAlert,
   Hospital,
   HospitalClosure,
+  HospitalConfig,
   HospitalService,
   OPD,
   OpdSession,
+  OutboxEvent,
   PatientSummary,
   Room,
   ShiftTemplate,
   StaffAssignment,
   StaffLeave,
   StaffMember,
+  StateSettings,
+  AuditLog,
+  Announcement,
+  Patient,
+  Allergy,
+  Condition,
+  VitalSigns,
+  BreakGlassRequest,
+  CorrectionRequest,
 } from "@/types";
 import type { UserRole } from "@/features/auth/types/auth.types";
 
@@ -438,11 +455,28 @@ export const ConfigVersionModel =
 const patientSchema = new Schema(
   {
     _id: { type: String, required: true },
-    patientNumber: String,
-    name: { type: String, required: true },
-    age: Number,
-    gender: { type: String, enum: ["male", "female", "other"] },
-    phone: String,
+    patientNumber: { type: String, required: true, unique: true },
+    identity: {
+      name: { type: String, required: true },
+      dateOfBirth: String,
+      gender: { type: String, enum: ["male", "female", "other"] },
+    },
+    contact: {
+      mobile: String,
+      email: String,
+    },
+    address: {
+      district: String,
+      state: String,
+      line1: String,
+      line2: String,
+      pincode: String,
+    },
+    emergencyContact: {
+      name: String,
+      relationship: String,
+      mobile: String,
+    },
     bloodGroup: String,
     registeredHospitalId: { type: String, index: true },
     knownInfo: {
@@ -450,15 +484,17 @@ const patientSchema = new Schema(
       medications: [String],
       conditions: [String],
     },
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
   },
-  { versionKey: false }
+  { timestamps: true, versionKey: false }
 );
 
-patientSchema.index({ phone: 1 });
-patientSchema.index({ name: 1 });
+patientSchema.index({ "contact.mobile": 1 });
+patientSchema.index({ "identity.name": 1 });
+patientSchema.index({ patientNumber: "text", "identity.name": "text", "contact.mobile": "text" });
 
 export const PatientModel =
-  (mongoose.models.Patient as Model<PatientSummary>) ??
+  (mongoose.models.Patient as Model<Patient>) ??
   mongoose.model("Patient", patientSchema);
 
 /* ---------- Queue entries ---------- */
@@ -517,19 +553,26 @@ const encounterSchema = new Schema(
   {
     _id: { type: String, required: true },
     patientId: { type: String, required: true, index: true },
-    doctorId: { type: String, required: true },
-    hospitalId: String,
+    doctorId: { type: String, required: false },
+    hospitalId: { type: String, required: true, index: true },
     departmentId: String,
     opdId: String,
+    opdSessionId: String,
+    appointmentId: String,
     tokenId: String,
     tokenNumber: String,
     date: { type: String, required: true },
     hospitalName: String,
     departmentName: String,
     doctorName: String,
+    type: {
+      type: String,
+      enum: ["opd", "emergency", "follow_up", "diagnostic", "other"],
+      default: "opd",
+    },
     status: {
       type: String,
-      enum: ["open", "in_progress", "completed", "cancelled"],
+      enum: ["open", "planned", "in_progress", "completed", "cancelled"],
       default: "open",
     },
     startedAt: String,
@@ -1071,8 +1114,29 @@ export const ScheduleConfigModel =
 
 /* ---------- Medicine catalogue & diagnostics catalogue (reference data) ---------- */
 
+const medicineSchema = new Schema(
+  {
+    name: { type: String, required: true, index: true },
+    genericName: String,
+    strength: String,
+    dosageForm: String,
+    unit: { type: String, required: true, default: "units" },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+medicineSchema.index({ genericName: 1 });
+medicineSchema.index({ name: "text", genericName: "text" });
+
 export const MedicineModel =
-  mongoose.models.Medicine ?? mongoose.model("Medicine", new Schema({}, { strict: false }));
+  mongoose.models.Medicine ?? mongoose.model("Medicine", medicineSchema);
 
 export const TestCatalogueModel =
   mongoose.models.TestCatalogue ?? mongoose.model("TestCatalogue", new Schema({}, { strict: false }));
@@ -1106,11 +1170,13 @@ const medicineStockSchema = new Schema(
     hospitalId: { type: String, required: true },
     batchNumber: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0 },
+    receivedQuantity: { type: Number, required: true },
+    availableQuantity: { type: Number, required: true, default: 0 },
     expiryDate: { type: String, required: true }, // YYYY-MM-DD
     unit: { type: String, default: "units" },
     status: {
       type: String,
-      enum: ["available", "expired", "blocked"],
+      enum: ["available", "expired", "blocked", "recalled", "depleted"],
       default: "available",
     },
     createdAt: { type: Date, default: Date.now },
@@ -1225,3 +1291,475 @@ inventoryConfigSchema.index({ hospitalId: 1, medicineId: 1 }, { unique: true });
 
 export const InventoryConfigModel =
   mongoose.models.InventoryConfig ?? mongoose.model("InventoryConfig", inventoryConfigSchema);
+
+/* ---------- Pharmacy: Dispensing records (§12/§28) ---------- */
+
+const dispensedItemSchema = new Schema(
+  {
+    medicineId: { type: String, required: true },
+    batchId: { type: String, required: true },
+    prescribedQuantity: { type: Number, required: true },
+    dispensedQuantity: { type: Number, required: true },
+    instructions: String,
+  },
+  { _id: false, versionKey: false }
+);
+
+const dispensingSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    prescriptionId: { type: String, required: true, index: true },
+    encounterId: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    pharmacyId: String,
+    pharmacistId: { type: String, required: true },
+    items: [dispensedItemSchema],
+    status: {
+      type: String,
+      enum: ["completed", "partial", "cancelled"],
+      default: "completed",
+    },
+    dispensedAt: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+dispensingSchema.index({ hospitalId: 1, dispensedAt: -1 });
+dispensingSchema.index({ patientId: 1, dispensedAt: -1 });
+
+export const DispensingModel =
+  mongoose.models.Dispensing ?? mongoose.model("Dispensing", dispensingSchema);
+
+/* ---------- Phase 27 — Governance Models ---------- */
+
+const STATE_ID = "KERALA";
+
+/* District master entity */
+const districtSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    code: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    stateId: { type: String, required: true, default: STATE_ID },
+    headquarters: {
+      lat: Number,
+      lng: Number,
+    },
+    status: { type: String, enum: ["active", "inactive"], default: "active" },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+districtSchema.index({ code: 1 }, { unique: true });
+districtSchema.index({ stateId: 1, status: 1 });
+
+export const DistrictModel =
+  mongoose.models.District ?? mongoose.model("District", districtSchema);
+
+/* State Settings (singleton per state) */
+const stateSettingsSchema = new Schema(
+  {
+    _id: { type: String, required: true, default: "STATE_CONFIG" },
+    stateId: { type: String, required: true, default: STATE_ID },
+    appointmentRules: {
+      defaultDuration: { type: Number, default: 15 },
+      maxAdvanceDays: { type: Number, default: 30 },
+      cancellationPolicy: { type: String, default: "24h" },
+    },
+    queueRules: {
+      priorityWeights: { type: Map, of: Number, default: { emergency: 3, priority: 2, normal: 1 } },
+      thresholdAlerts: {
+        warning: { type: Number, default: 20 },
+        critical: { type: Number, default: 40 },
+      },
+    },
+    notificationPolicies: {
+      channels: { type: [String], default: ["email", "sms", "push"] },
+      templates: { type: Map, of: String, default: {} },
+    },
+    supportedLanguages: { type: [String], default: ["en", "ml"] },
+    securityPolicies: {
+      sessionTimeout: { type: Number, default: 3600 },
+      mfaRequired: { type: Boolean, default: false },
+      ipWhitelist: { type: [String], default: [] },
+    },
+    featureFlags: { type: Map, of: Boolean, default: {} },
+    auditPolicies: {
+      retentionDays: { type: Number, default: 2555 },
+      logLevel: { type: String, default: "info" },
+    },
+    medicalRecordRetention: {
+      years: { type: Number, default: 7 },
+      archiveStrategy: { type: String, default: "cold_storage" },
+    },
+    updatedAt: { type: Date, default: Date.now },
+    updatedBy: String,
+  },
+  { versionKey: false }
+);
+
+export const StateSettingsModel =
+  mongoose.models.StateSettings ?? mongoose.model("StateSettings", stateSettingsSchema);
+
+/* District Configuration Override */
+const districtConfigSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    districtId: { type: String, required: true, unique: true },
+    overrides: Schema.Types.Mixed,
+    effectiveSettings: Schema.Types.Mixed,
+    updatedAt: { type: Date, default: Date.now },
+    updatedBy: String,
+  },
+  { versionKey: false }
+);
+
+districtConfigSchema.index({ districtId: 1 }, { unique: true });
+
+export const DistrictConfigModel =
+  mongoose.models.DistrictConfig ?? mongoose.model("DistrictConfig", districtConfigSchema);
+
+/* Hospital Configuration Override */
+const hospitalConfigSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, unique: true },
+    overrides: Schema.Types.Mixed,
+    effectiveSettings: Schema.Types.Mixed,
+    updatedAt: { type: Date, default: Date.now },
+    updatedBy: String,
+  },
+  { versionKey: false }
+);
+
+hospitalConfigSchema.index({ hospitalId: 1 }, { unique: true });
+
+export const HospitalConfigModel =
+  mongoose.models.HospitalConfig ?? mongoose.model("HospitalConfig", hospitalConfigSchema);
+
+/* Outbox Event for reliable event processing */
+const outboxEventSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    aggregateType: { type: String, required: true },
+    aggregateId: { type: String, required: true },
+    eventType: { type: String, required: true },
+    payload: { type: Schema.Types.Mixed, required: true },
+    occurredAt: { type: Date, required: true },
+    processedAt: Date,
+    retryCount: { type: Number, default: 0 },
+    status: {
+      type: String,
+      enum: ["pending", "processing", "completed", "failed"],
+      default: "pending",
+      index: true,
+    },
+  },
+  { versionKey: false }
+);
+
+outboxEventSchema.index({ status: 1, occurredAt: 1 });
+outboxEventSchema.index({ aggregateType: 1, aggregateId: 1 });
+
+export const OutboxEventModel =
+  mongoose.models.OutboxEvent ?? mongoose.model("OutboxEvent", outboxEventSchema);
+
+/* Materialized Metrics — Daily Hospital Metrics */
+const dailyHospitalMetricsSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    districtId: { type: String, required: true, index: true },
+    date: { type: String, required: true, index: true },
+    totalAppointments: { type: Number, default: 0 },
+    totalVisits: { type: Number, default: 0 },
+    totalWaiting: { type: Number, default: 0 },
+    appointments: { type: Number, default: 0 },
+    walkIns: { type: Number, default: 0 },
+    completedVisits: { type: Number, default: 0 },
+    noShows: { type: Number, default: 0 },
+    avgWaitMinutes: { type: Number, default: 0 },
+    avgConsultationMinutes: { type: Number, default: 0 },
+    departmentBreakdown: [
+      {
+        departmentId: String,
+        departmentName: String,
+        visits: { type: Number, default: 0 },
+        avgWaitMinutes: { type: Number, default: 0 },
+      },
+    ],
+    queueHealth: [
+      {
+        opdId: String,
+        waiting: { type: Number, default: 0 },
+        completed: { type: Number, default: 0 },
+        avgWaitMinutes: { type: Number, default: 0 },
+      },
+    ],
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+dailyHospitalMetricsSchema.index({ hospitalId: 1, date: -1 }, { unique: true });
+dailyHospitalMetricsSchema.index({ districtId: 1, date: -1 });
+
+export const DailyHospitalMetricsModel =
+  mongoose.models.DailyHospitalMetrics ?? mongoose.model("DailyHospitalMetrics", dailyHospitalMetricsSchema);
+
+/* Materialized Metrics — Daily District Metrics */
+const dailyDistrictMetricsSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    districtId: { type: String, required: true, index: true },
+    date: { type: String, required: true, index: true },
+    hospitals: { type: Number, default: 0 },
+    totalVisits: { type: Number, default: 0 },
+    completedVisits: { type: Number, default: 0 },
+    appointments: { type: Number, default: 0 },
+    walkIns: { type: Number, default: 0 },
+    totalWaiting: { type: Number, default: 0 },
+    avgWaitMinutes: { type: Number, default: 0 },
+    hospitalsByStatus: {
+      normal: { type: Number, default: 0 },
+      highLoad: { type: Number, default: 0 },
+      critical: { type: Number, default: 0 },
+    },
+    departmentBreakdown: [
+      {
+        departmentId: String,
+        departmentName: String,
+        visits: { type: Number, default: 0 },
+      },
+    ],
+    topDepartments: [
+      {
+        departmentId: String,
+        departmentName: String,
+        visits: { type: Number, default: 0 },
+      },
+    ],
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+dailyDistrictMetricsSchema.index({ districtId: 1, date: -1 }, { unique: true });
+
+export const DailyDistrictMetricsModel =
+  mongoose.models.DailyDistrictMetrics ?? mongoose.model("DailyDistrictMetrics", dailyDistrictMetricsSchema);
+
+/* Materialized Metrics — Daily State Metrics */
+const dailyStateMetricsSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    stateId: { type: String, required: true, default: STATE_ID },
+    date: { type: String, required: true, index: true },
+    districts: { type: Number, default: 0 },
+    hospitals: { type: Number, default: 0 },
+    totalVisits: { type: Number, default: 0 },
+    completedVisits: { type: Number, default: 0 },
+    appointments: { type: Number, default: 0 },
+    walkIns: { type: Number, default: 0 },
+    avgWaitMinutes: { type: Number, default: 0 },
+    noShowRate: { type: Number, default: 0 },
+    hospitalUtilization: { type: Number, default: 0 },
+    districtBreakdown: [
+      {
+        districtId: String,
+        districtName: String,
+        visits: { type: Number, default: 0 },
+        avgWaitMinutes: { type: Number, default: 0 },
+      },
+    ],
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+dailyStateMetricsSchema.index({ stateId: 1, date: -1 }, { unique: true });
+
+export const DailyStateMetricsModel =
+  mongoose.models.DailyStateMetrics ?? mongoose.model("DailyStateMetrics", dailyStateMetricsSchema);
+
+/* Real-time Capacity Read Model */
+const currentHospitalCapacitySchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    departmentId: { type: String, required: true, index: true },
+    availableSlots: { type: Number, default: 0 },
+    occupiedSlots: { type: Number, default: 0 },
+    waitingCount: { type: Number, default: 0 },
+    lastUpdated: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+currentHospitalCapacitySchema.index({ hospitalId: 1, departmentId: 1 }, { unique: true });
+
+export const CurrentHospitalCapacityModel =
+  mongoose.models.CurrentHospitalCapacity ?? mongoose.model("CurrentHospitalCapacity", currentHospitalCapacitySchema);
+
+/* ---------- Announcements (state/district broadcasts) ---------- */
+
+const announcementSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    targetType: {
+      type: String,
+      enum: ["all", "districts", "hospitals"],
+      required: true,
+    },
+    targetIds: { type: [String], default: [] },
+    districtId: { type: String, default: null },
+    hospitalId: { type: String, default: null },
+    audience: { type: String, enum: ["hospitals", "departments", "staff", "patients"], default: "hospitals" },
+    publishedAt: { type: String, default: null },
+    scheduledAt: { type: String, default: null },
+    expiresAt: { type: String, default: null },
+    publishedBy: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["draft", "scheduled", "published", "expired"],
+      default: "draft",
+    },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+announcementSchema.index({ targetType: 1, status: 1 });
+announcementSchema.index({ districtId: 1, status: 1 });
+announcementSchema.index({ hospitalId: 1, status: 1 });
+announcementSchema.index({ scheduledAt: 1, status: 1 });
+announcementSchema.index({ publishedAt: -1 });
+
+export const AnnouncementModel =
+  (mongoose.models.Announcement as Model<Announcement>) ??
+  mongoose.model<Announcement>("Announcement", announcementSchema);
+
+/* ---------- Phase 28 — Medical Records ---------- */
+
+/* Allergy */
+const allergySchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    substance: { type: String, required: true },
+    reaction: String,
+    severity: { type: String, enum: ["mild", "moderate", "severe"] },
+    status: { type: String, enum: ["active", "resolved", "unknown"], default: "active" },
+    recordedAt: { type: String, required: true },
+    recordedBy: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+allergySchema.index({ patientId: 1, status: 1 });
+allergySchema.index({ patientId: 1, substance: 1 }, { unique: true });
+allergySchema.index({ substance: "text" });
+
+export const AllergyModel =
+  mongoose.models.Allergy ?? mongoose.model("Allergy", allergySchema);
+
+/* Condition */
+const conditionSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    name: { type: String, required: true },
+    status: { type: String, enum: ["active", "resolved", "inactive", "unknown"], default: "active" },
+    diagnosedAt: String,
+    recordedBy: { type: String, required: true },
+    createdAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+conditionSchema.index({ patientId: 1, status: 1 });
+conditionSchema.index({ name: "text" });
+
+export const ConditionModel =
+  mongoose.models.Condition ?? mongoose.model("Condition", conditionSchema);
+
+/* Vital Signs */
+const vitalSignsSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    encounterId: { type: String, default: null },
+    temperature: Number,
+    heartRate: Number,
+    respiratoryRate: Number,
+    systolicBP: Number,
+    diastolicBP: Number,
+    oxygenSaturation: Number,
+    heightCm: Number,
+    weightKg: Number,
+    recordedAt: { type: String, required: true },
+    recordedBy: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+vitalSignsSchema.index({ patientId: 1, recordedAt: -1 });
+vitalSignsSchema.index({ patientId: 1, encounterId: 1 });
+
+export const VitalSignsModel =
+  mongoose.models.VitalSigns ?? mongoose.model("VitalSigns", vitalSignsSchema);
+
+/* Break-Glass Access Request */
+const breakGlassRequestSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    requestorId: { type: String, required: true },
+    requestorName: { type: String, required: true },
+    requestorRole: { type: String, required: true },
+    reason: { type: String, required: true },
+    hospitalId: { type: String, required: true },
+    status: { type: String, enum: ["pending", "approved", "denied", "expired"], default: "pending" },
+    expiresAt: { type: String, required: true },
+    reviewedBy: String,
+    reviewedAt: String,
+    createdAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+breakGlassRequestSchema.index({ patientId: 1, status: 1 });
+breakGlassRequestSchema.index({ status: 1, expiresAt: 1 });
+
+export const BreakGlassRequestModel =
+  mongoose.models.BreakGlassRequest ?? mongoose.model("BreakGlassRequest", breakGlassRequestSchema);
+
+/* Correction Request */
+const correctionRequestSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    requestorId: { type: String, required: true },
+    targetType: { type: String, required: true },
+    targetId: String,
+    requestedChanges: { type: Schema.Types.Mixed, required: true },
+    reason: String,
+    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    reviewedBy: String,
+    reviewedAt: String,
+    createdAt: { type: String, required: true },
+  },
+  { versionKey: false }
+);
+
+correctionRequestSchema.index({ patientId: 1, status: 1 });
+
+export const CorrectionRequestModel =
+  mongoose.models.CorrectionRequest ?? mongoose.model("CorrectionRequest", correctionRequestSchema);

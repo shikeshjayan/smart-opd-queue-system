@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { medicalRecordsMockApi } from "@/features/medical-records/api/medical-records.mock";
+import { medicalRecordsRealApi } from "@/features/medical-records/api/medical-records.api";
 import type { PatientEncounter } from "@/features/medical-records/types/medical-record.types";
 
 export function usePatientSearch() {
@@ -17,7 +17,7 @@ export function usePatientSearch() {
     }
     setIsLoading(true);
     try {
-      const rows = await medicalRecordsMockApi.searchPatients(q, hospitalId);
+      const rows = await medicalRecordsRealApi.searchPatients(q, hospitalId);
       setResults(rows);
     } catch {
       setResults([]);

@@ -72,7 +72,7 @@ function TokenContent() {
         </div>
         <div className="text-center">
           <p className="text-lg font-semibold text-ink-900">{department.name} &middot; {opd.name}</p>
-          <p className="text-sm text-ink-500">{hospital.name}, {hospital.district}</p>
+          <p className="text-sm text-ink-500">{hospital.name}, {hospital.districtId}</p>
         </div>
 
         <dl className="grid grid-cols-3 gap-3 text-center w-full max-w-md">
@@ -112,7 +112,7 @@ function TokenContent() {
         <dl className="flex flex-col gap-3 text-sm">
           <div className="flex items-start justify-between">
             <dt className="font-medium text-ink-500">Hospital</dt>
-            <dd className="text-right font-medium text-ink-900">{hospital.name}, {hospital.district}</dd>
+            <dd className="text-right font-medium text-ink-900">{hospital.name}, {hospital.districtId}</dd>
           </div>
           <hr className="border-ink-100" />
           <div className="flex items-start justify-between">

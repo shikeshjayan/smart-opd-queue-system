@@ -1,17 +1,14 @@
 "use client";
 
 import { useDistrictAdmin } from "@/features/auth/context";
-import { useDistrictHospitals } from "@/features/district-admin/hooks/useDistrictAdminData";
+import { useDistrictResources } from "@/features/district-admin/hooks/useDistrictAdminData";
 import { PageHeader } from "@/features/hospital-admin/components/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import { useState, useEffect } from "react";
-import { listDepartments } from "@/services/data";
-import type { DistrictHospitalRow } from "@/features/district-admin/types/district-admin.types";
 
 export default function DistrictAdminDepartmentsPage() {
   const { admin, districtId } = useDistrictAdmin();
-  const { data: hospitals, isLoading, error } = useDistrictHospitals(districtId ?? "ernakulam");
+  const { data: resources, isLoading, error, reload } = useDistrictResources(districtId ?? "ernakulam");
 
   if (isLoading || !districtId) {
     return (
@@ -22,47 +19,30 @@ export default function DistrictAdminDepartmentsPage() {
     );
   }
 
-  if (error || !hospitals) {
-    return <ErrorState message={error ?? "Unable to load hospitals."} onRetry={() => { }} />;
+  if (error || !resources) {
+    return <ErrorState message={error ?? "Unable to load department data."} onRetry={reload} />;
   }
-
-  const [departmentsByHospital, setDepartmentsByHospital] = useState<Map<string, string[]>>(new Map());
-
-  useEffect(() => {
-    const deptMap = new Map<string, string[]>();
-    hospitals.forEach((h: DistrictHospitalRow) => {
-      const deptNames = listDepartments(h.hospitalId).map((d) => d.name);
-      deptMap.set(h.hospitalId, deptNames);
-    });
-    setDepartmentsByHospital(deptMap);
-  }, [hospitals]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={`District Departments - ${admin?.name ?? "District Admin"}`}
-        description="Manage department configurations across hospitals"
+        description="Resource summary across hospitals"
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {hospitals.map((hospital: DistrictHospitalRow) => (
+        {resources.map((r) => (
           <div
-            key={hospital.hospitalId}
+            key={r.hospitalId}
             className="rounded-card border border-ink-200 p-4 shadow-card hover:shadow-lg transition-shadow"
           >
-            <h3 className="font-medium text-ink-900 mb-3">{hospital.name}</h3>
-            <div className="space-y-2">
-              {departmentsByHospital.get(hospital.hospitalId)?.map((deptName, i) => (
-                <div
-                  key={i}
-                  className="text-sm text-ink-700 flex items-center gap-2"
-                >
-                  {deptName}
-                </div>
-              ))}
-              {!departmentsByHospital.get(hospital.hospitalId)?.length && (
-                <p className="text-xs text-ink-400">No departments</p>
-              )}
+            <h3 className="font-medium text-ink-900 mb-3">{r.hospitalName}</h3>
+            <div className="space-y-1 text-sm text-ink-700">
+              <div>Doctors: {r.doctorsAvailable}/{r.doctorsTotal}</div>
+              <div>Nurses: {r.nurses}</div>
+              <div>Lab Staff: {r.labStaff}</div>
+              <div>Pharmacy: {r.pharmacyStaff}</div>
+              <div>Active Services: {r.servicesActive}</div>
             </div>
           </div>
         ))}

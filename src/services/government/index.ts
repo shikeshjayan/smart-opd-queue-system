@@ -73,7 +73,7 @@ function buildQueueRows(hospitals: Hospital[]): GovernmentQueueItem[] {
         opdName: opd.name,
         hospitalId: hospital.id,
         hospitalName: hospital.name,
-        districtId: hospital.district,
+        districtId: hospital.districtId,
         departmentId: opd.departmentId,
         departmentName: department?.name ?? "",
         status: opd.status,
@@ -110,7 +110,7 @@ function buildHospitalRows(districtId: DistrictId): GovernmentHospitalRow[] {
 function encountersForHospitalIds(hospitalIds: string[]) {
   const ids = new Set(hospitalIds);
   return listAllEncounters().filter((e) => {
-    const opd = getOpd(e.opdId);
+    const opd = getOpd(e.opdId ?? "");
     const department = opd ? getDepartment(opd.departmentId) : undefined;
     return Boolean(department && ids.has(department.hospitalId));
   });
@@ -225,7 +225,7 @@ export const governmentService = {
       const waiting = countWaitingByHospital(hospital.id);
       return {
         hospital,
-        districtId: hospital.district,
+        districtId: hospital.districtId,
         patientsToday: countTokensByHospital(hospital.id),
         waiting,
         completed: countCompletedTokensByHospital(hospital.id),
@@ -250,7 +250,7 @@ export const governmentService = {
 
     return {
       hospital,
-      districtName: getDistrictName(hospital.district),
+      districtName: getDistrictName(hospital.districtId),
       stats: {
         departments: departments.length,
         opds: opds.length,
@@ -276,7 +276,7 @@ export const governmentService = {
     filters: QueueMonitorFilters = {}
   ): Promise<GovernmentQueueItem[]> {
     await delay();
-    const hospitals = mockHospitals.filter((h) => districtIds.includes(h.district));
+    const hospitals = mockHospitals.filter((h) => districtIds.includes(h.districtId));
     let rows = buildQueueRows(hospitals);
     if (filters.hospitalId) rows = rows.filter((r) => r.hospitalId === filters.hospitalId);
     if (filters.departmentId) rows = rows.filter((r) => r.departmentId === filters.departmentId);
@@ -356,7 +356,7 @@ export const governmentService = {
     const recentEncounters = encountersForHospitalIds(hospitalIds)
       .slice(0, 10)
       .map((e) => {
-        const opd = getOpd(e.opdId);
+        const opd = getOpd(e.opdId ?? "");
         const department = opd ? getDepartment(opd.departmentId) : undefined;
         const hospital = department
           ? getHospital(department.hospitalId)
@@ -364,8 +364,8 @@ export const governmentService = {
         return {
           id: e.id,
           patientName: e.patientId,
-          hospitalName: hospital?.name ?? e.hospitalName,
-          departmentName: department?.name ?? e.departmentName,
+          hospitalName: hospital?.name ?? e.hospitalName ?? "",
+          departmentName: department?.name ?? e.departmentName ?? "",
           date: e.date,
         };
       });

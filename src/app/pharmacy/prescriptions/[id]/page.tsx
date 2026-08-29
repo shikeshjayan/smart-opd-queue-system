@@ -2,14 +2,11 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
 import { useAsync } from "@/lib/use-async";
 import { prescriptionService } from "@/services/prescription";
-import { pharmacyMockApi } from "@/features/pharmacy/api/pharmacy.mock";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/feedback/error-state";
-import type { Prescription } from "@/services/prescription/types";
 import { usePharmacyActions } from "@/features/pharmacy/hooks/usePharmacyQueue";
 
 export default function PharmacyPrescriptionDetailPage() {
@@ -24,7 +21,8 @@ export default function PharmacyPrescriptionDetailPage() {
   if (error || !rx) return <ErrorState message={error ?? "Prescription not found."} onRetry={reload} />;
 
   const handleDispense = async () => {
-    const ok = await run("dispense", rx.id);
+    const items = rx.medicines.map((m) => ({ medicineId: m.medicineId, itemId: m.id, qty: 1 }));
+    const ok = await run("dispense", rx.id, { items });
     if (ok) reload();
   };
 

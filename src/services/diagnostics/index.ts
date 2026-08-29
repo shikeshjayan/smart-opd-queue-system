@@ -761,11 +761,11 @@ export { testCatalogue };
 export function encounterRefFor(encounter: Encounter): DiagnosticOrderContextRef {
   return {
     patientId: encounter.patientId,
-    doctorId: encounter.doctorId,
-    doctorName: encounter.doctorName,
+    doctorId: encounter.doctorId ?? "",
+    doctorName: encounter.doctorName ?? "",
     hospitalId: encounter.hospitalId,
-    hospitalName: encounter.hospitalName,
-    departmentName: encounter.departmentName,
+    hospitalName: encounter.hospitalName ?? "",
+    departmentName: encounter.departmentName ?? "",
   };
 }
 

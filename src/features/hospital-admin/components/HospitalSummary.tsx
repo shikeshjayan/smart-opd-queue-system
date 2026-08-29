@@ -18,7 +18,7 @@ export function HospitalSummary({ hospital }: HospitalSummaryProps) {
             {hospital.name}
           </h1>
           <p className="mt-1 text-sm text-ink-500">
-            {getDistrictName(hospital.district)} · {hospital.address}
+            {getDistrictName(hospital.districtId)} · {hospital.address}
           </p>
           <p className="mt-0.5 text-sm text-ink-500">Phone: {hospital.phone}</p>
         </div>

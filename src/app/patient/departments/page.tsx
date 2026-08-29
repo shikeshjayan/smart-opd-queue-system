@@ -31,7 +31,7 @@ function DepartmentsContent() {
       ) : hospital ? (
         <div>
           <h1 className="text-2xl font-bold text-ink-900">Select Department</h1>
-          <p className="mt-1 text-sm text-ink-500">{hospital.name}, {hospital.district}</p>
+          <p className="mt-1 text-sm text-ink-500">{hospital.name}, {hospital.districtId}</p>
         </div>
       ) : (
         <h1 className="text-2xl font-bold text-ink-900">Select Department</h1>
