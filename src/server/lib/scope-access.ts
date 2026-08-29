@@ -2,6 +2,7 @@
 
 import "server-only";
 import { createAccessContext, type AccessContext } from "./access-context";
+export type { AccessContext };
 import type { Permission } from "@/features/auth/permissions";
 
 export class ScopeError extends Error {

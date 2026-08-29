@@ -1,127 +1,231 @@
 "use server";
 
 import "server-only";
-import { dbConnect } from "@/lib/db";
-import { 
-  MedicineStockModel, 
-  StockTransactionModel, 
-  PrescriptionModel, 
-  PrescriptionAuditModel,
-  MedicineModel,
-  CounterModel 
-} from "@/lib/models";
 import { getSession } from "@/lib/auth";
-import { notify } from "@/server/notifications/service";
-import { HospitalModel } from "@/lib/models";
+import { resolveAccessContext } from "@/server/lib/resolve-access-context";
+import { medicineService } from "@/server/services/pharmacy/medicine.service";
+import { inventoryService } from "@/server/services/pharmacy/inventory.service";
+import { dispensingService } from "@/server/services/pharmacy/dispensing.service";
+import { stockAlertService } from "@/server/services/pharmacy/stock-alert.service";
+import { pharmacyRepository } from "@/server/repositories/pharmacy.repository";
+import { prescriptionRepository } from "@/server/repositories/medical-records.repository";
+import { PatientModel, DoctorModel, HospitalModel } from "@/lib/models";
+import { dbConnect } from "@/lib/db";
+import type { AccessContext } from "@/server/lib/access-context";
+import type {
+  DispenseLineInput,
+  MedicineStockBatch,
+  LowStockAlertEntry,
+  ExpiringBatchAlertEntry,
+} from "@/services/pharmacy/types";
+import { EXPIRY_ALERT_DAYS } from "@/services/pharmacy/types";
+import type { Medicine, DispensingRecord } from "@/types";
 
-// Helper: atomic batch select FEFO
-async function getBatchesForDispense(medicineId: string, hospitalId: string, quantityNeeded: number) {
-  return await MedicineStockModel.find({
-    medicineId,
-    hospitalId,
-    status: "available",
-    quantity: { $gt: 0 }
-  }).sort({ expiryDate: 1 }).lean();
-}
-
-export async function dispensePrescription(prescriptionId: string, items: { medicineId: string, qty: number }[]) {
-  await dbConnect();
+async function getAccessContext(): Promise<AccessContext> {
   const session = await getSession();
-  const now = new Date().toISOString();
-  
-  // Start Session Transaction
-  const sessionDb = await MedicineStockModel.startSession();
-  sessionDb.startTransaction();
+  if (!session) throw new Error("Unauthorized");
+  return resolveAccessContext(session);
+}
 
-  try {
-    const prescription = await PrescriptionModel.findById(prescriptionId).session(sessionDb);
-    if (!prescription) throw new Error("Prescription not found");
+function resolveHospital(ctx: AccessContext, hospitalId?: string): string {
+  if (hospitalId) return hospitalId;
+  const ids = ctx.getAuthorizedHospitalIds();
+  if (ids.length === 1) return ids[0];
+  throw new Error("Hospital context required");
+}
 
-    const dispensedBatches: { batchNumber: string, medicineId: string, qty: number }[] = [];
-    let totalDispensed = 0;
+/* ---------- Dashboard & alerts ---------- */
 
-    for (const item of items) {
-      let remainingToDispense = item.qty;
-      const batches = await getBatchesForDispense(item.medicineId, prescription.hospitalId, item.qty);
+export async function getPharmacyDashboard(hospitalId?: string) {
+  const ctx = await getAccessContext();
+  return stockAlertService.dashboard(resolveHospital(ctx, hospitalId), ctx);
+}
 
-      for (const batch of batches) {
-        if (remainingToDispense <= 0) break;
-        
-        const take = Math.min(remainingToDispense, batch.quantity);
-        
-        await MedicineStockModel.findByIdAndUpdate(batch._id, { $inc: { quantity: -take } }, { session: sessionDb });
-        await StockTransactionModel.create([{
-          stockId: batch._id,
-          medicineId: item.medicineId,
-          hospitalId: prescription.hospitalId,
-          type: "dispensed",
-          delta: -take,
-          balanceAfter: batch.quantity - take,
-          prescriptionId,
-          by: session?.id,
-          at: now
-        }], { session: sessionDb });
-
-        dispensedBatches.push({ batchNumber: batch.batchNumber, medicineId: item.medicineId, qty: take });
-        remainingToDispense -= take;
-        totalDispensed += take;
-      }
-      
-      if (remainingToDispense > 0) throw new Error(`Insufficient stock for ${item.medicineId}`);
-    }
-
-    // Update prescription
-    prescription.status = totalDispensed === prescription.totalItems ? "dispensed" : "partially_dispensed";
-    prescription.dispensedItems = [...(prescription.dispensedItems || []), ...dispensedBatches];
-    await prescription.save({ session: sessionDb });
-
-    await PrescriptionAuditModel.create([{
-      prescriptionId,
-      action: "DISPENSED",
-      actorId: session?.id,
-      detail: { dispensedBatches, totalDispensed },
-      createdAt: now
-    }], { session: sessionDb });
-
-    await sessionDb.commitTransaction();
-
-    // §7: notify patient of prescription status (outside transaction — §1)
-    if (prescription.patientId) {
-      const hosp = await HospitalModel.findById(prescription.hospitalId).select("name").lean();
-      const hospName = hosp?.name ?? "the hospital";
-      const templateKey =
-        prescription.status === "dispensed"
-          ? "PRESCRIPTION_DISPENSED"
-          : "PRESCRIPTION_PARTIALLY_DISPENSED";
-      await notify({
-        userId: prescription.patientId,
-        templateKey,
-        params: { hospital: hospName },
-        idempotencyKey: `prescription:${prescriptionId}:${prescription.status}`,
-        hospitalId: prescription.hospitalId,
-        audience: "patient",
-        resourceType: "prescription",
-        resourceId: prescriptionId,
-      });
-    }
-
-    return { success: true, status: prescription.status };
-  } catch (err) {
-    await sessionDb.abortTransaction();
-    throw err;
-  } finally {
-    sessionDb.endSession();
+export async function getPharmacyQueue(hospitalId?: string, limit = 100) {
+  const ctx = await getAccessContext();
+  const hospital = resolveHospital(ctx, hospitalId);
+  const prescriptions = await prescriptionRepository.findSentToPharmacy(hospital, ctx, limit);
+  await dbConnect();
+  const entries = [];
+  for (const rx of prescriptions) {
+    const availability = await dispensingService.getAvailability(rx.id, hospital, ctx);
+    const patDoc = rx.patientId
+      ? await PatientModel.findOne({ _id: rx.patientId })
+          .select("name tokenNumber")
+          .lean<{ name?: string; tokenNumber?: string } | null>()
+      : null;
+    const docDoc = rx.doctorId
+      ? await DoctorModel.findOne({ _id: rx.doctorId })
+          .select("name")
+          .lean<{ name?: string } | null>()
+      : null;
+    const hospDoc = await HospitalModel.findById(hospital).select("name").lean();
+    entries.push({
+      prescriptionId: rx.id,
+      encounterId: rx.encounterId,
+      patientId: rx.patientId,
+      patientName: patDoc?.name ?? "Patient",
+      tokenNumber: patDoc?.tokenNumber,
+      hospitalId: hospital,
+      hospitalName: hospDoc?.name ?? "",
+      departmentName: "",
+      doctorName: docDoc?.name ?? rx.doctorName ?? "",
+      finalizedAt: rx.finalizedAt,
+      status: (rx.status === "dispensed"
+        ? "sent_to_pharmacy"
+        : rx.status) as "sent_to_pharmacy" | "partially_dispensed",
+      items: availability,
+      dispatchedAt: rx.updatedAt,
+    });
   }
+  return entries;
 }
 
-export async function listStock(hospitalId: string) {
-    await dbConnect();
-    return await MedicineStockModel.find({ hospitalId }).populate('medicineId').lean();
+export async function getLowStockAlerts(hospitalId?: string): Promise<LowStockAlertEntry[]> {
+  const ctx = await getAccessContext();
+  return stockAlertService.lowStock(resolveHospital(ctx, hospitalId), ctx);
 }
 
-export async function getLowStockAlerts(hospitalId: string) {
-    await dbConnect();
-    // Logic: sum quantity per medicineId where quantity < minLevel
-    // Placeholder - requires InventoryConfigModel integration
-    return [];
+export async function getExpiringAlerts(
+  hospitalId?: string,
+  withinDays = EXPIRY_ALERT_DAYS
+): Promise<ExpiringBatchAlertEntry[]> {
+  const ctx = await getAccessContext();
+  return stockAlertService.expiringSoon(resolveHospital(ctx, hospitalId), ctx, withinDays);
+}
+
+/* ---------- Stock & inventory ---------- */
+
+export async function listStock(hospitalId?: string): Promise<MedicineStockBatch[]> {
+  const ctx = await getAccessContext();
+  return inventoryService.listBatches(resolveHospital(ctx, hospitalId), ctx);
+}
+
+export async function getInventorySummary(hospitalId?: string) {
+  const ctx = await getAccessContext();
+  return inventoryService.getSummary(resolveHospital(ctx, hospitalId), ctx);
+}
+
+export async function receiveStock(data: {
+  hospitalId: string;
+  medicineId: string;
+  medicineName?: string;
+  batchNumber: string;
+  quantity: number;
+  expiryDate: string;
+  unit?: string;
+}) {
+  const ctx = await getAccessContext();
+  return inventoryService.receiveStock(data, ctx);
+}
+
+export async function adjustStock(data: {
+  hospitalId: string;
+  stockId: string;
+  medicineId: string;
+  medicineName?: string;
+  batchNumber?: string;
+  delta: number;
+  reason: string;
+}) {
+  const ctx = await getAccessContext();
+  return inventoryService.adjustStock(data, ctx);
+}
+
+export async function markBatchStatus(
+  stockId: string,
+  status: MedicineStockBatch["status"],
+  reason: string
+) {
+  const ctx = await getAccessContext();
+  return inventoryService.setBatchStatus(stockId, status, reason, ctx);
+}
+
+export async function upsertStockThreshold(hospitalId: string, medicineId: string, minLevel: number) {
+  const ctx = await getAccessContext();
+  return inventoryService.upsertThreshold(hospitalId, medicineId, minLevel, ctx);
+}
+
+export async function listStockThresholds(hospitalId?: string) {
+  const ctx = await getAccessContext();
+  return inventoryService.listThresholds(resolveHospital(ctx, hospitalId), ctx);
+}
+
+export async function listStockTransactions(hospitalId?: string, limit = 100) {
+  const ctx = await getAccessContext();
+  return pharmacyRepository.listTransactions(resolveHospital(ctx, hospitalId), ctx, limit);
+}
+
+/* ---------- Dispensing ---------- */
+
+export async function dispatchToPharmacy(prescriptionId: string) {
+  const ctx = await getAccessContext();
+  const prescription = await prescriptionRepository.findById(prescriptionId, ctx);
+  if (!prescription) throw new Error("Prescription not found");
+  await dbConnect();
+  await prescriptionRepository.updateStatus(prescriptionId, "sent_to_pharmacy", ctx);
+  return { success: true, prescriptionId };
+}
+
+export async function dispensePrescription(
+  prescriptionId: string,
+  hospitalId: string | undefined,
+  items: DispenseLineInput[]
+) {
+  const ctx = await getAccessContext();
+  return dispensingService.dispensePrescription(prescriptionId, resolveHospital(ctx, hospitalId), items, ctx);
+}
+
+export async function getPrescriptionAvailability(prescriptionId: string, hospitalId?: string) {
+  const ctx = await getAccessContext();
+  return dispensingService.getAvailability(prescriptionId, resolveHospital(ctx, hospitalId), ctx);
+}
+
+export async function listDispensingHistory(hospitalId?: string, limit = 50): Promise<DispensingRecord[]> {
+  const ctx = await getAccessContext();
+  const docs = await pharmacyRepository.listDispensingByHospital(resolveHospital(ctx, hospitalId), ctx, limit);
+  return docs as unknown as DispensingRecord[];
+}
+
+export async function getPatientDispensingHistory(patientId: string, limit = 50) {
+  const ctx = await getAccessContext();
+  const docs = await pharmacyRepository.listDispensingByPatient(patientId, ctx, limit);
+  return docs as unknown as DispensingRecord[];
+}
+
+/* ---------- Medicine catalogue ---------- */
+
+export async function listMedicines(search?: string): Promise<Medicine[]> {
+  const ctx = await getAccessContext();
+  return medicineService.list(ctx, search);
+}
+
+export async function createMedicine(data: {
+  name: string;
+  genericName?: string;
+  strength?: string;
+  dosageForm?: string;
+  unit: string;
+}): Promise<Medicine> {
+  const ctx = await getAccessContext();
+  return medicineService.create(data, ctx);
+}
+
+/* ---------- Audit ---------- */
+
+export async function getPharmacyAuditLog(hospitalId?: string) {
+  const ctx = await getAccessContext();
+  const hospital = resolveHospital(ctx, hospitalId);
+  return pharmacyRepository.listTransactions(hospital, ctx, 200);
+}
+
+export async function getPharmacyQueueStats(hospitalId?: string) {
+  const ctx = await getAccessContext();
+  const hospital = resolveHospital(ctx, hospitalId);
+  const [pending, partial, completed] = await Promise.all([
+    prescriptionRepository.countPrescriptionsByStatus(hospital, "sent_to_pharmacy", ctx),
+    prescriptionRepository.countPrescriptionsByStatus(hospital, "partially_dispensed", ctx),
+    prescriptionRepository.countPrescriptionsByStatus(hospital, "dispensed", ctx),
+  ]);
+  return { pending, partial, completed };
 }

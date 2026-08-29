@@ -465,6 +465,7 @@ export type MedicalPrescription = {
   encounterId: string;
   patientId: string;
   doctorId: string;
+  doctorName?: string;
   hospitalId: string;
   items: Array<{
     medicineName: string;
@@ -477,6 +478,8 @@ export type MedicalPrescription = {
   instructions?: string;
   workflowStatus: string;
   status: string;
+  dispensedItems?: unknown[];
+  activity?: unknown[];
   createdAt: string;
   finalizedAt?: string;
   updatedAt: string;
@@ -495,6 +498,13 @@ export class PrescriptionRepository {
     assertPatientAccess(ctx, patientId);
     const docs = await PrescriptionModel.find({ patientId }).sort({ createdAt: -1 }).limit(limit).lean();
     return plainList<MedicalPrescription>(docs);
+  }
+
+  async findById(prescriptionId: string, ctx: AccessContext): Promise<MedicalPrescription | null> {
+    await dbConnect();
+    const doc = await PrescriptionModel.findById(prescriptionId).lean();
+    if (doc) assertPatientAccess(ctx, String((doc as unknown as { patientId?: unknown }).patientId));
+    return plain<MedicalPrescription>(doc);
   }
 
   async create(data: {
@@ -535,9 +545,44 @@ export class PrescriptionRepository {
 
     return plain<any>(doc);
   }
+  async updateStatus(prescriptionId: string, status: string, ctx: AccessContext): Promise<MedicalPrescription | null> {
+    await dbConnect();
+    const existing = await PrescriptionModel.findById(prescriptionId).lean();
+    if (existing) assertPatientAccess(ctx, String((existing as unknown as { patientId?: unknown }).patientId));
+    const doc = await PrescriptionModel.findByIdAndUpdate(
+      prescriptionId,
+      { $set: { status, updatedAt: new Date().toISOString() } },
+      { new: true }
+    ).lean();
+    return plain<MedicalPrescription>(doc);
+  }
+
+  async countPrescriptionsByStatus(
+    hospitalId: string,
+    status: string,
+    ctx: AccessContext
+  ): Promise<number> {
+    await dbConnect();
+    assertHospitalAccess(ctx, hospitalId);
+    return PrescriptionModel.countDocuments({ hospitalId, status });
+  }
+
+  async findSentToPharmacy(hospitalId: string, ctx: AccessContext, limit = 100): Promise<MedicalPrescription[]> {
+    await dbConnect();
+    assertHospitalAccess(ctx, hospitalId);
+    const docs = await PrescriptionModel.find({
+      hospitalId,
+      status: { $in: ["sent_to_pharmacy", "partially_dispensed"] },
+    })
+      .sort({ finalizedAt: -1 })
+      .limit(limit)
+      .lean();
+    return plainList<MedicalPrescription>(docs);
+  }
 }
 
 export const prescriptionRepository = new PrescriptionRepository();
+
 
 /* ---------- Lab (read-only wrapper over DiagnosticOrder/Result) ---------- */
 

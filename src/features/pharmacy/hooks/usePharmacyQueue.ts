@@ -1,21 +1,26 @@
 import { useState } from "react";
 import { useAsync } from "@/lib/use-async";
-import { pharmacyMockApi } from "../api/pharmacy.mock";
+import { pharmacyApi } from "../api/pharmacy.api";
 
 export function usePharmacyQueue() {
-  return useAsync(() => pharmacyMockApi.getQueue(), []);
+  return useAsync(() => pharmacyApi.getQueue(), []);
 }
 
 export function usePharmacyActions() {
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(action: "dispatch" | "dispense", prescriptionId: string) {
+  async function run(
+    action: "dispatch" | "dispense",
+    prescriptionId: string,
+    options?: { hospitalId?: string; items?: { medicineId: string; itemId?: string; qty: number }[] }
+  ) {
     setRunning(prescriptionId);
     setError(null);
     try {
-      if (action === "dispatch") await pharmacyMockApi.dispatch(prescriptionId);
-      else await pharmacyMockApi.dispense(prescriptionId);
+      if (action === "dispatch") await pharmacyApi.dispatch(prescriptionId);
+      else
+        await pharmacyApi.dispense(prescriptionId, options?.hospitalId, options?.items ?? []);
       return true;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Pharmacy action failed.");

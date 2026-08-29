@@ -1114,8 +1114,29 @@ export const ScheduleConfigModel =
 
 /* ---------- Medicine catalogue & diagnostics catalogue (reference data) ---------- */
 
+const medicineSchema = new Schema(
+  {
+    name: { type: String, required: true, index: true },
+    genericName: String,
+    strength: String,
+    dosageForm: String,
+    unit: { type: String, required: true, default: "units" },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+medicineSchema.index({ genericName: 1 });
+medicineSchema.index({ name: "text", genericName: "text" });
+
 export const MedicineModel =
-  mongoose.models.Medicine ?? mongoose.model("Medicine", new Schema({}, { strict: false }));
+  mongoose.models.Medicine ?? mongoose.model("Medicine", medicineSchema);
 
 export const TestCatalogueModel =
   mongoose.models.TestCatalogue ?? mongoose.model("TestCatalogue", new Schema({}, { strict: false }));
@@ -1149,11 +1170,13 @@ const medicineStockSchema = new Schema(
     hospitalId: { type: String, required: true },
     batchNumber: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0 },
+    receivedQuantity: { type: Number, required: true },
+    availableQuantity: { type: Number, required: true, default: 0 },
     expiryDate: { type: String, required: true }, // YYYY-MM-DD
     unit: { type: String, default: "units" },
     status: {
       type: String,
-      enum: ["available", "expired", "blocked"],
+      enum: ["available", "expired", "blocked", "recalled", "depleted"],
       default: "available",
     },
     createdAt: { type: Date, default: Date.now },
@@ -1268,6 +1291,46 @@ inventoryConfigSchema.index({ hospitalId: 1, medicineId: 1 }, { unique: true });
 
 export const InventoryConfigModel =
   mongoose.models.InventoryConfig ?? mongoose.model("InventoryConfig", inventoryConfigSchema);
+
+/* ---------- Pharmacy: Dispensing records (§12/§28) ---------- */
+
+const dispensedItemSchema = new Schema(
+  {
+    medicineId: { type: String, required: true },
+    batchId: { type: String, required: true },
+    prescribedQuantity: { type: Number, required: true },
+    dispensedQuantity: { type: Number, required: true },
+    instructions: String,
+  },
+  { _id: false, versionKey: false }
+);
+
+const dispensingSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    patientId: { type: String, required: true, index: true },
+    prescriptionId: { type: String, required: true, index: true },
+    encounterId: { type: String, required: true },
+    hospitalId: { type: String, required: true, index: true },
+    pharmacyId: String,
+    pharmacistId: { type: String, required: true },
+    items: [dispensedItemSchema],
+    status: {
+      type: String,
+      enum: ["completed", "partial", "cancelled"],
+      default: "completed",
+    },
+    dispensedAt: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false }
+);
+
+dispensingSchema.index({ hospitalId: 1, dispensedAt: -1 });
+dispensingSchema.index({ patientId: 1, dispensedAt: -1 });
+
+export const DispensingModel =
+  mongoose.models.Dispensing ?? mongoose.model("Dispensing", dispensingSchema);
 
 /* ---------- Phase 27 — Governance Models ---------- */
 

@@ -818,3 +818,115 @@ export type Announcement = {
   createdAt: string;
   updatedAt: string;
 };
+
+/* ---------- Phase 29 — Pharmacy & Medication Management ---------- */
+
+export type MedicineStatus = "active" | "inactive";
+
+export type Medicine = {
+  id: string;
+  name: string;
+  genericName?: string;
+  strength?: string;
+  dosageForm?: string;
+  unit: string;
+  status: MedicineStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StockBatchStatus = "available" | "expired" | "blocked" | "recalled" | "depleted";
+
+export type MedicineBatch = {
+  id: string;
+  stockId: string;
+  medicineId: string;
+  hospitalId: string;
+  batchNumber: string;
+  expiryDate: string;
+  receivedQuantity: number;
+  availableQuantity: number;
+  receivedAt: string;
+  status: StockBatchStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StockMovementType =
+  | "receipt"
+  | "dispense"
+  | "adjustment"
+  | "return"
+  | "expiry"
+  | "transfer"
+  | "blocked"
+  | "unblocked";
+
+export type StockMovement = {
+  id: string;
+  hospitalId: string;
+  medicineId: string;
+  batchId: string;
+  type: StockMovementType;
+  quantity: number;
+  referenceId?: string;
+  performedBy: string;
+  createdAt: string;
+};
+
+export type DispensedItem = {
+  medicineId: string;
+  batchId: string;
+  prescribedQuantity: number;
+  dispensedQuantity: number;
+  instructions?: string;
+};
+
+export type DispensingRecord = {
+  id: string;
+  patientId: string;
+  prescriptionId: string;
+  encounterId: string;
+  hospitalId: string;
+  pharmacyId: string;
+  pharmacistId: string;
+  items: DispensedItem[];
+  status: "completed" | "partial" | "cancelled";
+  dispensedAt: string;
+};
+
+export type PharmacyAuditAction =
+  | "medicine_created"
+  | "medicine_updated"
+  | "batch_received"
+  | "stock_adjusted"
+  | "stock_transferred"
+  | "medicine_dispensed"
+  | "medicine_returned"
+  | "medicine_expired"
+  | "batch_quarantined"
+  | "prescription_cancelled";
+
+export type PharmacyAuditLog = {
+  id: string;
+  action: PharmacyAuditAction;
+  actorId: string;
+  actorName: string;
+  actorRole: string;
+  hospitalId: string;
+  medicineId?: string;
+  batchId?: string;
+  prescriptionId?: string;
+  detail?: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type InventoryThreshold = {
+  id: string;
+  hospitalId: string;
+  medicineId: string;
+  minLevel: number;
+  reorderLevel: number;
+  createdAt: string;
+  updatedAt: string;
+};

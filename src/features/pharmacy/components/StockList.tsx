@@ -10,7 +10,7 @@ export interface StockBatchView {
   status: "available" | "expired" | "blocked";
 }
 
-export function StockList({ batches }: { hospitalId: string; batches?: StockBatchView[] }) {
+export function StockList({ batches }: { hospitalId?: string; batches?: StockBatchView[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {(batches ?? []).map((b) => (
