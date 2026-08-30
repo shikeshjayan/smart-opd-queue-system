@@ -1,4 +1,3 @@
-"use server";
 
 import "server-only";
 import { analyticsRepository } from "@/server/repositories/governance.repository";

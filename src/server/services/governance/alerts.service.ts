@@ -1,4 +1,3 @@
-"use server";
 
 import "server-only";
 import { alertRepository } from "@/server/repositories/governance.repository";

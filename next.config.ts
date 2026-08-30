@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   turbopack: {},
+  serverExternalPackages: ["mongoose", "mongodb"],
   async headers() {
     return [
       {

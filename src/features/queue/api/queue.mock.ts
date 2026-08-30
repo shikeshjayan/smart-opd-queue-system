@@ -138,17 +138,7 @@ export const queueMockApi = {
   },
 
   async callToken(tokenNumber: string): Promise<QueueEntry | undefined> {
-    const { default: mongoose } = await import("mongoose");
-    const { QueueEntryModel } = await import("@/lib/models");
-    await (QueueEntryModel as any).findOneAndUpdate(
-      { tokenNumber, status: "waiting" },
-      { $set: { status: "called", updatedAt: new Date().toISOString() } }
-    );
-    const entry = await QueueEntryModel.findOne({ tokenNumber }).lean();
-    if (entry) {
-      emit({ opdId: (entry as any).opdId ?? "opd_001", tokenNumber, message: `Token ${tokenNumber} has been called` });
-    }
-    return entry as QueueEntry | undefined;
+    return callNextEntry("opd_001") as unknown as QueueEntry | undefined;
   },
 
   async startConsultation(tokenNumber: string): Promise<QueueEntry | undefined> {

@@ -1,4 +1,3 @@
-"use server";
 
 import "server-only";
 import type { AccessContext } from "@/server/lib/access-context";
