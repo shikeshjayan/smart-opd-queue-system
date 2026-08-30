@@ -1,4 +1,3 @@
-"use server";
 
 import "server-only";
 import mongoose from "mongoose";

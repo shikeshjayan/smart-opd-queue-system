@@ -1,4 +1,3 @@
-"use server";
 
 import "server-only";
 import { pharmacyRepository } from "@/server/repositories/pharmacy.repository";

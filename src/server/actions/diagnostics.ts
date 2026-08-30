@@ -89,7 +89,7 @@ function resolveOrderStatus(d: any): DiagnosticOrderStatus {
   return LEGACY_ORDER_STATUS_MAP[d.status] ?? "ordered";
 }
 
-export function normalizeOrder(doc: OrderDoc | null): DiagnosticOrder | null {
+function normalizeOrder(doc: OrderDoc | null): DiagnosticOrder | null {
   if (!doc) return null;
   const d = doc as any;
   return {
@@ -113,7 +113,7 @@ export function normalizeOrder(doc: OrderDoc | null): DiagnosticOrder | null {
   };
 }
 
-export function normalizeResult(doc: OrderDoc | null): DiagnosticResult | null {
+function normalizeResult(doc: OrderDoc | null): DiagnosticResult | null {
   if (!doc) return null;
   const d = doc as any;
   return {

@@ -1,4 +1,3 @@
-"use server";
 
 import "server-only";
 import { dbConnect } from "@/lib/db";

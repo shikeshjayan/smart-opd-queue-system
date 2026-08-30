@@ -1,4 +1,3 @@
-"use server";
 
 import "server-only";
 import { getPendingEvents, markEventProcessing, markEventCompleted, markEventFailed } from "@/server/services/outbox.service";
