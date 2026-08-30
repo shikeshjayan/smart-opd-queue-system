@@ -30,7 +30,7 @@ export function StaffLoginForm() {
     try {
       const sessionUser = await authMockApi.staffLogin(staffId, password);
       if (!sessionUser) {
-        setError("Invalid staff ID or password. Try doc_001 / doctor123.");
+        setError("Invalid staff ID or password.");
         return;
       }
       authorize(sessionUser);

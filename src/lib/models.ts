@@ -66,6 +66,8 @@ export type UserDoc = {
   phone?: string;
   passwordHash?: string;
   salt?: string;
+  loginAttempts?: number;
+  loginCooldownUntil?: Date;
   scope: {
     stateId?: string;
     districtId?: string;
@@ -99,6 +101,8 @@ const userSchema = new Schema<UserDoc>(
     phone: { type: String },
     passwordHash: { type: String },
     salt: { type: String },
+    loginAttempts: { type: Number, default: 0 },
+    loginCooldownUntil: { type: Date },
     scope: {
       stateId: String,
       districtId: String,
@@ -124,6 +128,7 @@ const otpSchema = new Schema(
     code: { type: String, required: true },
     expiresAt: { type: Date, required: true },
     attempts: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now },
   },
   { versionKey: false }
 );
