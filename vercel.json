@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "30 23 * * *"
+    }
+  ]
+}

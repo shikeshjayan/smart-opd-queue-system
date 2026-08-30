@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { processQueue } from "@/server/notifications/worker";
 
 /**
@@ -9,10 +10,21 @@ import { processQueue } from "@/server/notifications/worker";
  * Configure in vercel.json or any external scheduler:
  * { "path": "/api/cron/notifications", "scheme": "https" }
  */
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const expected = process.env.CRON_SECRET;
-  if (!expected || authHeader !== `Bearer ${expected}`) {
+  if (!expected) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!timingSafeStringEqual(token, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
